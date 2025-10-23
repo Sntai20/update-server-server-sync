@@ -192,7 +192,7 @@ fi
 if [[ "$START_FUNCTIONS" == true && "$USE_APPHOST" == true ]]; then
     echo ""
     echo "🚀 Starting AppHost..."
-    cd "./tests/MicrosoftUpdateFunctions.AppHost"
+    cd "./MicrosoftUpdateFunctions.AppHost"
     dotnet run
 elif [[ "$START_FUNCTIONS" == true ]]; then
     echo ""

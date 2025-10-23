@@ -84,7 +84,7 @@ Write-Host "💾 Updated $localSettingsPath" -ForegroundColor Green
 if ($UseAppHost) {
     Write-Host "🚀 Configuring AppHost for $StorageMode mode..." -ForegroundColor Magenta
     
-    $appHostPath = "./tests/MicrosoftUpdateFunctions.AppHost/Program.cs"
+    $appHostPath = "./MicrosoftUpdateFunctions.AppHost/Program.cs"
     
     if ($StorageMode -eq "AzureEmulator") {
         $appHostContent = @"
@@ -168,7 +168,7 @@ if ($StorageMode -eq "AzureEmulator") {
 if ($StartFunctions -and $UseAppHost) {
     Write-Host ""
     Write-Host "🚀 Starting AppHost..." -ForegroundColor Green
-    Set-Location "./tests/MicrosoftUpdateFunctions.AppHost"
+    Set-Location "./MicrosoftUpdateFunctions.AppHost"
     dotnet run
 } elseif ($StartFunctions) {
     Write-Host ""

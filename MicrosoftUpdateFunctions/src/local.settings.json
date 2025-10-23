@@ -1,13 +1,10 @@
 {
   "IsEncrypted": false,
   "Values": {
-    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "AzureWebJobsStorage": "",
     "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
-    "StorageConnection": "UseDevelopmentStorage=true",
-    "MetadataStorageConnection": "UseDevelopmentStorage=true",
-    "ContentStorageConnection": "UseDevelopmentStorage=true",
-    "MetadataStorePath": "metadata",
-    "ContentStorePath": "content",
+    "MetadataStorePath": "./store",
+    "ContentStorePath": "./content",
     "ServiceConfigurationJson": "{\"ServiceUrl\":\"http://localhost:7071\",\"ContentUrl\":\"http://localhost:7071/api/content\",\"MaxUpdateCount\":1000,\"SupportedCategories\":[\"Security Updates\",\"Critical Updates\",\"Feature Packs\"]}",
     "ContentHttpRoot": "http://localhost:7071/api/content",
     "AZURE_FUNCTIONS_ENVIRONMENT": "Development",
