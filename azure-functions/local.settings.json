@@ -1,11 +1,13 @@
 {
   "IsEncrypted": false,
   "Values": {
-    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "AzureWebJobsStorage": "",
     "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
     "MetadataStorePath": "./store",
     "ContentStorePath": "./content",
     "ServiceConfigurationJson": "{\"ServiceUrl\":\"http://localhost:7071\",\"ContentUrl\":\"http://localhost:7071/api/content\"}",
-    "ContentHttpRoot": "http://localhost:7071/api/content"
+    "ContentHttpRoot": "http://localhost:7071/api/content",
+    "AZURE_FUNCTIONS_ENVIRONMENT": "Development",
+    "AzureWebJobsSecretStorageType": "files"
   }
 }

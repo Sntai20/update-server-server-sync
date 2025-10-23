@@ -21,7 +21,8 @@ public class AspireTestFixture : IAsyncLifetime
         {
             // Start Azure Functions using func CLI
             var currentDir = Directory.GetCurrentDirectory();
-            var funcPath = Path.Combine(currentDir, "../../azure-functions");
+            // Navigate from test bin directory to the azure-functions folder
+            var funcPath = Path.Combine(currentDir, "../../../../../azure-functions");
             var fullFuncPath = Path.GetFullPath(funcPath);
             
             if (!Directory.Exists(fullFuncPath))
@@ -47,20 +48,41 @@ public class AspireTestFixture : IAsyncLifetime
                 throw new InvalidOperationException("Failed to start Azure Functions process");
             }
 
-            // Wait for Functions to start up
-            await Task.Delay(5000);
+            // Wait for Functions to start up - increased timeout
+            await Task.Delay(15000);
 
             // Create HTTP client for the functions
             HttpClient = new HttpClient();
             BaseAddress = "http://localhost:7071/api/";
             HttpClient.BaseAddress = new Uri(BaseAddress);
+            HttpClient.Timeout = TimeSpan.FromMinutes(2);
             
-            // Test that the functions are responding
-            var healthCheck = await HttpClient.GetAsync("ClientWebService/ClientWebService.asmx");
-            if (!healthCheck.IsSuccessStatusCode && healthCheck.StatusCode != System.Net.HttpStatusCode.MethodNotAllowed)
+            // Test that the functions are responding with retry logic
+            const int maxRetries = 10;
+            const int delayMs = 2000;
+            
+            for (int i = 0; i < maxRetries; i++)
             {
-                throw new InvalidOperationException("Azure Functions are not responding properly");
+                try
+                {
+                    var healthCheck = await HttpClient.GetAsync("ClientWebService/ClientWebService.asmx");
+                    if (healthCheck.IsSuccessStatusCode || healthCheck.StatusCode == System.Net.HttpStatusCode.MethodNotAllowed)
+                    {
+                        return; // Functions are ready
+                    }
+                }
+                catch
+                {
+                    // Functions not ready yet, continue retrying
+                }
+                
+                if (i < maxRetries - 1)
+                {
+                    await Task.Delay(delayMs);
+                }
             }
+            
+            throw new InvalidOperationException("Azure Functions are not responding properly after startup");
         }
         catch (Exception ex)
         {

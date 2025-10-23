@@ -69,7 +69,7 @@ public class AspireAppHostTestFixture : IAsyncLifetime
     {
         try
         {
-            var appHostPath = Path.GetFullPath("../../tests/MicrosoftUpdateFunctions.AppHost");
+            var appHostPath = Path.GetFullPath("../../../../../tests/MicrosoftUpdateFunctions.AppHost");
             if (Directory.Exists(appHostPath))
             {
                 var startInfo = new ProcessStartInfo
@@ -103,7 +103,7 @@ public class AspireAppHostTestFixture : IAsyncLifetime
 
     private async Task StartAzureFunctionsDirect()
     {
-        var funcPath = Path.GetFullPath("../../azure-functions");
+        var funcPath = Path.GetFullPath("../../../../../azure-functions");
         
         var startInfo = new ProcessStartInfo
         {
