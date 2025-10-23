@@ -48,14 +48,14 @@ fi
 echo "🔧 Storage mode set to: $STORAGE_MODE"
 
 # Create local.settings.json based on storage mode
-LOCAL_SETTINGS_PATH="./azure-functions/local.settings.json"
+LOCAL_SETTINGS_PATH="./MicrosoftUpdateFunctions/src/local.settings.json"
 
 if [[ "$STORAGE_MODE" == "FileSystem" ]]; then
     echo "📁 Configuring for local file system storage..."
     
     # Create directories
-    mkdir -p "./azure-functions/store"
-    mkdir -p "./azure-functions/content"
+    mkdir -p "./MicrosoftUpdateFunctions/src/store"
+    mkdir -p "./MicrosoftUpdateFunctions/src/content"
     
     cat > "$LOCAL_SETTINGS_PATH" << EOF
 {
@@ -109,7 +109,7 @@ echo "💾 Updated $LOCAL_SETTINGS_PATH"
 if [[ "$USE_APPHOST" == true ]]; then
     echo "🚀 Configuring AppHost for $STORAGE_MODE mode..."
     
-    APPHOST_PATH="./tests/MicrosoftUpdateFunctions.AppHost/Program.cs"
+    APPHOST_PATH="./MicrosoftUpdateFunctions.AppHost/Program.cs"
     
     if [[ "$STORAGE_MODE" == "AzureEmulator" ]]; then
         cat > "$APPHOST_PATH" << 'EOF'
@@ -121,7 +121,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 var storage = builder.AddAzureStorage("storage").RunAsEmulator();
 
 // Add the Microsoft Update Functions with Azure Storage Emulator
-var updateFunctions = builder.AddExecutable("update-functions", "func", "../../azure-functions", "start", "--port", "7071")
+var updateFunctions = builder.AddExecutable("update-functions", "func", "../MicrosoftUpdateFunctions/src", "start", "--port", "7071")
     .WithEnvironment("FUNCTIONS_WORKER_RUNTIME", "dotnet-isolated")
     .WithEnvironment("AzureWebJobsSecretStorageType", "files")
     .WithEnvironment("AZURE_FUNCTIONS_ENVIRONMENT", "Development")
@@ -148,7 +148,7 @@ using Aspire.Hosting;
 var builder = DistributedApplication.CreateBuilder(args);
 
 // Add the Microsoft Update Functions with local file system storage
-var updateFunctions = builder.AddExecutable("update-functions", "func", "../../azure-functions", "start", "--port", "7071")
+var updateFunctions = builder.AddExecutable("update-functions", "func", "../MicrosoftUpdateFunctions/src", "start", "--port", "7071")
     .WithEnvironment("FUNCTIONS_WORKER_RUNTIME", "dotnet-isolated")
     .WithEnvironment("AzureWebJobsStorage", "")
     .WithEnvironment("AzureWebJobsSecretStorageType", "files")
@@ -197,6 +197,6 @@ if [[ "$START_FUNCTIONS" == true && "$USE_APPHOST" == true ]]; then
 elif [[ "$START_FUNCTIONS" == true ]]; then
     echo ""
     echo "🚀 Starting Azure Functions..."
-    cd "./azure-functions"
+    cd "./MicrosoftUpdateFunctions/src"
     func start --port 7071
 fi
