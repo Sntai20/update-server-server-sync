@@ -15,22 +15,44 @@ namespace MicrosoftUpdateFunctions.Services
     {
         public static IServiceCollection AddMicrosoftUpdateServices(this IServiceCollection services, IConfiguration configuration)
         {
-            // Register metadata store
+            // Register metadata store with dynamic storage selection
             services.AddSingleton<IMetadataStore>(provider =>
             {
+                var logger = provider.GetRequiredService<ILogger<IMetadataStore>>();
                 var metadataPath = configuration["MetadataStorePath"] ?? "./store";
+                var metadataStorageConnection = configuration["MetadataStorageConnection"];
+                
+                // For now, only support local file system until Azure Storage packages are added
+                if (!string.IsNullOrEmpty(metadataStorageConnection) && metadataStorageConnection != "")
+                {
+                    logger.LogWarning("Azure Storage connection detected but Azure Storage packages not available. Using local file system instead.");
+                }
+                
+                logger.LogInformation("Using local file system for metadata store: '{MetadataPath}'", metadataPath);
                 return PackageStore.Open(metadataPath);
             });
 
-            // Register content store (optional)
+            // Register content store with dynamic storage selection (optional)
             services.AddSingleton<IContentStore?>(provider =>
             {
+                var logger = provider.GetRequiredService<ILogger<IContentStore>>();
                 var contentPath = configuration["ContentStorePath"];
-                if (!string.IsNullOrEmpty(contentPath))
+                var contentStorageConnection = configuration["ContentStorageConnection"];
+                
+                if (string.IsNullOrEmpty(contentPath))
                 {
-                    return new FileSystemContentStore(contentPath);
+                    logger.LogInformation("No content storage configured");
+                    return null;
                 }
-                return null;
+                
+                // For now, only support local file system until Azure Storage packages are added
+                if (!string.IsNullOrEmpty(contentStorageConnection) && contentStorageConnection != "")
+                {
+                    logger.LogWarning("Azure Storage connection detected but Azure Storage packages not available. Using local file system instead.");
+                }
+                
+                logger.LogInformation("Using local file system for content store: '{ContentPath}'", contentPath);
+                return new FileSystemContentStore(contentPath);
             });
 
             // Register configuration objects
