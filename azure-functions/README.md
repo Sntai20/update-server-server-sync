@@ -7,18 +7,18 @@ This project converts the Microsoft Update server code into Azure isolated C# fu
 The Azure Functions implementation provides the same functionality as the original ASP.NET Core server but in a serverless environment:
 
 - **Client Sync Functions**: Handle Windows Update client requests (MUv6 protocol)
-- **Server Sync Functions**: Handle WSUS server-to-server synchronization 
+- **Server Sync Functions**: Handle WSUS server-to-server synchronization
 - **Content Functions**: Serve update content files
 - **Authentication Functions**: Handle client and server authentication
 
 ## Architecture
 
-```
+```text
 ┌─────────────────┐    ┌──────────────────────┐    ┌─────────────────┐
 │  Windows Update │───▶│  Azure Functions     │───▶│  Storage        │
 │  Clients        │    │  (HTTP Triggered)    │    │  (Metadata &    │
 └─────────────────┘    └──────────────────────┘    │  Content)       │
-                                                    └─────────────────┘
+                                                   └─────────────────┘
 ```
 
 ### Functions
@@ -126,6 +126,7 @@ The content function supports:
 - Proper MIME types and caching headers
 
 Content URLs follow the pattern:
+
 ```
 https://your-function-app.azurewebsites.net/api/content/{hash}
 ```
@@ -137,6 +138,7 @@ Where `{hash}` is the hex-encoded SHA1 or SHA256 hash of the content.
 The metadata sync functions provide the same capabilities as the upsync command-line tool but in a serverless environment:
 
 ### FetchConfiguration
+
 ```bash
 POST /api/FetchConfiguration
 Content-Type: application/json
@@ -147,6 +149,7 @@ Content-Type: application/json
 ```
 
 ### FetchCategories  
+
 ```bash
 POST /api/FetchCategories
 Content-Type: application/json
@@ -157,6 +160,7 @@ Content-Type: application/json
 ```
 
 ### FetchUpdates
+
 ```bash
 POST /api/FetchUpdates  
 Content-Type: application/json
@@ -170,6 +174,7 @@ Content-Type: application/json
 ```
 
 ### ReindexStore
+
 ```bash
 POST /api/ReindexStore
 Content-Type: application/json
@@ -180,6 +185,7 @@ Content-Type: application/json
 ```
 
 ### GetStoreStatus
+
 ```bash
 GET /api/GetStoreStatus
 ```

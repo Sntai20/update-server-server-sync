@@ -5,16 +5,19 @@ The `MetadataSyncFunctionsImproved.cs` file now includes advanced trigger capabi
 ## Available Triggers
 
 ### 1. Timer Triggers (Scheduled Sync)
+
 - **DailyMetadataSync**: Runs daily at 2:00 AM UTC
 - **WeeklyMetadataSync**: Runs weekly on Sundays at 3:00 AM UTC
 - **HourlyMetadataSync**: Runs every hour for high-frequency sync
 
 ### 2. Service Bus Trigger
+
 - **ProcessMetadataSyncRequest**: Processes sync requests from Azure Service Bus queue
 - Supports complex sync operations with filtering
 - Queue name: `metadata-sync-requests`
 
 ### 3. Blob Storage Trigger
+
 - **ProcessSyncConfigFile**: Monitors blob container for configuration file changes
 - Container: `sync-configs`
 - Supports JSON configuration files for batch operations
@@ -35,7 +38,9 @@ Add these settings to your `local.settings.json` or Azure Function App Configura
 ## Usage Examples
 
 ### Service Bus Request Format
+
 Send JSON message to `metadata-sync-requests` queue:
+
 ```json
 {
   "SyncType": "Updates",
@@ -48,7 +53,9 @@ Send JSON message to `metadata-sync-requests` queue:
 ```
 
 ### Blob Configuration Format
+
 Upload JSON file to `sync-configs` container:
+
 ```json
 {
   "Operations": [

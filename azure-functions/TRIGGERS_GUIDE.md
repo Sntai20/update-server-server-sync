@@ -7,6 +7,7 @@ This document explains the different Azure Functions trigger types and their opt
 The original HTTP trigger approach treats metadata sync as a **request/response operation**, but metadata synchronization is actually a **long-running background process**. Here's why different triggers are better:
 
 ### ❌ **HTTP Trigger Limitations**
+
 - **Timeout constraints**: HTTP requests timeout (typically 5-10 minutes)
 - **Synchronous operation**: Client must wait for completion
 - **No retry logic**: Failed requests require manual retry
@@ -29,6 +30,7 @@ public async Task RunScheduledMetadataSync([TimerTrigger("0 0 2 * * *")] TimerIn
 ```
 
 **Benefits**:
+
 - ✅ **Reliable scheduling**: CRON expressions for precise timing
 - ✅ **No timeout limits**: Can run for hours if needed
 - ✅ **Automatic retry**: Built-in retry policies
@@ -36,12 +38,14 @@ public async Task RunScheduledMetadataSync([TimerTrigger("0 0 2 * * *")] TimerIn
 - ✅ **Resource efficient**: No HTTP overhead
 
 **Use Cases**:
+
 - Daily security update synchronization
 - Weekly full catalog refresh
 - Monthly cleanup operations
 - Scheduled maintenance tasks
 
 **CRON Examples**:
+
 ```csharp
 "0 0 2 * * *"     // Daily at 2 AM UTC
 "0 0 1 * * 0"     // Weekly on Sunday at 1 AM UTC  
@@ -63,6 +67,7 @@ public async Task ProcessSyncRequest([ServiceBusTrigger("metadata-sync-requests"
 ```
 
 **Benefits**:
+
 - ✅ **Decoupled architecture**: Producers and consumers are independent
 - ✅ **Guaranteed delivery**: Messages persist until processed
 - ✅ **Dead letter handling**: Failed messages go to dead letter queue
@@ -70,12 +75,14 @@ public async Task ProcessSyncRequest([ServiceBusTrigger("metadata-sync-requests"
 - ✅ **Backpressure handling**: Queue prevents overwhelming the system
 
 **Use Cases**:
+
 - Administrator-initiated sync operations
 - API-triggered synchronization requests
 - Workflow-driven metadata updates
 - Integration with external systems
 
 **Message Example**:
+
 ```json
 {
   "syncType": "updates",
@@ -101,18 +108,21 @@ public async Task ProcessConfigFile([BlobTrigger("metadata-config/{name}")] Stre
 ```
 
 **Benefits**:
+
 - ✅ **Configuration as code**: Sync definitions in version control
 - ✅ **Batch operations**: Multiple sync operations in one file
 - ✅ **Audit trail**: File history shows what was synchronized when
 - ✅ **GitOps integration**: Changes trigger via CI/CD pipelines
 
 **Use Cases**:
+
 - DevOps-driven synchronization workflows
 - Multi-environment sync configurations
 - Batch processing multiple sync types
 - Compliance-driven sync schedules
 
 **Configuration Example**:
+
 ```json
 {
   "operations": [
@@ -147,12 +157,14 @@ public async Task<HttpResponseData> ManualSync([HttpTrigger(AuthorizationLevel.F
 ```
 
 **When to use HTTP triggers**:
+
 - ✅ Health check endpoints
 - ✅ Quick status queries
 - ✅ Emergency manual triggers
 - ✅ Administrative operations
 
 **When NOT to use HTTP triggers**:
+
 - ❌ Long-running synchronization operations
 - ❌ Scheduled/regular sync tasks
 - ❌ High-volume batch operations
@@ -161,6 +173,7 @@ public async Task<HttpResponseData> ManualSync([HttpTrigger(AuthorizationLevel.F
 ## Recommended Architecture
 
 ### Production Setup
+
 ```mermaid
 graph TD
     A[Timer Trigger] -->|Daily 2AM| B[Scheduled Sync]
@@ -186,6 +199,7 @@ graph TD
 ## Migration from HTTP Triggers
 
 ### Step 1: Create Timer Functions
+
 Replace your scheduled HTTP calls with timer triggers:
 
 ```csharp
@@ -199,6 +213,7 @@ public async Task SyncViaTimer([TimerTrigger("0 0 2 * * *")] TimerInfo timer)
 ```
 
 ### Step 2: Add Service Bus for Dynamic Operations
+
 For parameterized sync requests:
 
 ```csharp
@@ -209,6 +224,7 @@ await sender.SendMessageAsync(new ServiceBusMessage(JsonSerializer.Serialize(syn
 ```
 
 ### Step 3: Keep Minimal HTTP Endpoints
+
 Retain HTTP only for true administrative needs:
 
 ```csharp
@@ -267,6 +283,7 @@ public static void Main()
 ## Best Practices Summary
 
 ### ✅ Do
+
 - Use **Timer triggers** for scheduled operations
 - Use **Service Bus triggers** for event-driven operations  
 - Use **Blob triggers** for configuration-driven operations
@@ -276,6 +293,7 @@ public static void Main()
 - Add comprehensive logging
 
 ### ❌ Don't
+
 - Use HTTP triggers for long-running operations
 - Use Newtonsoft.Json in new code
 - Ignore timeout and retry considerations
