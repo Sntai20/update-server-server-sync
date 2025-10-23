@@ -9,13 +9,13 @@ namespace MicrosoftUpdateFunctions.Functions
 {
     public class ContentFunctions
     {
-        private readonly ILogger _logger;
-        private readonly IContentStore? _contentStore;
+        private readonly ILogger logger;
+        private readonly IContentStore? contentStore;
 
         public ContentFunctions(ILoggerFactory loggerFactory, IContentStore? contentStore = null)
         {
-            _logger = loggerFactory.CreateLogger<ContentFunctions>();
-            _contentStore = contentStore;
+            this.logger = loggerFactory.CreateLogger<ContentFunctions>();
+            this.contentStore = contentStore;
         }
 
         [Function("GetMicrosoftUpdateContent")]
@@ -23,11 +23,11 @@ namespace MicrosoftUpdateFunctions.Functions
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "content/{contentHash}")] HttpRequestData req,
             string contentHash)
         {
-            _logger.LogInformation($"Content requested: {contentHash}");
+            this.logger.LogInformation($"Content requested: {contentHash}");
 
-            if (_contentStore == null)
+            if (this.contentStore == null)
             {
-                _logger.LogWarning("No content store configured");
+                this.logger.LogWarning("No content store configured");
                 return req.CreateResponse(HttpStatusCode.NotFound);
             }
 
@@ -40,21 +40,21 @@ namespace MicrosoftUpdateFunctions.Functions
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning($"Invalid content hash format: {contentHash} - {ex.Message}");
+                    this.logger.LogWarning($"Invalid content hash format: {contentHash} - {ex.Message}");
                     return req.CreateResponse(HttpStatusCode.BadRequest);
                 }
 
-                if (_contentStore.Contains(parsedContentHash, out var fileName))
+                if (this.contentStore.Contains(parsedContentHash, out var fileName))
                 {
                     // Log the range request if present
                     var rangeHeader = req.Headers.FirstOrDefault(h => h.Key.Equals("Range", StringComparison.OrdinalIgnoreCase));
                     if (rangeHeader.Key != null)
                     {
-                        _logger.LogInformation($"Requested {fileName}, range {rangeHeader.Value.FirstOrDefault()}");
+                        this.logger.LogInformation($"Requested {fileName}, range {rangeHeader.Value.FirstOrDefault()}");
                     }
                     else
                     {
-                        _logger.LogInformation($"Requested {fileName}, no ranges");
+                        this.logger.LogInformation($"Requested {fileName}, no ranges");
                     }
 
                     var response = req.CreateResponse(HttpStatusCode.OK);
@@ -62,7 +62,7 @@ namespace MicrosoftUpdateFunctions.Functions
                     response.Headers.Add("Content-Disposition", $"attachment; filename=\"{fileName}\"");
                     response.Headers.Add("Accept-Ranges", "bytes");
 
-                    using var contentStream = _contentStore.Get(parsedContentHash);
+                    using var contentStream = this.contentStore.Get(parsedContentHash);
                     
                     // Handle range requests
                     if (rangeHeader.Key != null && rangeHeader.Value.Any())
@@ -94,13 +94,13 @@ namespace MicrosoftUpdateFunctions.Functions
                 }
                 else
                 {
-                    _logger.LogWarning($"Content not found: {contentHash}");
+                    this.logger.LogWarning($"Content not found: {contentHash}");
                     return req.CreateResponse(HttpStatusCode.NotFound);
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error serving content: {contentHash}");
+                this.logger.LogError(ex, $"Error serving content: {contentHash}");
                 return req.CreateResponse(HttpStatusCode.InternalServerError);
             }
         }
@@ -110,9 +110,9 @@ namespace MicrosoftUpdateFunctions.Functions
             [HttpTrigger(AuthorizationLevel.Anonymous, "head", Route = "content/{contentHash}")] HttpRequestData req,
             string contentHash)
         {
-            _logger.LogInformation($"HEAD request for content: {contentHash}");
+            this.logger.LogInformation($"HEAD request for content: {contentHash}");
 
-            if (_contentStore == null)
+            if (this.contentStore == null)
             {
                 return req.CreateResponse(HttpStatusCode.NotFound);
             }
@@ -129,11 +129,11 @@ namespace MicrosoftUpdateFunctions.Functions
                     return req.CreateResponse(HttpStatusCode.BadRequest);
                 }
 
-                if (_contentStore.Contains(parsedContentHash, out var fileName))
+                if (this.contentStore.Contains(parsedContentHash, out var fileName))
                 {
-                    _logger.LogInformation($"HEAD {fileName}");
+                    this.logger.LogInformation($"HEAD {fileName}");
 
-                    using var contentStream = _contentStore.Get(parsedContentHash);
+                    using var contentStream = this.contentStore.Get(parsedContentHash);
                     
                     var response = req.CreateResponse(HttpStatusCode.OK);
                     response.Headers.Add("Content-Type", "application/octet-stream");
@@ -149,7 +149,7 @@ namespace MicrosoftUpdateFunctions.Functions
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error processing HEAD request for content: {contentHash}");
+                this.logger.LogError(ex, $"Error processing HEAD request for content: {contentHash}");
                 return req.CreateResponse(HttpStatusCode.InternalServerError);
             }
         }

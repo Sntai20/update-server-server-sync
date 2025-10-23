@@ -50,16 +50,16 @@ public class MetadataSyncIntegrationTests
     public async Task FetchConfiguration_ShouldReturnBadRequest_WithInvalidEndpoint()
     {
         // Arrange
-        var configUrl = await _fixture.GetFunctionUrl("metadata/fetch-configuration");
+        var configUrl = await this.fixture.GetFunctionUrl("metadata/fetch-configuration");
         var request = new
         {
             UpstreamEndpoint = "invalid-url-format"
         };
-        var requestJson = JsonConvert.SerializeObject(request);
+        var requestJson = JsonSerializer.Serialize(request);
         var content = new StringContent(requestJson, Encoding.UTF8, "application/json");
 
         // Act
-        var response = await _fixture.HttpClient.PostAsync(configUrl, content);
+        var response = await this.fixture.HttpClient.PostAsync(configUrl, content);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
@@ -69,11 +69,11 @@ public class MetadataSyncIntegrationTests
     public async Task FetchConfiguration_ShouldHandleEmptyRequest()
     {
         // Arrange
-        var configUrl = await _fixture.GetFunctionUrl("metadata/fetch-configuration");
+        var configUrl = await this.fixture.GetFunctionUrl("metadata/fetch-configuration");
         var content = new StringContent("{}", Encoding.UTF8, "application/json");
 
         // Act
-        var response = await _fixture.HttpClient.PostAsync(configUrl, content);
+        var response = await this.fixture.HttpClient.PostAsync(configUrl, content);
 
         // Assert - Should use default endpoint when none provided
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -83,17 +83,17 @@ public class MetadataSyncIntegrationTests
     public async Task FetchCategories_ShouldReturnCategoriesData_WithValidRequest()
     {
         // Arrange
-        var categoriesUrl = await _fixture.GetFunctionUrl("metadata/fetch-categories");
+        var categoriesUrl = await this.fixture.GetFunctionUrl("metadata/fetch-categories");
         var request = new
         {
             UpstreamEndpoint = "https://sws.update.microsoft.com",
             MaxCategories = 10 // Limit for testing
         };
-        var requestJson = JsonConvert.SerializeObject(request);
+        var requestJson = JsonSerializer.Serialize(request);
         var content = new StringContent(requestJson, Encoding.UTF8, "application/json");
 
         // Act
-        var response = await _fixture.HttpClient.PostAsync(categoriesUrl, content);
+        var response = await this.fixture.HttpClient.PostAsync(categoriesUrl, content);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -108,11 +108,11 @@ public class MetadataSyncIntegrationTests
     public async Task FetchCategories_ShouldReturnBadRequest_WithMalformedJson()
     {
         // Arrange
-        var categoriesUrl = await _fixture.GetFunctionUrl("metadata/fetch-categories");
+        var categoriesUrl = await this.fixture.GetFunctionUrl("metadata/fetch-categories");
         var content = new StringContent("invalid json", Encoding.UTF8, "application/json");
 
         // Act
-        var response = await _fixture.HttpClient.PostAsync(categoriesUrl, content);
+        var response = await this.fixture.HttpClient.PostAsync(categoriesUrl, content);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
@@ -122,7 +122,7 @@ public class MetadataSyncIntegrationTests
     public async Task FetchUpdates_ShouldReturnUpdatesData_WithValidFilters()
     {
         // Arrange
-        var updatesUrl = await _fixture.GetFunctionUrl("metadata/fetch-updates");
+        var updatesUrl = await this.fixture.GetFunctionUrl("metadata/fetch-updates");
         var request = new
         {
             UpstreamEndpoint = "https://sws.update.microsoft.com",
@@ -131,11 +131,11 @@ public class MetadataSyncIntegrationTests
             MaxUpdates = 5, // Limit for testing
             SkipSuperseded = true
         };
-        var requestJson = JsonConvert.SerializeObject(request);
+        var requestJson = JsonSerializer.Serialize(request);
         var content = new StringContent(requestJson, Encoding.UTF8, "application/json");
 
         // Act
-        var response = await _fixture.HttpClient.PostAsync(updatesUrl, content);
+        var response = await this.fixture.HttpClient.PostAsync(updatesUrl, content);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -150,17 +150,17 @@ public class MetadataSyncIntegrationTests
     public async Task FetchUpdates_ShouldHandleEmptyFilters()
     {
         // Arrange
-        var updatesUrl = await _fixture.GetFunctionUrl("metadata/fetch-updates");
+        var updatesUrl = await this.fixture.GetFunctionUrl("metadata/fetch-updates");
         var request = new
         {
             UpstreamEndpoint = "https://sws.update.microsoft.com",
             MaxUpdates = 1 // Very small limit to avoid long test runs
         };
-        var requestJson = JsonConvert.SerializeObject(request);
+        var requestJson = JsonSerializer.Serialize(request);
         var content = new StringContent(requestJson, Encoding.UTF8, "application/json");
 
         // Act
-        var response = await _fixture.HttpClient.PostAsync(updatesUrl, content);
+        var response = await this.fixture.HttpClient.PostAsync(updatesUrl, content);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -170,16 +170,16 @@ public class MetadataSyncIntegrationTests
     public async Task ReindexStore_ShouldCompleteSuccessfully_WithValidStorePath()
     {
         // Arrange
-        var reindexUrl = await _fixture.GetFunctionUrl("metadata/reindex-store");
+        var reindexUrl = await this.fixture.GetFunctionUrl("metadata/reindex-store");
         var request = new
         {
             StorePath = "./test-store" // Use test store path
         };
-        var requestJson = JsonConvert.SerializeObject(request);
+        var requestJson = JsonSerializer.Serialize(request);
         var content = new StringContent(requestJson, Encoding.UTF8, "application/json");
 
         // Act
-        var response = await _fixture.HttpClient.PostAsync(reindexUrl, content);
+        var response = await this.fixture.HttpClient.PostAsync(reindexUrl, content);
 
         // Assert
         response.StatusCode.Should().BeOneOf(HttpStatusCode.OK, HttpStatusCode.NotFound);
@@ -190,11 +190,11 @@ public class MetadataSyncIntegrationTests
     public async Task ReindexStore_ShouldReturnBadRequest_WithInvalidRequest()
     {
         // Arrange
-        var reindexUrl = await _fixture.GetFunctionUrl("metadata/reindex-store");
+        var reindexUrl = await this.fixture.GetFunctionUrl("metadata/reindex-store");
         var content = new StringContent("invalid", Encoding.UTF8, "application/json");
 
         // Act
-        var response = await _fixture.HttpClient.PostAsync(reindexUrl, content);
+        var response = await this.fixture.HttpClient.PostAsync(reindexUrl, content);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
@@ -204,10 +204,10 @@ public class MetadataSyncIntegrationTests
     public async Task GetStoreStatus_ShouldReturnStatusInformation()
     {
         // Arrange
-        var statusUrl = await _fixture.GetFunctionUrl("metadata/store-status?storePath=./test-store");
+        var statusUrl = await this.fixture.GetFunctionUrl("metadata/store-status?storePath=./test-store");
 
         // Act
-        var response = await _fixture.HttpClient.GetAsync(statusUrl);
+        var response = await this.fixture.HttpClient.GetAsync(statusUrl);
 
         // Assert
         response.StatusCode.Should().BeOneOf(HttpStatusCode.OK, HttpStatusCode.NotFound);
@@ -218,7 +218,7 @@ public class MetadataSyncIntegrationTests
             responseContent.Should().NotBeNullOrEmpty();
             
             // Should contain store status information
-            var statusData = JsonConvert.DeserializeObject(responseContent);
+            var statusData = JsonSerializer.Deserialize<object>(responseContent);
             statusData.Should().NotBeNull();
         }
     }
@@ -227,10 +227,10 @@ public class MetadataSyncIntegrationTests
     public async Task GetStoreStatus_ShouldReturnJson_WithValidStore()
     {
         // Arrange
-        var statusUrl = await _fixture.GetFunctionUrl("metadata/store-status");
+        var statusUrl = await this.fixture.GetFunctionUrl("metadata/store-status");
 
         // Act
-        var response = await _fixture.HttpClient.GetAsync(statusUrl);
+        var response = await this.fixture.HttpClient.GetAsync(statusUrl);
 
         // Assert
         response.StatusCode.Should().BeOneOf(HttpStatusCode.OK, HttpStatusCode.NotFound);
@@ -257,12 +257,12 @@ public class MetadataSyncIntegrationTests
         // Act & Assert
         foreach (var endpoint in endpoints)
         {
-            var url = await _fixture.GetFunctionUrl(endpoint);
+            var url = await this.fixture.GetFunctionUrl(endpoint);
             
             if (endpoint.Contains("store-status"))
             {
                 // GET endpoint
-                var response = await _fixture.HttpClient.GetAsync(url);
+                var response = await this.fixture.HttpClient.GetAsync(url);
                 response.StatusCode.Should().BeOneOf(
                     HttpStatusCode.OK, 
                     HttpStatusCode.NotFound, 
@@ -272,7 +272,7 @@ public class MetadataSyncIntegrationTests
             {
                 // POST endpoint - test with empty body
                 var content = new StringContent("{}", Encoding.UTF8, "application/json");
-                var response = await _fixture.HttpClient.PostAsync(url, content);
+                var response = await this.fixture.HttpClient.PostAsync(url, content);
                 response.StatusCode.Should().BeOneOf(
                     HttpStatusCode.OK,
                     HttpStatusCode.BadRequest,
@@ -285,48 +285,48 @@ public class MetadataSyncIntegrationTests
     public async Task MetadataWorkflow_ShouldWorkEndToEnd()
     {
         // Arrange - Test a complete metadata sync workflow
-        var baseUrl = _fixture.BaseAddress;
+        var baseUrl = this.fixture.BaseAddress;
 
         // Act & Assert - Step 1: Fetch Configuration
-        var configUrl = await _fixture.GetFunctionUrl("metadata/fetch-configuration");
+        var configUrl = await this.fixture.GetFunctionUrl("metadata/fetch-configuration");
         var configRequest = new { UpstreamEndpoint = "https://sws.update.microsoft.com" };
         var configContent = new StringContent(
-            JsonConvert.SerializeObject(configRequest), 
+            JsonSerializer.Serialize(configRequest), 
             Encoding.UTF8, 
             "application/json");
         
-        var configResponse = await _fixture.HttpClient.PostAsync(configUrl, configContent);
+        var configResponse = await this.fixture.HttpClient.PostAsync(configUrl, configContent);
         configResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
         // Step 2: Check Store Status
-        var statusUrl = await _fixture.GetFunctionUrl("metadata/store-status");
-        var statusResponse = await _fixture.HttpClient.GetAsync(statusUrl);
+        var statusUrl = await this.fixture.GetFunctionUrl("metadata/store-status");
+        var statusResponse = await this.fixture.HttpClient.GetAsync(statusUrl);
         statusResponse.StatusCode.Should().BeOneOf(HttpStatusCode.OK, HttpStatusCode.NotFound);
 
         // Step 3: Fetch Categories (small batch for testing)
-        var categoriesUrl = await _fixture.GetFunctionUrl("metadata/fetch-categories");
+        var categoriesUrl = await this.fixture.GetFunctionUrl("metadata/fetch-categories");
         var categoriesRequest = new 
         { 
             UpstreamEndpoint = "https://sws.update.microsoft.com",
             MaxCategories = 5 
         };
         var categoriesContent = new StringContent(
-            JsonConvert.SerializeObject(categoriesRequest), 
+            JsonSerializer.Serialize(categoriesRequest), 
             Encoding.UTF8, 
             "application/json");
         
-        var categoriesResponse = await _fixture.HttpClient.PostAsync(categoriesUrl, categoriesContent);
+        var categoriesResponse = await this.fixture.HttpClient.PostAsync(categoriesUrl, categoriesContent);
         categoriesResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
         // Step 4: Test Reindex (should handle gracefully even if store doesn't exist)
-        var reindexUrl = await _fixture.GetFunctionUrl("metadata/reindex-store");
+        var reindexUrl = await this.fixture.GetFunctionUrl("metadata/reindex-store");
         var reindexRequest = new { StorePath = "./test-store" };
         var reindexContent = new StringContent(
-            JsonConvert.SerializeObject(reindexRequest), 
+            JsonSerializer.Serialize(reindexRequest), 
             Encoding.UTF8, 
             "application/json");
         
-        var reindexResponse = await _fixture.HttpClient.PostAsync(reindexUrl, reindexContent);
+        var reindexResponse = await this.fixture.HttpClient.PostAsync(reindexUrl, reindexContent);
         reindexResponse.StatusCode.Should().BeOneOf(
             HttpStatusCode.OK, 
             HttpStatusCode.NotFound,
@@ -337,21 +337,21 @@ public class MetadataSyncIntegrationTests
     public async Task MetadataEndpoints_ShouldHandleConcurrentRequests()
     {
         // Arrange - Test concurrent access to metadata endpoints
-        var configUrl = await _fixture.GetFunctionUrl("metadata/fetch-configuration");
-        var statusUrl = await _fixture.GetFunctionUrl("metadata/store-status");
+        var configUrl = await this.fixture.GetFunctionUrl("metadata/fetch-configuration");
+        var statusUrl = await this.fixture.GetFunctionUrl("metadata/store-status");
         
         var configRequest = new { UpstreamEndpoint = "https://sws.update.microsoft.com" };
         var configContent = new StringContent(
-            JsonConvert.SerializeObject(configRequest), 
+            JsonSerializer.Serialize(configRequest), 
             Encoding.UTF8, 
             "application/json");
 
         // Act - Make concurrent requests
         var tasks = new List<Task<HttpResponseMessage>>
         {
-            _fixture.HttpClient.PostAsync(configUrl, configContent),
-            _fixture.HttpClient.GetAsync(statusUrl),
-            _fixture.HttpClient.GetAsync(statusUrl)
+            this.fixture.HttpClient.PostAsync(configUrl, configContent),
+            this.fixture.HttpClient.GetAsync(statusUrl),
+            this.fixture.HttpClient.GetAsync(statusUrl)
         };
 
         var responses = await Task.WhenAll(tasks);

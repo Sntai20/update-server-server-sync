@@ -9,16 +9,16 @@ namespace MicrosoftUpdateFunctions.Tests.Infrastructure;
 
 public class MicrosoftUpdateTestFixture : IAsyncLifetime
 {
-    private readonly string _baseAddress = "http://localhost:7071/api/";
+    private readonly string baseAddress = "http://localhost:7071/api/";
     
     public HttpClient HttpClient { get; private set; } = null!;
-    public string BaseAddress => _baseAddress;
+    public string BaseAddress => this.baseAddress;
 
     public async Task InitializeAsync()
     {
         // For integration testing, we'll assume the Azure Functions are running locally
         // You can start them with: func start --port 7071
-        HttpClient = new HttpClient { BaseAddress = new Uri(_baseAddress) };
+        HttpClient = new HttpClient { BaseAddress = new Uri(this.baseAddress) };
         
         // Add a small delay to allow functions to be ready
         await Task.Delay(1000);

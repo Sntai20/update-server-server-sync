@@ -11,25 +11,25 @@ namespace MicrosoftUpdateFunctions.Functions
 {
     public class ClientSyncFunctions
     {
-        private readonly ILogger _logger;
-        private readonly ClientSyncWebService _clientSyncService;
-        private readonly SimpleAuthenticationWebService _authService;
+        private readonly ILogger logger;
+        private readonly ClientSyncWebService clientSyncService;
+        private readonly SimpleAuthenticationWebService authService;
 
         public ClientSyncFunctions(
             ILoggerFactory loggerFactory,
             ClientSyncWebService clientSyncService,
             SimpleAuthenticationWebService authService)
         {
-            _logger = loggerFactory.CreateLogger<ClientSyncFunctions>();
-            _clientSyncService = clientSyncService;
-            _authService = authService;
+            this.logger = loggerFactory.CreateLogger<ClientSyncFunctions>();
+            this.clientSyncService = clientSyncService;
+            this.authService = authService;
         }
 
         [Function("ClientWebService")]
         public async Task<HttpResponseData> ClientWebServiceHandler(
             [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "ClientWebService/client.asmx")] HttpRequestData req)
         {
-            _logger.LogInformation("Processing client sync request");
+            this.logger.LogInformation("Processing client sync request");
 
             try
             {
@@ -62,7 +62,7 @@ namespace MicrosoftUpdateFunctions.Functions
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error processing client sync request");
+                this.logger.LogError(ex, "Error processing client sync request");
                 var response = req.CreateResponse(HttpStatusCode.InternalServerError);
                 response.Headers.Add("Content-Type", "text/xml; charset=utf-8");
                 await response.WriteStringAsync(CreateSoapFault(ex.Message));
@@ -74,7 +74,7 @@ namespace MicrosoftUpdateFunctions.Functions
         public async Task<HttpResponseData> SimpleAuthHandler(
             [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "SimpleAuthWebService/SimpleAuth.asmx")] HttpRequestData req)
         {
-            _logger.LogInformation("Processing simple auth request");
+            this.logger.LogInformation("Processing simple auth request");
 
             try
             {
@@ -98,7 +98,7 @@ namespace MicrosoftUpdateFunctions.Functions
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error processing auth request");
+                this.logger.LogError(ex, "Error processing auth request");
                 var response = req.CreateResponse(HttpStatusCode.InternalServerError);
                 response.Headers.Add("Content-Type", "text/xml; charset=utf-8");
                 await response.WriteStringAsync(CreateSoapFault(ex.Message));

@@ -10,11 +10,11 @@ namespace MicrosoftUpdateFunctions.Tests.Infrastructure;
 /// </summary>
 public class AspireAppHostTestFixture : IAsyncLifetime
 {
-    private Process? _funcProcess;
-    private Process? _appHostProcess;
-    private HttpClient? _httpClient;
+    private Process? funcProcess;
+    private Process? appHostProcess;
+    private HttpClient? httpClient;
 
-    public HttpClient HttpClient => _httpClient ?? throw new InvalidOperationException("Test fixture not initialized");
+    public HttpClient HttpClient => this.httpClient ?? throw new InvalidOperationException("Test fixture not initialized");
     public string BaseAddress { get; private set; } = string.Empty;
 
     public async Task InitializeAsync()
@@ -25,7 +25,7 @@ public class AspireAppHostTestFixture : IAsyncLifetime
             await TryStartWithAppHost();
             
             // Option 2: Fallback to direct function startup
-            if (_httpClient == null)
+            if (this.httpClient == null)
             {
                 await StartAzureFunctionsDirect();
             }
@@ -43,20 +43,20 @@ public class AspireAppHostTestFixture : IAsyncLifetime
 
     public async Task DisposeAsync()
     {
-        _httpClient?.Dispose();
+        this.httpClient?.Dispose();
         
-        if (_funcProcess != null && !_funcProcess.HasExited)
+        if (this.funcProcess != null && !this.funcProcess.HasExited)
         {
-            _funcProcess.Kill();
-            await _funcProcess.WaitForExitAsync();
-            _funcProcess.Dispose();
+            this.funcProcess.Kill();
+            await this.funcProcess.WaitForExitAsync();
+            this.funcProcess.Dispose();
         }
         
-        if (_appHostProcess != null && !_appHostProcess.HasExited)
+        if (this.appHostProcess != null && !this.appHostProcess.HasExited)
         {
-            _appHostProcess.Kill();
-            await _appHostProcess.WaitForExitAsync();
-            _appHostProcess.Dispose();
+            this.appHostProcess.Kill();
+            await this.appHostProcess.WaitForExitAsync();
+            this.appHostProcess.Dispose();
         }
     }
 
@@ -83,21 +83,21 @@ public class AspireAppHostTestFixture : IAsyncLifetime
                     CreateNoWindow = true
                 };
 
-                _appHostProcess = Process.Start(startInfo);
+                this.appHostProcess = Process.Start(startInfo);
                 await Task.Delay(15000); // Give AppHost time to start
 
                 // Create HTTP client for the distributed app
-                _httpClient = new HttpClient();
+                this.httpClient = new HttpClient();
                 BaseAddress = "http://localhost:7071/api/";
-                _httpClient.BaseAddress = new Uri(BaseAddress);
-                _httpClient.Timeout = TimeSpan.FromMinutes(2);
+                this.httpClient.BaseAddress = new Uri(BaseAddress);
+                this.httpClient.Timeout = TimeSpan.FromMinutes(2);
             }
         }
         catch
         {
             // AppHost startup failed, will try direct approach
-            _appHostProcess?.Dispose();
-            _appHostProcess = null;
+            this.appHostProcess?.Dispose();
+            this.appHostProcess = null;
         }
     }
 
@@ -116,13 +116,13 @@ public class AspireAppHostTestFixture : IAsyncLifetime
             CreateNoWindow = true
         };
 
-        _funcProcess = Process.Start(startInfo);
+        this.funcProcess = Process.Start(startInfo);
         await Task.Delay(10000); // Give Functions time to start
 
-        _httpClient = new HttpClient();
+        this.httpClient = new HttpClient();
         BaseAddress = "http://localhost:7071/api/";
-        _httpClient.BaseAddress = new Uri(BaseAddress);
-        _httpClient.Timeout = TimeSpan.FromMinutes(2);
+        this.httpClient.BaseAddress = new Uri(BaseAddress);
+        this.httpClient.Timeout = TimeSpan.FromMinutes(2);
     }
 
     private async Task WaitForServicesReady()
@@ -134,7 +134,7 @@ public class AspireAppHostTestFixture : IAsyncLifetime
         {
             try
             {
-                var response = await _httpClient!.GetAsync("ClientWebService/ClientWebService.asmx");
+                var response = await this.httpClient!.GetAsync("ClientWebService/ClientWebService.asmx");
                 if (response.StatusCode == System.Net.HttpStatusCode.MethodNotAllowed || 
                     response.StatusCode == System.Net.HttpStatusCode.OK)
                 {

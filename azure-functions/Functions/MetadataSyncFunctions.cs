@@ -3,9 +3,9 @@ using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.PackageGraph.Storage;
 using Microsoft.PackageGraph.MicrosoftUpdate.Source;
-using Newtonsoft.Json;
 using System.Net;
 using System.Text;
+using System.Text.Json;
 
 namespace MicrosoftUpdateFunctions.Functions;
 
@@ -15,13 +15,13 @@ namespace MicrosoftUpdateFunctions.Functions;
 /// </summary>
 public class MetadataSyncFunctions
 {
-    private readonly ILogger<MetadataSyncFunctions> _logger;
-    private readonly IMetadataStore? _metadataStore;
+    private readonly ILogger<MetadataSyncFunctions> logger;
+    private readonly IMetadataStore? metadataStore;
 
     public MetadataSyncFunctions(ILogger<MetadataSyncFunctions> logger, IMetadataStore? metadataStore)
     {
-        _logger = logger;
-        _metadataStore = metadataStore;
+        this.logger = logger;
+        this.metadataStore = metadataStore;
     }
 
     /// <summary>
@@ -32,12 +32,12 @@ public class MetadataSyncFunctions
     public async Task<HttpResponseData> FetchConfiguration(
         [HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequestData req)
     {
-        _logger.LogInformation("FetchConfiguration function started");
+        this.logger.LogInformation("FetchConfiguration function started");
 
         try
         {
             var requestBody = await new StreamReader(req.Body).ReadToEndAsync();
-            var options = JsonConvert.DeserializeObject<FetchConfigurationRequest>(requestBody);
+            var options = JsonSerializer.Deserialize<FetchConfigurationRequest>(requestBody);
 
             if (options == null)
             {
@@ -57,15 +57,15 @@ public class MetadataSyncFunctions
             var response = req.CreateResponse(HttpStatusCode.OK);
             response.Headers.Add("Content-Type", "application/json");
             
-            var configJson = JsonConvert.SerializeObject(configData, Formatting.Indented);
+            var configJson = JsonSerializer.Serialize(configData, new JsonSerializerOptions { WriteIndented = true });
             await response.WriteStringAsync(configJson);
 
-            _logger.LogInformation("Configuration fetched successfully from {Endpoint}", upstreamEndpoint.URI);
+            this.logger.LogInformation("Configuration fetched successfully from {Endpoint}", upstreamEndpoint.URI);
             return response;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error fetching configuration");
+            this.logger.LogError(ex, "Error fetching configuration");
             var errorResponse = req.CreateResponse(HttpStatusCode.InternalServerError);
             await errorResponse.WriteStringAsync($"Error: {ex.Message}");
             return errorResponse;
@@ -80,9 +80,9 @@ public class MetadataSyncFunctions
     public async Task<HttpResponseData> FetchCategories(
         [HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequestData req)
     {
-        _logger.LogInformation("FetchCategories function started");
+        this.logger.LogInformation("FetchCategories function started");
 
-        if (_metadataStore == null)
+        if (this.metadataStore == null)
         {
             var configError = req.CreateResponse(HttpStatusCode.ServiceUnavailable);
             await configError.WriteStringAsync("Metadata store not configured");
@@ -92,7 +92,7 @@ public class MetadataSyncFunctions
         try
         {
             var requestBody = await new StreamReader(req.Body).ReadToEndAsync();
-            var options = JsonConvert.DeserializeObject<FetchCategoriesRequest>(requestBody);
+            var options = JsonSerializer.Deserialize<FetchCategoriesRequest>(requestBody);
 
             if (options == null)
             {
@@ -105,23 +105,23 @@ public class MetadataSyncFunctions
                 ? Microsoft.PackageGraph.MicrosoftUpdate.Source.Endpoint.Default 
                 : new Microsoft.PackageGraph.MicrosoftUpdate.Source.Endpoint(options.UpstreamEndpoint);
 
-            _logger.LogInformation("Fetching categories from {Endpoint}", upstreamEndpoint.URI);
+            this.logger.LogInformation("Fetching categories from {Endpoint}", upstreamEndpoint.URI);
 
             var categoriesSource = new UpstreamCategoriesSource(upstreamEndpoint);
             var cancellationToken = new CancellationTokenSource();
             
             // Copy categories to metadata store
-            categoriesSource.CopyTo(_metadataStore, cancellationToken.Token);
+            categoriesSource.CopyTo(this.metadataStore, cancellationToken.Token);
 
             var response = req.CreateResponse(HttpStatusCode.OK);
             await response.WriteStringAsync("Categories fetched and stored successfully");
 
-            _logger.LogInformation("Categories fetched successfully");
+            this.logger.LogInformation("Categories fetched successfully");
             return response;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error fetching categories");
+            this.logger.LogError(ex, "Error fetching categories");
             var errorResponse = req.CreateResponse(HttpStatusCode.InternalServerError);
             await errorResponse.WriteStringAsync($"Error: {ex.Message}");
             return errorResponse;
@@ -136,9 +136,9 @@ public class MetadataSyncFunctions
     public async Task<HttpResponseData> FetchUpdates(
         [HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequestData req)
     {
-        _logger.LogInformation("FetchUpdates function started");
+        this.logger.LogInformation("FetchUpdates function started");
 
-        if (_metadataStore == null)
+        if (this.metadataStore == null)
         {
             var configError = req.CreateResponse(HttpStatusCode.ServiceUnavailable);
             await configError.WriteStringAsync("Metadata store not configured");
@@ -148,7 +148,7 @@ public class MetadataSyncFunctions
         try
         {
             var requestBody = await new StreamReader(req.Body).ReadToEndAsync();
-            var options = JsonConvert.DeserializeObject<FetchUpdatesRequest>(requestBody);
+            var options = JsonSerializer.Deserialize<FetchUpdatesRequest>(requestBody);
 
             if (options == null)
             {
@@ -161,12 +161,12 @@ public class MetadataSyncFunctions
                 ? Microsoft.PackageGraph.MicrosoftUpdate.Source.Endpoint.Default 
                 : new Microsoft.PackageGraph.MicrosoftUpdate.Source.Endpoint(options.UpstreamEndpoint);
 
-            _logger.LogInformation("Fetching updates from {Endpoint}", upstreamEndpoint.URI);
+            this.logger.LogInformation("Fetching updates from {Endpoint}", upstreamEndpoint.URI);
 
             // First ensure categories are available
             var categoriesSource = new UpstreamCategoriesSource(upstreamEndpoint);
             var cancellationToken = new CancellationTokenSource();
-            categoriesSource.CopyTo(_metadataStore, cancellationToken.Token);
+            categoriesSource.CopyTo(this.metadataStore, cancellationToken.Token);
 
             // Handle specific update IDs if provided
             if (options.UpdateIds?.Any() == true)
@@ -177,42 +177,42 @@ public class MetadataSyncFunctions
                 {
                     if (Guid.TryParse(updateId, out var updateIdGuid))
                     {
-                        _logger.LogInformation("Searching for update {UpdateId}", updateId);
+                        this.logger.LogInformation("Searching for update {UpdateId}", updateId);
                         var foundPackage = await server.TryGetExpiredUpdate(updateIdGuid, 300, 100);
                         
                         if (foundPackage != null)
                         {
-                            _metadataStore.AddPackage(foundPackage);
-                            _logger.LogInformation("Added update {UpdateId}", updateId);
+                            this.metadataStore.AddPackage(foundPackage);
+                            this.logger.LogInformation("Added update {UpdateId}", updateId);
                         }
                         else
                         {
-                            _logger.LogWarning("Update {UpdateId} not found", updateId);
+                            this.logger.LogWarning("Update {UpdateId} not found", updateId);
                         }
                     }
                     else
                     {
-                        _logger.LogError("Invalid GUID format: {UpdateId}", updateId);
+                        this.logger.LogError("Invalid GUID format: {UpdateId}", updateId);
                     }
                 }
             }
             else
             {
                 // Fetch updates based on filter criteria
-                var sourceFilter = CreateFilterFromRequest(options, _metadataStore);
+                var sourceFilter = CreateFilterFromRequest(options, this.metadataStore);
                 var updatesSource = new UpstreamUpdatesSource(upstreamEndpoint, sourceFilter);
-                updatesSource.CopyTo(_metadataStore, cancellationToken.Token);
+                updatesSource.CopyTo(this.metadataStore, cancellationToken.Token);
             }
 
             var response = req.CreateResponse(HttpStatusCode.OK);
             await response.WriteStringAsync("Updates fetched and stored successfully");
 
-            _logger.LogInformation("Updates fetched successfully");
+            this.logger.LogInformation("Updates fetched successfully");
             return response;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error fetching updates");
+            this.logger.LogError(ex, "Error fetching updates");
             var errorResponse = req.CreateResponse(HttpStatusCode.InternalServerError);
             await errorResponse.WriteStringAsync($"Error: {ex.Message}");
             return errorResponse;
@@ -227,9 +227,9 @@ public class MetadataSyncFunctions
     public async Task<HttpResponseData> ReindexStore(
         [HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequestData req)
     {
-        _logger.LogInformation("ReindexStore function started");
+        this.logger.LogInformation("ReindexStore function started");
 
-        if (_metadataStore == null)
+        if (this.metadataStore == null)
         {
             var configError = req.CreateResponse(HttpStatusCode.ServiceUnavailable);
             await configError.WriteStringAsync("Metadata store not configured");
@@ -239,9 +239,9 @@ public class MetadataSyncFunctions
         try
         {
             var requestBody = await new StreamReader(req.Body).ReadToEndAsync();
-            var options = JsonConvert.DeserializeObject<ReindexRequest>(requestBody);
+            var options = JsonSerializer.Deserialize<ReindexRequest>(requestBody);
 
-            if (!_metadataStore.IsMetadataIndexingSupported)
+            if (!this.metadataStore.IsMetadataIndexingSupported)
             {
                 var notSupported = req.CreateResponse(HttpStatusCode.BadRequest);
                 await notSupported.WriteStringAsync("Metadata store does not support indexing");
@@ -250,15 +250,15 @@ public class MetadataSyncFunctions
 
             bool forceReindex = options?.ForceReindex ?? false;
 
-            if (_metadataStore.IsReindexingRequired || forceReindex)
+            if (this.metadataStore.IsReindexingRequired || forceReindex)
             {
-                _logger.LogInformation("Starting reindexing (force: {ForceReindex})", forceReindex);
-                _metadataStore.ReIndex();
+                this.logger.LogInformation("Starting reindexing (force: {ForceReindex})", forceReindex);
+                this.metadataStore.ReIndex();
                 
                 var response = req.CreateResponse(HttpStatusCode.OK);
                 await response.WriteStringAsync("Store reindexed successfully");
                 
-                _logger.LogInformation("Reindexing completed");
+                this.logger.LogInformation("Reindexing completed");
                 return response;
             }
             else
@@ -270,7 +270,7 @@ public class MetadataSyncFunctions
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error during reindexing");
+            this.logger.LogError(ex, "Error during reindexing");
             var errorResponse = req.CreateResponse(HttpStatusCode.InternalServerError);
             await errorResponse.WriteStringAsync($"Error: {ex.Message}");
             return errorResponse;
@@ -284,30 +284,30 @@ public class MetadataSyncFunctions
     public async Task<HttpResponseData> GetStoreStatus(
         [HttpTrigger(AuthorizationLevel.Function, "get")] HttpRequestData req)
     {
-        _logger.LogInformation("GetStoreStatus function started");
+        this.logger.LogInformation("GetStoreStatus function started");
 
         try
         {
             var status = new
             {
-                IsConfigured = _metadataStore != null,
-                SupportsIndexing = _metadataStore?.IsMetadataIndexingSupported ?? false,
-                RequiresReindexing = _metadataStore?.IsReindexingRequired ?? false,
-                PackageCount = _metadataStore?.Count() ?? 0,
+                IsConfigured = this.metadataStore != null,
+                SupportsIndexing = this.metadataStore?.IsMetadataIndexingSupported ?? false,
+                RequiresReindexing = this.metadataStore?.IsReindexingRequired ?? false,
+                PackageCount = this.metadataStore?.Count() ?? 0,
                 LastUpdated = DateTime.UtcNow
             };
 
             var response = req.CreateResponse(HttpStatusCode.OK);
             response.Headers.Add("Content-Type", "application/json");
             
-            var statusJson = JsonConvert.SerializeObject(status, Formatting.Indented);
+            var statusJson = JsonSerializer.Serialize(status, new JsonSerializerOptions { WriteIndented = true });
             await response.WriteStringAsync(statusJson);
 
             return response;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting store status");
+            this.logger.LogError(ex, "Error getting store status");
             var errorResponse = req.CreateResponse(HttpStatusCode.InternalServerError);
             await errorResponse.WriteStringAsync($"Error: {ex.Message}");
             return errorResponse;

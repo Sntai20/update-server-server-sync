@@ -7,7 +7,7 @@ using Microsoft.PackageGraph.MicrosoftUpdate.Endpoints.ClientSync;
 using Microsoft.PackageGraph.MicrosoftUpdate.Endpoints.ServerSync;
 using Microsoft.UpdateServices.WebServices.ClientSync;
 using Microsoft.UpdateServices.WebServices.ServerSync;
-using Newtonsoft.Json;
+using System.Text.Json;
 
 namespace MicrosoftUpdateFunctions.Services
 {
@@ -39,7 +39,7 @@ namespace MicrosoftUpdateFunctions.Services
                 var serviceConfigJson = configuration["ServiceConfigurationJson"];
                 if (!string.IsNullOrEmpty(serviceConfigJson))
                 {
-                    return JsonConvert.DeserializeObject<Config>(serviceConfigJson);
+                    return JsonSerializer.Deserialize<Config>(serviceConfigJson);
                 }
                 return null;
             });
@@ -49,7 +49,7 @@ namespace MicrosoftUpdateFunctions.Services
                 var serviceConfigJson = configuration["ServiceConfigurationJson"];
                 if (!string.IsNullOrEmpty(serviceConfigJson))
                 {
-                    return JsonConvert.DeserializeObject<ServerSyncConfigData>(serviceConfigJson);
+                    return JsonSerializer.Deserialize<ServerSyncConfigData>(serviceConfigJson);
                 }
                 return null;
             });

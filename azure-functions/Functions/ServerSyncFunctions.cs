@@ -9,10 +9,10 @@ namespace MicrosoftUpdateFunctions.Functions
 {
     public class ServerSyncFunctions
     {
-        private readonly ILogger _logger;
-        private readonly ServerSyncWebService _serverSyncService;
-        private readonly AuthenticationWebService _authService;
-        private readonly ReportingWebService _reportingService;
+        private readonly ILogger logger;
+        private readonly ServerSyncWebService serverSyncService;
+        private readonly AuthenticationWebService authService;
+        private readonly ReportingWebService reportingService;
 
         public ServerSyncFunctions(
             ILoggerFactory loggerFactory,
@@ -20,17 +20,17 @@ namespace MicrosoftUpdateFunctions.Functions
             AuthenticationWebService authService,
             ReportingWebService reportingService)
         {
-            _logger = loggerFactory.CreateLogger<ServerSyncFunctions>();
-            _serverSyncService = serverSyncService;
-            _authService = authService;
-            _reportingService = reportingService;
+            this.logger = loggerFactory.CreateLogger<ServerSyncFunctions>();
+            this.serverSyncService = serverSyncService;
+            this.authService = authService;
+            this.reportingService = reportingService;
         }
 
         [Function("ServerSyncWebService")]
         public async Task<HttpResponseData> ServerSyncHandler(
             [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "ServerSyncWebService/ServerSyncWebService.asmx")] HttpRequestData req)
         {
-            _logger.LogInformation("Processing server sync request");
+            this.logger.LogInformation("Processing server sync request");
 
             try
             {
@@ -63,7 +63,7 @@ namespace MicrosoftUpdateFunctions.Functions
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error processing server sync request");
+                this.logger.LogError(ex, "Error processing server sync request");
                 var response = req.CreateResponse(HttpStatusCode.InternalServerError);
                 response.Headers.Add("Content-Type", "text/xml; charset=utf-8");
                 await response.WriteStringAsync(CreateSoapFault(ex.Message));
@@ -75,7 +75,7 @@ namespace MicrosoftUpdateFunctions.Functions
         public async Task<HttpResponseData> DssAuthHandler(
             [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "DssAuthWebService/DssAuthWebService.asmx")] HttpRequestData req)
         {
-            _logger.LogInformation("Processing DSS auth request");
+            this.logger.LogInformation("Processing DSS auth request");
 
             try
             {
@@ -98,7 +98,7 @@ namespace MicrosoftUpdateFunctions.Functions
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error processing DSS auth request");
+                this.logger.LogError(ex, "Error processing DSS auth request");
                 var response = req.CreateResponse(HttpStatusCode.InternalServerError);
                 response.Headers.Add("Content-Type", "text/xml; charset=utf-8");
                 await response.WriteStringAsync(CreateSoapFault(ex.Message));
@@ -112,7 +112,7 @@ namespace MicrosoftUpdateFunctions.Functions
         public async Task<HttpResponseData> ReportingHandler(
             [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "ReportingWebService/ReportingWebService.asmx")] HttpRequestData req)
         {
-            _logger.LogInformation("Processing reporting request");
+            this.logger.LogInformation("Processing reporting request");
 
             try
             {
@@ -128,7 +128,7 @@ namespace MicrosoftUpdateFunctions.Functions
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error processing reporting request");
+                this.logger.LogError(ex, "Error processing reporting request");
                 var response = req.CreateResponse(HttpStatusCode.InternalServerError);
                 response.Headers.Add("Content-Type", "text/xml; charset=utf-8");
                 await response.WriteStringAsync(CreateSoapFault(ex.Message));
