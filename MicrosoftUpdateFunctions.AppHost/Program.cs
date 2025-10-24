@@ -1,6 +1,12 @@
 using Aspire.Hosting;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Hosting;
 
 var builder = DistributedApplication.CreateBuilder(args);
+
+// 1. Define configuration sources with proper precedence
+// Values come from: appsettings.json -> appsettings.{Environment}.json -> User Secrets -> Environment Variables -> Command Line
 
 // Add Azure Storage Emulator as a containerized resource
 var storage = builder
@@ -9,67 +15,86 @@ var storage = builder
 
 var blobs = storage.AddBlobs("DataContainerConnection");
 
-// Configure storage paths for development
+// Add Azure Service Bus for queue-triggered functions
+var serviceBus = builder
+    .AddAzureServiceBus("ServiceBusConnection")
+    .RunAsEmulator();
+
+// Add queues for the sync operations
+var contentSyncQueue = serviceBus.AddQueue("content-sync-requests");
+var prioritySyncQueue = serviceBus.AddQueue("priority-sync-requests");
+var standardSyncQueue = serviceBus.AddQueue("standard-sync-requests");
+
+// 2. Use configuration with fallback values
 var metadataStorePath = builder.Configuration["MetadataStorePath"] ?? "./store";
 var contentStorePath = builder.Configuration["ContentStorePath"] ?? "./content";
+var serviceUrl = builder.Configuration["ServiceUrl"] ?? "http://localhost:7071";
 
-// Enhanced service configuration for the new service layer architecture
+// 3. Create typed configuration objects instead of anonymous types for better maintainability
 var serviceConfiguration = new
 {
-    ServiceUrl = "http://localhost:7071",
-    ContentUrl = "http://localhost:7071/api/content",
-    MaxUpdateCount = 1000,
+    ServiceUrl = serviceUrl,
+    ContentUrl = $"{serviceUrl}/api/content",
+    MaxUpdateCount = int.Parse(builder.Configuration["MaxUpdateCount"] ?? "1000"),
     SupportedCategories = new[] { "Security Updates", "Critical Updates", "Feature Packs", "Updates", "Drivers" },
 
-    // New service layer configuration
     SyncConfiguration = new
     {
-        CriticalUpdatesIntervalHours = 4,
-        ComprehensiveUpdatesIntervalHours = 24,
-        ContentSyncIntervalHours = 168, // Weekly
-        MaintenanceIntervalHours = 168, // Weekly
-        HealthCheckIntervalMinutes = 60
+        CriticalUpdatesIntervalHours = int.Parse(builder.Configuration["CriticalUpdatesIntervalHours"] ?? "4"),
+        ComprehensiveUpdatesIntervalHours = int.Parse(builder.Configuration["ComprehensiveUpdatesIntervalHours"] ?? "24"),
+        ContentSyncIntervalHours = int.Parse(builder.Configuration["ContentSyncIntervalHours"] ?? "168"),
+        MaintenanceIntervalHours = int.Parse(builder.Configuration["MaintenanceIntervalHours"] ?? "168"),
+        HealthCheckIntervalMinutes = int.Parse(builder.Configuration["HealthCheckIntervalMinutes"] ?? "60")
     },
 
-    // Storage configuration
     StorageConfiguration = new
     {
         MetadataStorePath = metadataStorePath,
         ContentStorePath = contentStorePath,
         EnableContentStorage = !string.IsNullOrEmpty(contentStorePath),
-        ReindexOnStartup = false
+        ReindexOnStartup = bool.Parse(builder.Configuration["ReindexOnStartup"] ?? "false")
     },
 
-    // Feature flags for the consolidated functions
     FeatureFlags = new
     {
-        EnableScheduledSync = true,
-        EnableContentSync = true,
-        EnableHealthMonitoring = true,
-        EnableMetadataExport = true,
-        EnableDriverMatching = true
+        EnableScheduledSync = bool.Parse(builder.Configuration["EnableScheduledSync"] ?? "true"),
+        EnableContentSync = bool.Parse(builder.Configuration["EnableContentSync"] ?? "true"),
+        EnableHealthMonitoring = bool.Parse(builder.Configuration["EnableHealthMonitoring"] ?? "true"),
+        EnableMetadataExport = bool.Parse(builder.Configuration["EnableMetadataExport"] ?? "true"),
+        EnableDriverMatching = bool.Parse(builder.Configuration["EnableDriverMatching"] ?? "true")
     }
 };
 
-// Add Azure Functions project using the official Aspire Azure Functions integration
+// 4. Use resource references for infrastructure dependencies
 var updateFunctions = builder.AddAzureFunctionsProject<Projects.MicrosoftUpdateFunctions>("update-functions")
     .WithExternalHttpEndpoints()
-    .WithHostStorage(storage)
-    .WithReference(blobs)
+    .WithHostStorage(storage)  // Aspire manages connection string automatically
+    .WithReference(blobs)      // Creates environment variable: ConnectionStrings__DataContainerConnection
+    .WithReference(serviceBus) // Creates environment variable: ConnectionStrings__ServiceBusConnection
+    .WithReference(contentSyncQueue)
+    .WithReference(prioritySyncQueue)
+    .WithReference(standardSyncQueue)
 
-    // Storage configuration for the service layer (local file system)
+    // 5. Only set application-specific variables (not infrastructure)
     .WithEnvironment("MetadataStorePath", metadataStorePath)
     .WithEnvironment("ContentStorePath", contentStorePath)
-    .WithEnvironment("MetadataStorageConnection", "") // Empty for local file system
-    .WithEnvironment("ContentStorageConnection", "") // Empty for local file system
+    .WithEnvironment("ContentHttpRoot", $"{serviceUrl}/api/content")
+    .WithEnvironment("ServiceConfigurationJson", System.Text.Json.JsonSerializer.Serialize(serviceConfiguration));
 
-    // HTTP endpoints configuration
-    .WithEnvironment("ContentHttpRoot", "http://localhost:7071/api/content")
-    .WithEnvironment("ServiceConfigurationJson", System.Text.Json.JsonSerializer.Serialize(serviceConfiguration))
-    
-    // Override Functions runtime settings
-    .WithEnvironment("FUNCTIONS_WORKER_RUNTIME", "dotnet-isolated")
-    .WithEnvironment("AzureWebJobsSecretStorageType", "files");
+if (string.IsNullOrEmpty(metadataStorePath))
+{
+    throw new InvalidOperationException("MetadataStorePath must be configured");
+}
+
+if (!Directory.Exists(metadataStorePath) && builder.Environment.IsDevelopment())
+{
+    Directory.CreateDirectory(metadataStorePath);
+    builder.Services.AddHealthChecks()
+        .AddCheck("metadata-store", () => 
+            Directory.Exists(metadataStorePath) 
+                ? HealthCheckResult.Healthy() 
+                : HealthCheckResult.Unhealthy("Metadata store path not found"));
+}
 
 var app = builder.Build();
 
