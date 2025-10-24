@@ -1,7 +1,11 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using Microsoft.Azure.Storage.Blob;
+using Azure;
+using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Models;
+using Azure.Storage.Blobs.Specialized;
+using Azure.Storage.Sas;
 using Microsoft.PackageGraph.ObjectModel;
 using System;
 using System.Collections.Concurrent;
@@ -24,7 +28,7 @@ namespace Microsoft.PackageGraph.Storage.Azure
 
         private const long BlockSize = 64 * 1024 * 1024;
 
-        readonly CloudBlobContainer ParentContainer;
+        readonly BlobContainerClient ParentContainer;
 
         /// <summary>
         /// List of pending downloads
@@ -44,20 +48,20 @@ namespace Microsoft.PackageGraph.Storage.Azure
         long _DownloadedSize;
         int _QueuedCount;
 
-        private BlobContentStore(CloudBlobContainer contentContainer)
+        private BlobContentStore(BlobContainerClient contentContainer)
         {
-            ParentContainer = contentContainer;
+            this.ParentContainer = contentContainer;
         }
 
         /// <summary>
         /// Opens an exiting or creates a new <see cref="IContentStore"/> with storage in the specified Azure Blob account and container
         /// </summary>
-        /// <param name="client">The Azure Blob client to use</param>
+        /// <param name="client">The Azure Blob service client to use</param>
         /// <param name="containerName">The container name where to store update content</param>
         /// <returns></returns>
-        public static BlobContentStore OpenOrCreate(CloudBlobClient client, string containerName)
+        public static BlobContentStore OpenOrCreate(BlobServiceClient client, string containerName)
         {
-            var container = client.GetContainerReference(containerName);
+            var container = client.GetBlobContainerClient(containerName);
             container.CreateIfNotExists();
 
             return new BlobContentStore(container);
@@ -67,47 +71,47 @@ namespace Microsoft.PackageGraph.Storage.Azure
         public void Download(IEnumerable<IContentFile> files, CancellationToken cancelToken)
         {
             var queuedFiles = new List<IContentFile>();
-            foreach(var file in files)
+            foreach (var file in files)
             {
-                if (PendingFileDownloads.TryAdd(file.Source, file))
+                if (this.PendingFileDownloads.TryAdd(file.Source, file))
                 {
                     queuedFiles.Add(file);
                 }
             }
 
-            Interlocked.Add(ref _QueuedCount, queuedFiles.Count);
+            Interlocked.Add(ref this._QueuedCount, queuedFiles.Count);
 
-            Interlocked.Add(ref _QueuedSize, queuedFiles.Sum(f => (long)f.Size));
+            Interlocked.Add(ref this._QueuedSize, queuedFiles.Sum(f => (long)f.Size));
 
             var cancellationSource = new CancellationTokenSource();
             var progress = new ContentOperationProgress();
-            
 
-            Progress?.Invoke(this, progress);
 
-            
+            this.Progress?.Invoke(this, progress);
+
+
             foreach (var file in queuedFiles)
             {
                 progress.Maximum = (long)file.Size;
                 progress.CurrentOperation = PackagesOperationType.DownloadFileStart;
-                Progress?.Invoke(this, progress);
+                this.Progress?.Invoke(this, progress);
 
-                if (Contains(file))
+                if (this.Contains(file))
                 {
-                    Interlocked.Add(ref _DownloadedSize, (long)file.Size);
-                    Interlocked.Decrement(ref _QueuedCount);
+                    Interlocked.Add(ref this._DownloadedSize, (long)file.Size);
+                    Interlocked.Decrement(ref this._QueuedCount);
 
                     progress.Current = (long)file.Size;
                     progress.CurrentOperation = PackagesOperationType.DownloadFileEnd;
-                    Progress?.Invoke(this, progress);
+                    this.Progress?.Invoke(this, progress);
 
-                    PendingFileDownloads.TryRemove(file.Source, out var completeFileRemoved);
+                    this.PendingFileDownloads.TryRemove(file.Source, out var completeFileRemoved);
 
                     continue;
                 }
 
                 progress.CurrentOperation = PackagesOperationType.DownloadFileProgress;
-                var fileBlob = GetBlobForFile(file);
+                var fileBlob = this.GetBlobForFile(file);
 
                 using (var client = new HttpClient())
                 {
@@ -125,9 +129,11 @@ namespace Microsoft.PackageGraph.Storage.Azure
                     int startBlock = 0;
                     var blockCount = fileSizeOnServer / BlockSize + (fileSizeOnServer % BlockSize == 0 ? 0 : 1);
                     List<string> blockIdList;
+
                     if (fileBlob.Exists())
                     {
-                        var fileBlocks = fileBlob.DownloadBlockList(BlockListingFilter.Uncommitted).ToList();
+                        var blockListResponse = fileBlob.GetBlockList(BlockListTypes.Uncommitted);
+                        var fileBlocks = blockListResponse.Value.UncommittedBlocks.ToList();
 
                         if (fileBlocks.Count <= blockCount)
                         {
@@ -144,35 +150,52 @@ namespace Microsoft.PackageGraph.Storage.Azure
                     for (int i = startBlock; i < blockCount; i++)
                     {
                         var startOffset = i * BlockSize;
-                        var blockSize = (fileSizeOnServer % BlockSize  != 0 && i == (blockCount  -1 )? fileSizeOnServer % BlockSize : BlockSize);
+                        var blockSize = (fileSizeOnServer % BlockSize != 0 && i == (blockCount - 1) ? fileSizeOnServer % BlockSize : BlockSize);
 
-                        fileBlob.PutBlock(Convert.ToBase64String(BitConverter.GetBytes(i)), new Uri(file.Source), startOffset, blockSize, null);
-                        blockIdList.Add(Convert.ToBase64String(BitConverter.GetBytes(i)));
+                        var blockId = Convert.ToBase64String(BitConverter.GetBytes(i));
+
+                        // Download block from source and upload to blob
+                        using (var request = new HttpRequestMessage { RequestUri = new Uri(file.Source), Method = HttpMethod.Get })
+                        {
+                            request.Headers.Range = new System.Net.Http.Headers.RangeHeaderValue(startOffset, startOffset + blockSize - 1);
+                            using var response = client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancelToken).GetAwaiter().GetResult();
+                            if (!response.IsSuccessStatusCode)
+                            {
+                                throw new Exception($"Failed to download block from {file.Source}: {response.ReasonPhrase}");
+                            }
+
+                            using var blockStream = response.Content.ReadAsStream(cancelToken);
+                            fileBlob.StageBlock(blockId, blockStream);
+                        }
+
+                        blockIdList.Add(blockId);
 
                         if (cancellationSource.IsCancellationRequested)
                         {
                             break;
                         }
 
-                        Interlocked.Add(ref _DownloadedSize, blockSize);
+                        Interlocked.Add(ref this._DownloadedSize, blockSize);
                         progress.Current += blockSize;
-                        Progress?.Invoke(this, progress);
+                        this.Progress?.Invoke(this, progress);
                     }
 
-                    fileBlob.PutBlockList(blockIdList);
-                    using var markerFile = GetBlobMarkerForFile(file).OpenWrite();
-                    markerFile.Write(Convert.FromBase64String(file.Digest.DigestBase64));
+                    fileBlob.CommitBlockList(blockIdList);
 
+                    // Write marker file
+                    var markerBlob = this.GetBlobMarkerForFile(file);
+                    using var markerStream = new MemoryStream(Convert.FromBase64String(file.Digest.DigestBase64));
+                    markerBlob.Upload(markerStream);
 
                 }
 
-                Interlocked.Add(ref _DownloadedSize, (long)file.Size * -1);
-                Interlocked.Add(ref _QueuedSize, (long)file.Size * -1);
-                Interlocked.Decrement(ref _QueuedCount);
+                Interlocked.Add(ref this._DownloadedSize, (long)file.Size * -1);
+                Interlocked.Add(ref this._QueuedSize, (long)file.Size * -1);
+                Interlocked.Decrement(ref this._QueuedCount);
                 progress.CurrentOperation = PackagesOperationType.DownloadFileEnd;
-                Progress?.Invoke(this, progress);
+                this.Progress?.Invoke(this, progress);
 
-                PendingFileDownloads.TryRemove(file.Source, out var downloadedFileRemoved);
+                this.PendingFileDownloads.TryRemove(file.Source, out var downloadedFileRemoved);
             }
         }
 
@@ -197,16 +220,17 @@ namespace Microsoft.PackageGraph.Storage.Azure
         /// <inheritdoc cref="IContentStore.Contains(IContentFile)"/>
         public bool Contains(IContentFile file)
         {
-            return GetBlobMarkerForFile(file).Exists();
+            return this.GetBlobMarkerForFile(file).Exists();
         }
 
         /// <inheritdoc cref="IContentStore.Get(IContentFile)"/>
         public Stream Get(IContentFile contentFile)
         {
-            var doneMarker = GetBlobMarkerForFile(contentFile);
+            var doneMarker = this.GetBlobMarkerForFile(contentFile);
             if (doneMarker.Exists())
             {
-                return GetBlobForFile(contentFile).OpenRead();
+                var fileBlob = this.GetBlobForFile(contentFile);
+                return fileBlob.OpenRead();
             }
             else
             {
@@ -214,44 +238,52 @@ namespace Microsoft.PackageGraph.Storage.Azure
             }
         }
 
-        private CloudBlockBlob GetBlobMarkerForFile(IContentFile updateFile)
+        private BlockBlobClient GetBlobMarkerForFile(IContentFile updateFile)
         {
-            return ParentContainer.GetBlockBlobReference(updateFile.Digest.HexString.ToLower() + ".complete");
+            return this.ParentContainer.GetBlockBlobClient(updateFile.Digest.HexString.ToLower() + ".complete");
         }
 
-        private CloudBlockBlob GetBlobForFile(IContentFile updateFile)
+        private BlockBlobClient GetBlobForFile(IContentFile updateFile)
         {
-            return ParentContainer.GetBlockBlobReference(updateFile.Digest.HexString.ToLower());
+            return this.ParentContainer.GetBlockBlobClient(updateFile.Digest.HexString.ToLower());
         }
 
         /// <inheritdoc cref="IContentStore.GetUri(IContentFile)"/>
         public string GetUri(IContentFile updateFile)
         {
-            var fileBlob = GetBlobForFile(updateFile);
+            var fileBlob = this.GetBlobForFile(updateFile);
 
-            SharedAccessBlobPolicy sharedPolicy =
-                new()
-                {
-                    SharedAccessStartTime = DateTimeOffset.UtcNow.AddMinutes(-5),
-                    SharedAccessExpiryTime = DateTimeOffset.UtcNow.AddMinutes(10), // 2 minutes expired
-                    Permissions = SharedAccessBlobPermissions.Read
-                };
-
-            string sasBlobToken = fileBlob.GetSharedAccessSignature(sharedPolicy, new SharedAccessBlobHeaders()
+            // Check if blob has user delegation SAS support (requires Entra ID auth)
+            // For storage account key auth, fall back to account SAS
+            if (this.ParentContainer.CanGenerateSasUri)
             {
-                ContentDisposition = "attachment; filename=" + updateFile.FileName
-            });
+                var sasBuilder = new BlobSasBuilder
+                {
+                    BlobContainerName = fileBlob.BlobContainerName,
+                    BlobName = fileBlob.Name,
+                    Resource = "b", // Blob
+                    StartsOn = DateTimeOffset.UtcNow.AddMinutes(-5),
+                    ExpiresOn = DateTimeOffset.UtcNow.AddMinutes(10),
+                };
+                sasBuilder.SetPermissions(BlobSasPermissions.Read);
 
-            return fileBlob.Uri.ToString() + sasBlobToken;
+                var sasUri = fileBlob.GenerateSasUri(sasBuilder);
+                return sasUri.ToString();
+            }
+            else
+            {
+                // Fallback: return blob URL without SAS (assumes public access or caller has auth)
+                return fileBlob.Uri.ToString();
+            }
         }
 
         /// <inheritdoc cref="IContentStore.DownloadAsync(IContentFile, CancellationToken)"/>
         public Task DownloadAsync(IContentFile file, CancellationToken cancelToken)
         {
             var downloadTask = new Task(() =>
-            {
-                Download(new List<IContentFile>() { file}, cancelToken);
-            });
+           {
+               this.Download(new List<IContentFile>() { file }, cancelToken);
+           });
 
             downloadTask.Start();
 

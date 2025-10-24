@@ -4,8 +4,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.PackageGraph.Storage;
 using Microsoft.PackageGraph.Storage.Local;
 using Microsoft.PackageGraph.Storage.Azure;
-using Microsoft.Azure.Storage;
-using Microsoft.Azure.Storage.Blob;
+using Azure.Storage.Blobs;
 using Microsoft.PackageGraph.MicrosoftUpdate.Endpoints.ClientSync;
 using Microsoft.PackageGraph.MicrosoftUpdate.Endpoints.ServerSync;
 using Microsoft.UpdateServices.WebServices.ClientSync;
@@ -31,11 +30,10 @@ namespace MicrosoftUpdateFunctions.Services
                 if (useAzureStorage && !string.IsNullOrEmpty(metadataConnectionString))
                 {
                     logger.LogInformation("Using Azure Blob Storage for metadata store");
-                    var storageAccount = CloudStorageAccount.Parse(metadataConnectionString);
-                    var blobClient = storageAccount.CreateCloudBlobClient();
+                    var blobServiceClient = new BlobServiceClient(metadataConnectionString);
                     var containerName = configuration["MetadataContainerName"] ?? "metadata";
                     
-                    return Microsoft.PackageGraph.Storage.Azure.PackageStore.OpenOrCreate(blobClient, containerName);
+                    return Microsoft.PackageGraph.Storage.Azure.PackageStore.OpenOrCreate(blobServiceClient, containerName);
                 }
                 else
                 {
@@ -65,11 +63,10 @@ namespace MicrosoftUpdateFunctions.Services
                 if (useAzureStorage && !string.IsNullOrEmpty(contentConnectionString))
                 {
                     logger.LogInformation("Using Azure Blob Storage for content store");
-                    var storageAccount = CloudStorageAccount.Parse(contentConnectionString);
-                    var blobClient = storageAccount.CreateCloudBlobClient();
+                    var blobServiceClient = new BlobServiceClient(contentConnectionString);
                     var containerName = configuration["ContentContainerName"] ?? "content";
                     
-                    return BlobContentStore.OpenOrCreate(blobClient, containerName);
+                    return BlobContentStore.OpenOrCreate(blobServiceClient, containerName);
                 }
                 else
                 {

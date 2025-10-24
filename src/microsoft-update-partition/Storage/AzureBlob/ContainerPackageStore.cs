@@ -1,7 +1,8 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using Microsoft.Azure.Storage.Blob;
+using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Specialized;
 using Microsoft.PackageGraph.ObjectModel;
 using Microsoft.PackageGraph.Partitions;
 using Microsoft.PackageGraph.Storage.Index;
@@ -31,7 +32,7 @@ namespace Microsoft.PackageGraph.Storage.Azure
 
         public event EventHandler<PackageStoreEventArgs> PackagesAddProgress;
 
-        readonly CloudBlobContainer ParentContainer;
+        readonly BlobContainerClient ParentContainer;
 
         readonly MetadataStore Metadata;
 
@@ -52,30 +53,30 @@ namespace Microsoft.PackageGraph.Storage.Azure
         /// <inheritdoc cref="IMetadataStore.IsMetadataIndexingSupported"/>
         public bool IsMetadataIndexingSupported { get; private set; } = true;
 
-        private ContainerPackageStore(CloudBlobContainer container, AzurePackageStoreInitializeMode mode)
+        private ContainerPackageStore(BlobContainerClient container, AzurePackageStoreInitializeMode mode)
         {
             if (!container.Exists())
             {
                 throw new Exception("Container does not exist");
             }
 
-            ParentContainer = container;
+            this.ParentContainer = container;
 
-            Identities = new IdentitiesIndex(container, mode);
-            IndexContainer = new IndexContainer(container);
+            this.Identities = new IdentitiesIndex(container, mode);
+            this.IndexContainer = new IndexContainer(container);
 
-            Metadata = new MetadataStore(ParentContainer);
+            this.Metadata = new MetadataStore(this.ParentContainer);
 
-            var indexedIdentities = Identities.Identities.Select(identity => identity.OpenIdHex).ToList();
+            var indexedIdentities = this.Identities.Identities.Select(identity => identity.OpenIdHex).ToList();
 
-            var metadataIndexedIdentities = IndexContainer.GetListOfMetadataIndexedPackages().Select(index => Identities.GetPackageIdentity(index)).Select(identity => identity.OpenIdHex);
+            var metadataIndexedIdentities = this.IndexContainer.GetListOfMetadataIndexedPackages().Select(index => this.Identities.GetPackageIdentity(index)).Select(identity => identity.OpenIdHex);
             var notMetadataIndexedIdentities = indexedIdentities.Except(metadataIndexedIdentities).ToList();
             if (notMetadataIndexedIdentities.Count > 0)
             {
-                IsReindexingRequired = true;
+                this.IsReindexingRequired = true;
             }
 
-            IsReindexingRequired |= this.IndexContainer.ReIndexingRequired;
+            this.IsReindexingRequired |= this.IndexContainer.ReIndexingRequired;
 
             var missingMetadata = indexedIdentities.Except(indexedIdentities).ToList();
             if (missingMetadata.Count > 0)
@@ -86,7 +87,7 @@ namespace Microsoft.PackageGraph.Storage.Azure
                 }
                 else if (mode == AzurePackageStoreInitializeMode.ResetOnIndexCorruption)
                 {
-                    Identities.Reset();
+                    this.Identities.Reset();
                 }
                 else
                 {
@@ -95,32 +96,35 @@ namespace Microsoft.PackageGraph.Storage.Azure
             }
         }
 
-        public static ContainerPackageStore OpenExisting(CloudBlobContainer container)
+        public static ContainerPackageStore OpenExisting(BlobContainerClient container)
         {
             return new ContainerPackageStore(container, AzurePackageStoreInitializeMode.FailOnIndexCorruption);
         }
 
-        public static ContainerPackageStore OpenExisting(CloudBlobClient client, string containerName)
+        public static ContainerPackageStore OpenExisting(BlobServiceClient client, string containerName)
         {
-            var container = client.GetContainerReference(containerName);
+            var container = client.GetBlobContainerClient(containerName);
 
             return new ContainerPackageStore(container, AzurePackageStoreInitializeMode.FailOnIndexCorruption);
         }
 
-        public static void Erase(CloudBlobClient client, string containerName)
+        public static void Erase(BlobServiceClient client, string containerName)
         {
-            var containerRef = client.GetContainerReference(containerName);
+            var containerRef = client.GetBlobContainerClient(containerName);
             if (containerRef.Exists())
             {
-                var tocReference = containerRef.GetBlockBlobReference(TocBlobName);
+                var tocReference = containerRef.GetBlobClient(TocBlobName);
                 tocReference.DeleteIfExists();
 
                 for (int i = 0; i < int.MaxValue; i++)
                 {
-                    var metadataRef = containerRef.GetPageBlobReference(MetadataBlobName + i.ToString());
-                    if (metadataRef.Exists())
+                    // In the new SDK, use the container's GetBlobClient URI string to create PageBlobClient
+                    var blobUriString = containerRef.GetBlobClient(MetadataBlobName + i.ToString()).Uri.ToString();
+                    var pageBlobClient = new PageBlobClient(blobUriString, containerRef.GetParentBlobServiceClient().GetProperties().Value.DefaultServiceVersion, null);
+
+                    if (pageBlobClient.Exists())
                     {
-                        metadataRef.Delete();
+                        pageBlobClient.Delete();
                     }
                     else
                     {
@@ -133,31 +137,31 @@ namespace Microsoft.PackageGraph.Storage.Azure
             }
         }
 
-        public static ContainerPackageStore OpenOrCreate(CloudBlobClient client, string containerName)
+        public static ContainerPackageStore OpenOrCreate(BlobServiceClient client, string containerName)
         {
-            var container = client.GetContainerReference(containerName);
+            var container = client.GetBlobContainerClient(containerName);
             container.CreateIfNotExists();
 
             return new ContainerPackageStore(container, AzurePackageStoreInitializeMode.ResetOnIndexCorruption);
         }
 
-        public static bool Exists(CloudBlobClient client, string containerName)
+        public static bool Exists(BlobServiceClient client, string containerName)
         {
-            var container = client.GetContainerReference(containerName);
+            var container = client.GetBlobContainerClient(containerName);
             return container.Exists();
         }
 
         public bool ContainsMetadata(IPackageIdentity packageIdentity)
         {
-            return Identities.TryGetPackageIndex(packageIdentity, out var _);
+            return this.Identities.TryGetPackageIndex(packageIdentity, out var _);
         }
 
         public Stream GetMetadata(IPackageIdentity packageIdentity)
         {
-            if (Identities.TryGetPackageIndex(packageIdentity, out var packageIndex) &&
-                Identities.TryGetStoreEntry(packageIndex, out var storeEntry))
+            if (this.Identities.TryGetPackageIndex(packageIdentity, out var packageIndex) &&
+            this.Identities.TryGetStoreEntry(packageIndex, out var storeEntry))
             {
-                return Metadata.GetMetadata(storeEntry);
+                return this.Metadata.GetMetadata(storeEntry);
             }
             else
             {
@@ -167,49 +171,49 @@ namespace Microsoft.PackageGraph.Storage.Azure
 
         public void Dispose()
         {
-            if (IsDisposed)
+            if (this.IsDisposed)
             {
                 throw new ObjectDisposedException("package store");
             }
 
-            Flush();
-            IsDisposed = true;
+            this.Flush();
+            this.IsDisposed = true;
         }
 
         public void AddPackage(IPackage package)
         {
-            if (IsDisposed)
+            if (this.IsDisposed)
             {
                 throw new ObjectDisposedException("package store");
             }
 
-            if (Identities.TryGetPackageIndex(package.Id, out var _))
+            if (this.Identities.TryGetPackageIndex(package.Id, out var _))
             {
                 return;
             }
-            
-            lock(Identities)
+
+            lock (this.Identities)
             {
-                var entry = Metadata.AddPackage(package);
+                var entry = this.Metadata.AddPackage(package);
 
-                var packageIndex = Identities.AddPackage(package, entry);
-                IndexContainer.IndexPackage(package, packageIndex);
+                var packageIndex = this.Identities.AddPackage(package, entry);
+                this.IndexContainer.IndexPackage(package, packageIndex);
 
-                PendingPackages.Add(package);
+                this.PendingPackages.Add(package);
             }
         }
 
         public List<T> GetFiles<T>(IPackageIdentity packageIdentity)
         {
-            if (IsDisposed)
+            if (this.IsDisposed)
             {
                 throw new ObjectDisposedException("package store");
             }
 
-            if (Identities.TryGetPackageIndex(packageIdentity, out var packageIndex) &&
-                Identities.TryGetStoreEntry(packageIndex, out var storeEntry))
+            if (this.Identities.TryGetPackageIndex(packageIdentity, out var packageIndex) &&
+       this.Identities.TryGetStoreEntry(packageIndex, out var storeEntry))
             {
-                return Metadata.GetFiles<T>(storeEntry);
+                return this.Metadata.GetFiles<T>(storeEntry);
             }
             else
             {
@@ -219,49 +223,49 @@ namespace Microsoft.PackageGraph.Storage.Azure
 
         public void AddPackages(IEnumerable<IPackage> packages)
         {
-            if (IsDisposed)
+            if (this.IsDisposed)
             {
                 throw new ObjectDisposedException("package store");
             }
 
             var progressArgs = new PackageStoreEventArgs() { Current = 0, Total = packages.Count() };
-            PackagesAddProgress?.Invoke(this, progressArgs);
+            this.PackagesAddProgress?.Invoke(this, progressArgs);
             foreach (var package in packages)
             {
-                AddPackage(package);
+                this.AddPackage(package);
 
                 progressArgs.Current++;
-                PackagesAddProgress?.Invoke(this, progressArgs);
+                this.PackagesAddProgress?.Invoke(this, progressArgs);
             }
         }
 
         public void Flush()
         {
-            if (IsDisposed)
+            if (this.IsDisposed)
             {
                 throw new ObjectDisposedException("package store");
             }
 
-            Identities.Save();
-            IndexContainer.Save();
-            Metadata.Flush();
+            this.Identities.Save();
+            this.IndexContainer.Save();
+            this.Metadata.Flush();
 
-            PendingPackages.Clear();
+            this.PendingPackages.Clear();
         }
 
         public IEnumerator<IPackage> GetEnumerator()
         {
-            return new AzurePackageEnumerator(GetPackagesList(), this);
+            return new AzurePackageEnumerator(this.GetPackagesList(), this);
         }
 
         public List<IPackageIdentity> GetPackageIdentities()
         {
-            return Identities.Identities.ToList();
+            return this.Identities.Identities.ToList();
         }
 
         public void CopyTo(IMetadataSink destination, CancellationToken cancelToken)
         {
-            var identitiesToCopy = Identities.Identities.ToDictionary(id => id.ToString());
+            var identitiesToCopy = this.Identities.Identities.ToDictionary(id => id.ToString());
             var copyCount = identitiesToCopy.Count;
 
             HashSet<string> matchingPackagesInDestination = new();
@@ -273,15 +277,15 @@ namespace Microsoft.PackageGraph.Storage.Azure
             copyCount -= matchingPackagesInDestination.Count;
 
             var progressArgs = new PackageStoreEventArgs() { Total = copyCount, Current = 0 };
-            MetadataCopyProgress?.Invoke(copyCount, progressArgs);
+            this.MetadataCopyProgress?.Invoke(copyCount, progressArgs);
 
-            var sortedEntries = Identities.Entries.ToList().OrderBy(e => e.MetadataOffset);
+            var sortedEntries = this.Identities.Entries.ToList().OrderBy(e => e.MetadataOffset);
 
             foreach (var entry in sortedEntries)
             {
                 if (!matchingPackagesInDestination.Contains(entry.PackageId))
                 {
-                    var metadataStream = Metadata.GetMetadata(entry);
+                    var metadataStream = this.Metadata.GetMetadata(entry);
 
                     if (!PartitionRegistration.TryGetPartition(entry.PartitionName, out var partition))
                     {
@@ -292,19 +296,19 @@ namespace Microsoft.PackageGraph.Storage.Azure
                     destination.AddPackage(package);
 
                     progressArgs.Current++;
-                    MetadataCopyProgress?.Invoke(copyCount, progressArgs);
+                    this.MetadataCopyProgress?.Invoke(copyCount, progressArgs);
                 }
             }
         }
 
         public bool ContainsPackage(IPackageIdentity packageIdentity)
         {
-            return Identities.TryGetPackageIndex(packageIdentity, out var _);
+            return this.Identities.TryGetPackageIndex(packageIdentity, out var _);
         }
 
         public int GetPackageIndex(IPackageIdentity packageIdentity)
         {
-            if (Identities.TryGetPackageIndex(packageIdentity, out var index))
+            if (this.Identities.TryGetPackageIndex(packageIdentity, out var index))
             {
                 return index;
             }
@@ -316,7 +320,7 @@ namespace Microsoft.PackageGraph.Storage.Azure
 
         public IPackage GetPackage(IPackageIdentity packageIdentity)
         {
-            if (!Identities.TryGetPackageType(packageIdentity, out int packageType))
+            if (!this.Identities.TryGetPackageType(packageIdentity, out int packageType))
             {
                 throw new Exception($"Package type is not available for package {packageIdentity}");
             }
@@ -331,9 +335,9 @@ namespace Microsoft.PackageGraph.Storage.Azure
 
         public IPackage GetPackage(int packageIndex)
         {
-            if (Identities.TryGetPackageIdentity(packageIndex, out var packageIdentity))
+            if (this.Identities.TryGetPackageIdentity(packageIndex, out var packageIdentity))
             {
-                return GetPackage(packageIdentity);
+                return this.GetPackage(packageIdentity);
             }
             else
             {
@@ -343,18 +347,18 @@ namespace Microsoft.PackageGraph.Storage.Azure
 
         IEnumerator IEnumerable.GetEnumerator()
         {
-            return GetEnumerator();
+            return this.GetEnumerator();
         }
 
         private List<KeyValuePair<IPackageIdentity, PartitionDefinition>> GetPackagesList()
         {
             var packagePaths = new List<KeyValuePair<IPackageIdentity, PartitionDefinition>>();
             var allRegisteredPartitions = PartitionRegistration
-                .GetAllPartitions()
-                .Where(partition => partition.HandlesIdentities)
-                .ToDictionary(partition => partition.Name);
+                    .GetAllPartitions()
+                   .Where(partition => partition.HandlesIdentities)
+                    .ToDictionary(partition => partition.Name);
 
-            foreach (var identity in Identities.Identities)
+            foreach (var identity in this.Identities.Identities)
             {
                 if (!allRegisteredPartitions.TryGetValue(identity.Partition, out var partitionDefinition))
                 {
@@ -369,19 +373,19 @@ namespace Microsoft.PackageGraph.Storage.Azure
 
         public bool TrySimpleKeyLookup<T>(IPackageIdentity packageIdentity, string indexName, out T value)
         {
-            if (!Identities.TryGetPackageIndex(packageIdentity, out int packageIndex))
+            if (!this.Identities.TryGetPackageIndex(packageIdentity, out int packageIndex))
             {
                 throw new KeyNotFoundException();
             }
 
-            return IndexContainer.TrySimpleKeyLookup(packageIndex, indexName, out value);
+            return this.IndexContainer.TrySimpleKeyLookup(packageIndex, indexName, out value);
         }
 
         public bool TryPackageLookupByCustomKey<T>(T key, string indexName, out IPackageIdentity value)
         {
-            if (IndexContainer.TryPackageLookupByCustomKey(key, indexName, out int packageIndex))
+            if (this.IndexContainer.TryPackageLookupByCustomKey(key, indexName, out int packageIndex))
             {
-                return Identities.TryGetPackageIdentity(packageIndex, out value);
+                return this.Identities.TryGetPackageIdentity(packageIndex, out value);
             }
             else
             {
@@ -392,9 +396,9 @@ namespace Microsoft.PackageGraph.Storage.Azure
 
         public bool TryPackageListLookupByCustomKey<T>(T key, string indexName, out List<IPackageIdentity> value)
         {
-            if (IndexContainer.TryPackageListLookupByCustomKey(key, indexName, out List<int> packageIndex))
+            if (this.IndexContainer.TryPackageListLookupByCustomKey(key, indexName, out List<int> packageIndex))
             {
-                value = packageIndex.Select(index => Identities.GetPackageIdentity(index)).ToList();
+                value = packageIndex.Select(index => this.Identities.GetPackageIdentity(index)).ToList();
                 return true;
             }
             else
@@ -406,41 +410,41 @@ namespace Microsoft.PackageGraph.Storage.Azure
 
         public bool TryListKeyLookup<T>(IPackageIdentity packageIdentity, string indexName, out List<T> value)
         {
-            if (!Identities.TryGetPackageIndex(packageIdentity, out int packageIndex))
+            if (!this.Identities.TryGetPackageIndex(packageIdentity, out int packageIndex))
             {
                 throw new KeyNotFoundException();
             }
 
-            return IndexContainer.TryListKeyLookup<T>(packageIndex, indexName, out value);
+            return this.IndexContainer.TryListKeyLookup<T>(packageIndex, indexName, out value);
         }
 
         public List<IndexDefinition> GetAvailableIndexes()
         {
-            return IndexContainer.GetLoadedIndexes();
+            return this.IndexContainer.GetLoadedIndexes();
         }
 
         private void CheckIndex(bool forceReindex)
         {
-            lock (Identities)
+            lock (this.Identities)
             {
-                if (!IsReindexingRequired && !forceReindex)
+                if (!this.IsReindexingRequired && !forceReindex)
                 {
                     return;
                 }
 
-                IndexContainer.Erase(ParentContainer);
-                IndexContainer.ResetIndex();
+                IndexContainer.Erase(this.ParentContainer);
+                this.IndexContainer.ResetIndex();
 
-                PackageStoreEventArgs progressEvent = new() { Total = Identities.Identities.Count, Current = 0 };
+                PackageStoreEventArgs progressEvent = new() { Total = this.Identities.Identities.Count, Current = 0 };
 
-                for (int packageIndex = 0; packageIndex <= Identities.Entries.Max(e => e.PackageIndex); packageIndex++)
+                for (int packageIndex = 0; packageIndex <= this.Identities.Entries.Max(e => e.PackageIndex); packageIndex++)
                 {
-                    var packageIdentity = Identities.GetPackageIdentity(packageIndex);
-                    var packageStream = Metadata.GetMetadata(Identities.GetStoreEntry(packageIndex));
+                    var packageIdentity = this.Identities.GetPackageIdentity(packageIndex);
+                    var packageStream = this.Metadata.GetMetadata(this.Identities.GetStoreEntry(packageIndex));
                     if (PartitionRegistration.TryGetPartition(packageIdentity.Partition, out var partitionDefinition))
                     {
                         var parsedPackage = partitionDefinition.Factory.FromStream(packageStream, this);
-                        IndexContainer.IndexPackage(parsedPackage, Identities.GetPackageIndex(packageIdentity));
+                        this.IndexContainer.IndexPackage(parsedPackage, this.Identities.GetPackageIndex(packageIdentity));
                     }
                     else
                     {
@@ -448,17 +452,17 @@ namespace Microsoft.PackageGraph.Storage.Azure
                     }
 
                     progressEvent.Current++;
-                    PackageIndexingProgress?.Invoke(this, progressEvent);
+                    this.PackageIndexingProgress?.Invoke(this, progressEvent);
                 }
 
-                IsReindexingRequired = false;
+                this.IsReindexingRequired = false;
             }
         }
 
         /// <inheritdoc cref="IMetadataStore.ReIndex"/>
         public void ReIndex()
         {
-            CheckIndex(true);
+            this.CheckIndex(true);
         }
 
         public void CopyTo(IMetadataSink destination, IMetadataFilter filter, CancellationToken cancelToken)
@@ -475,18 +479,18 @@ namespace Microsoft.PackageGraph.Storage.Azure
             copyCount -= matchingPackagesInDestination.Count;
 
             var progressArgs = new PackageStoreEventArgs() { Total = copyCount, Current = 0 };
-            MetadataCopyProgress?.Invoke(copyCount, progressArgs);
+            this.MetadataCopyProgress?.Invoke(copyCount, progressArgs);
 
             if (copyCount == 0)
             {
                 return;
             }
 
-            foreach (var entry in Identities.Entries)
+            foreach (var entry in this.Identities.Entries)
             {
                 if (identitiesToCopy.ContainsKey(entry.PackageId) && !matchingPackagesInDestination.Contains(entry.PackageId))
                 {
-                    var metadataStream = Metadata.GetMetadata(entry);
+                    var metadataStream = this.Metadata.GetMetadata(entry);
 
                     if (!PartitionRegistration.TryGetPartition(entry.PartitionName, out var partition))
                     {
@@ -497,14 +501,14 @@ namespace Microsoft.PackageGraph.Storage.Azure
                     destination.AddPackage(package);
 
                     progressArgs.Current++;
-                    MetadataCopyProgress?.Invoke(copyCount, progressArgs);
+                    this.MetadataCopyProgress?.Invoke(copyCount, progressArgs);
                 }
             }
         }
 
         public IReadOnlyList<IPackage> GetPendingPackages()
         {
-            return PendingPackages.AsReadOnly();
+            return this.PendingPackages.AsReadOnly();
         }
 
         class AzurePackageEnumerator : IEnumerator<IPackage>
@@ -514,32 +518,32 @@ namespace Microsoft.PackageGraph.Storage.Azure
 
             public AzurePackageEnumerator(List<KeyValuePair<IPackageIdentity, PartitionDefinition>> paths, ContainerPackageStore metadataSource)
             {
-                _Source = metadataSource;
-                IdentitiesEnumerator = paths.GetEnumerator();
+                this._Source = metadataSource;
+                this.IdentitiesEnumerator = paths.GetEnumerator();
             }
 
-            public object Current => GetCurrent();
+            public object Current => this.GetCurrent();
 
-            IPackage IEnumerator<IPackage>.Current => GetCurrent();
+            IPackage IEnumerator<IPackage>.Current => this.GetCurrent();
 
             private IPackage GetCurrent()
             {
-                return _Source.GetPackage(IdentitiesEnumerator.Current.Key);
+                return this._Source.GetPackage(this.IdentitiesEnumerator.Current.Key);
             }
 
             public void Dispose()
             {
-                IdentitiesEnumerator.Dispose();
+                this.IdentitiesEnumerator.Dispose();
             }
 
             public bool MoveNext()
             {
-                return IdentitiesEnumerator.MoveNext();
+                return this.IdentitiesEnumerator.MoveNext();
             }
 
             public void Reset()
             {
-                IdentitiesEnumerator.Reset();
+                this.IdentitiesEnumerator.Reset();
             }
         }
     }
