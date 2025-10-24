@@ -7,7 +7,7 @@
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <IsAspireHost>false</IsAspireHost>
+    <IsAspireHost>true</IsAspireHost>
   </PropertyGroup>
 
   <ItemGroup>
