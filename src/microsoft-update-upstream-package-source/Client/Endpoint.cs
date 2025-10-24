@@ -24,7 +24,7 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate.Source
         /// <value>
         /// Absolute URI string to upstream server.
         /// </value>
-        [JsonProperty]
+        [Newtonsoft.Json.JsonProperty]
         public readonly string URI;
 
         /// <summary>
