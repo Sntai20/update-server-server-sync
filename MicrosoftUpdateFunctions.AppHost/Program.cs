@@ -1,12 +1,13 @@
 using Aspire.Hosting;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.DependencyInjection;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
 // Add Azure Storage Emulator as a containerized resource
-var storage = builder.AddAzureStorage("storage").RunAsEmulator();
-var blobs = storage.AddBlobs("blobs");
+var storage = builder
+    .AddAzureStorage("Storage")
+    .RunAsEmulator(configure => configure.WithApiVersionCheck(false));
+
+var blobs = storage.AddBlobs("DataContainerConnection");
 
 // Configure storage paths for development
 var metadataStorePath = builder.Configuration["MetadataStorePath"] ?? "./store";
@@ -19,7 +20,7 @@ var serviceConfiguration = new
     ContentUrl = "http://localhost:7071/api/content",
     MaxUpdateCount = 1000,
     SupportedCategories = new[] { "Security Updates", "Critical Updates", "Feature Packs", "Updates", "Drivers" },
-    
+
     // New service layer configuration
     SyncConfiguration = new
     {
@@ -29,7 +30,7 @@ var serviceConfiguration = new
         MaintenanceIntervalHours = 168, // Weekly
         HealthCheckIntervalMinutes = 60
     },
-    
+
     // Storage configuration
     StorageConfiguration = new
     {
@@ -38,7 +39,7 @@ var serviceConfiguration = new
         EnableContentStorage = !string.IsNullOrEmpty(contentStorePath),
         ReindexOnStartup = false
     },
-    
+
     // Feature flags for the consolidated functions
     FeatureFlags = new
     {
@@ -50,22 +51,25 @@ var serviceConfiguration = new
     }
 };
 
-// Add Azure Functions project using the project reference (better Aspire integration)
+// Add Azure Functions project using the official Aspire Azure Functions integration
 var updateFunctions = builder.AddAzureFunctionsProject<Projects.MicrosoftUpdateFunctions>("update-functions")
     .WithExternalHttpEndpoints()
+    .WithHostStorage(storage)
+    .WithReference(blobs)
 
-    // Storage configuration for the service layer
+    // Storage configuration for the service layer (local file system)
     .WithEnvironment("MetadataStorePath", metadataStorePath)
     .WithEnvironment("ContentStorePath", contentStorePath)
     .WithEnvironment("MetadataStorageConnection", "") // Empty for local file system
     .WithEnvironment("ContentStorageConnection", "") // Empty for local file system
-    
+
     // HTTP endpoints configuration
     .WithEnvironment("ContentHttpRoot", "http://localhost:7071/api/content")
     .WithEnvironment("ServiceConfigurationJson", System.Text.Json.JsonSerializer.Serialize(serviceConfiguration))
     
-    // Reference to blob storage for Azure Functions
-    .WithReference(blobs);
+    // Override Functions runtime settings
+    .WithEnvironment("FUNCTIONS_WORKER_RUNTIME", "dotnet-isolated")
+    .WithEnvironment("AzureWebJobsSecretStorageType", "files");
 
 var app = builder.Build();
 
