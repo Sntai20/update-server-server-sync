@@ -30,7 +30,7 @@ public class QueryServiceTests
 
         // Assert
         Assert.NotNull(status);
-        Assert.False(status.ReindexRequired);
+        Assert.False(status.ReindexingRequired);
         Assert.True(status.Timestamp > DateTime.MinValue);
     }
 

@@ -32,7 +32,7 @@ public class MetadataSyncFunctionsTests
     public async Task SyncMetadata_WithValidRequest_ShouldReturnSuccess()
     {
         // Arrange
-        var request = new SyncMetadataRequest
+        var request = new MicrosoftUpdateFunctions.Services.SyncMetadataRequest
         {
             SyncCategories = true,
             SyncUpdates = true,
@@ -43,7 +43,7 @@ public class MetadataSyncFunctionsTests
         var httpRequest = CreateMockHttpRequest(requestBody);
 
         this.syncServiceMock.Setup(x => x.CreateCriticalUpdatesFilter())
-            .Returns(new UpstreamSourceFilter());
+            .Returns(new Microsoft.PackageGraph.MicrosoftUpdate.Source.UpstreamSourceFilter());
 
         // Act
         var response = await this.functions.SyncMetadata(httpRequest);
@@ -51,7 +51,7 @@ public class MetadataSyncFunctionsTests
         // Assert
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
         this.syncServiceMock.Verify(x => x.SyncCategoriesAsync(It.IsAny<CancellationToken>()), Times.Once);
-        this.syncServiceMock.Verify(x => x.SyncUpdatesAsync(It.IsAny<UpstreamSourceFilter>(), It.IsAny<CancellationToken>()), Times.Once);
+        this.syncServiceMock.Verify(x => x.SyncUpdatesAsync(It.IsAny<Microsoft.PackageGraph.MicrosoftUpdate.Source.UpstreamSourceFilter>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
