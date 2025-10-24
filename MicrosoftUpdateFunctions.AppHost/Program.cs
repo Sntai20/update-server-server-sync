@@ -6,6 +6,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 // Add Azure Storage Emulator as a containerized resource
 var storage = builder.AddAzureStorage("storage").RunAsEmulator();
+var blobs = storage.AddBlobs("blobs");
 
 // Configure storage paths for development
 var metadataStorePath = builder.Configuration["MetadataStorePath"] ?? "./store";
@@ -49,13 +50,10 @@ var serviceConfiguration = new
     }
 };
 
-// Add the Microsoft Update Functions with comprehensive configuration
-var updateFunctions = builder.AddExecutable("update-functions", "func", "../MicrosoftUpdateFunctions/src", "start", "--port", "7071")
-    .WithEnvironment("FUNCTIONS_WORKER_RUNTIME", "dotnet-isolated")
-    .WithEnvironment("AzureWebJobsSecretStorageType", "files")
-    .WithEnvironment("AZURE_FUNCTIONS_ENVIRONMENT", "Development")
-    .WithEnvironment("AzureWebJobsStorage", "UseDevelopmentStorage=true")
-    
+// Add Azure Functions project using the project reference (better Aspire integration)
+var updateFunctions = builder.AddAzureFunctionsProject<Projects.MicrosoftUpdateFunctions>("update-functions")
+    .WithExternalHttpEndpoints()
+
     // Storage configuration for the service layer
     .WithEnvironment("MetadataStorePath", metadataStorePath)
     .WithEnvironment("ContentStorePath", contentStorePath)
@@ -66,51 +64,9 @@ var updateFunctions = builder.AddExecutable("update-functions", "func", "../Micr
     .WithEnvironment("ContentHttpRoot", "http://localhost:7071/api/content")
     .WithEnvironment("ServiceConfigurationJson", System.Text.Json.JsonSerializer.Serialize(serviceConfiguration))
     
-    // Logging configuration for better debugging
-    .WithEnvironment("FUNCTIONS_WORKER_RUNTIME_VERSION", "~4")
-    .WithEnvironment("WEBSITE_USE_PLACEHOLDER_DOTNETISOLATED", "1")
-    
-    // Health check configuration
-    .WithEnvironment("HealthCheck__Enabled", "true")
-    .WithEnvironment("HealthCheck__Timeout", "30")
-    
-    // Configure HTTP endpoint with health check
-    .WithHttpEndpoint(port: 7071, name: "http")
-    .WithHttpHealthCheck("/api/HealthCheck");
+    // Reference to blob storage for Azure Functions
+    .WithReference(blobs);
 
-// Add reference to storage for dependency tracking
-updateFunctions.WithReference((Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.IResourceWithConnectionString>)storage);
-
-// Configure the application with enhanced monitoring
 var app = builder.Build();
-
-// Add startup logging
-app.Services.GetRequiredService<IHostApplicationLifetime>().ApplicationStarted.Register(() =>
-{
-    Console.WriteLine("=== Microsoft Update Functions AppHost Started ===");
-    Console.WriteLine($"Functions URL: http://localhost:7071");
-    Console.WriteLine($"Aspire Dashboard: http://localhost:15888");
-    Console.WriteLine($"Health Check: http://localhost:7071/api/HealthCheck");
-    Console.WriteLine($"Store Status: http://localhost:7071/api/StoreStatus");
-    Console.WriteLine($"Metadata Store Path: {metadataStorePath}");
-    Console.WriteLine($"Content Store Path: {contentStorePath}");
-    Console.WriteLine("=== Available Endpoints ===");
-    Console.WriteLine("Sync Operations:");
-    Console.WriteLine("  POST /api/SyncMetadata - Manual metadata sync");
-    Console.WriteLine("  POST /api/SyncContent - Manual content sync");
-    Console.WriteLine("Query Operations:");
-    Console.WriteLine("  GET  /api/StoreStatus - Store status and statistics");
-    Console.WriteLine("  POST /api/QueryMetadata - Query stored metadata");
-    Console.WriteLine("  POST /api/MatchDrivers - Driver matching");
-    Console.WriteLine("Administrative:");
-    Console.WriteLine("  GET  /api/HealthCheck - System health check");
-    Console.WriteLine("  POST /api/ReindexStore - Force store reindexing");
-    Console.WriteLine("SOAP Endpoints:");
-    Console.WriteLine("  POST /api/ClientWebService/client.asmx - Client sync");
-    Console.WriteLine("  POST /api/ServerWebService/server.asmx - Server sync");
-    Console.WriteLine("Content Serving:");
-    Console.WriteLine("  GET  /api/content/{hash} - Download content files");
-    Console.WriteLine("==============================");
-});
 
 app.Run();
