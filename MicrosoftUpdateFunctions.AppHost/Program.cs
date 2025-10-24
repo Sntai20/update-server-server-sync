@@ -74,7 +74,7 @@ var updateFunctions = builder.AddExecutable("update-functions", "func", "../Micr
     
     // Configure HTTP endpoint with health check
     .WithHttpEndpoint(port: 7071, name: "http")
-    .WithHttpHealthCheck("/api/HealthCheck", name: "health");
+    .WithHttpHealthCheck("/api/HealthCheck");
 
 // Add reference to storage for dependency tracking
 updateFunctions.WithReference(storage);
