@@ -58,9 +58,10 @@ public class QueryService : IQueryService
 
             // Get category lookup for resolving classification and product names
             var categoriesLookup = this.metadataStore
-            .OfType<MicrosoftUpdatePackage>()
-                .Where(p => p is ClassificationCategory || p is ProductCategory)
-                  .ToLookup(p => new Guid(p.Id.OpenId));
+           .OfType<MicrosoftUpdatePackage>()
+    .Where(p => p is ClassificationCategory || p is ProductCategory)
+           .Where(p => p.Id?.OpenId != null && p.Id.OpenId.Length == 16) // Only packages with valid GUID IDs
+         .ToLookup(p => new Guid(p.Id.OpenId));
 
             foreach (var package in filteredPackages.Take(request.MaxResults))
             {
@@ -292,9 +293,10 @@ public class QueryService : IQueryService
 
         // Get category lookup
         var categoriesLookup = this.metadataStore
-    .OfType<MicrosoftUpdatePackage>()
-  .Where(p => p is ClassificationCategory || p is ProductCategory)
-            .ToLookup(p => new Guid(p.Id.OpenId));
+            .OfType<MicrosoftUpdatePackage>()
+   .Where(p => p is ClassificationCategory || p is ProductCategory)
+       .Where(p => p.Id?.OpenId != null && p.Id.OpenId.Length == 16) // Only packages with valid GUID IDs
+    .ToLookup(p => new Guid(p.Id.OpenId));
 
         foreach (var package in filteredPackages.Take(100)) // Limit to first 100 for performance
         {
