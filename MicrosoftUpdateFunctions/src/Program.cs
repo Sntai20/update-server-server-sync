@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 using MicrosoftUpdateFunctions.Services;
 
 var host = new HostBuilder()
-    .ConfigureFunctionsWorkerDefaults()
+    .ConfigureFunctionsWebApplication()
     .ConfigureServices((context, services) =>
     {
         // Register all Microsoft Update services using the extension method
