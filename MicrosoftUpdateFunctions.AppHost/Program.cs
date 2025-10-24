@@ -79,7 +79,7 @@ var updateFunctions = builder.AddExecutable("update-functions", "func", "../Micr
     .WithHttpHealthCheck("/api/HealthCheck");
 
 // Add reference to storage for dependency tracking
-updateFunctions.WithReference(storage);
+updateFunctions.WithReference((Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.IResourceWithConnectionString>)storage);
 
 // Configure the application with enhanced monitoring
 var app = builder.Build();
