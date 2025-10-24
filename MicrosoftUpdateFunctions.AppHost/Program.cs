@@ -1,4 +1,5 @@
 using Aspire.Hosting;
+using Microsoft.Extensions.Hosting;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
@@ -83,7 +84,7 @@ updateFunctions.WithReference(storage);
 var app = builder.Build();
 
 // Add startup logging
-app.Lifetime.ApplicationStarted.Register(() =>
+app.Services.GetRequiredService<IHostApplicationLifetime>().ApplicationStarted.Register(() =>
 {
     Console.WriteLine("=== Microsoft Update Functions AppHost Started ===");
     Console.WriteLine($"Functions URL: http://localhost:7071");
