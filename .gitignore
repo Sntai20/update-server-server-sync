@@ -122,7 +122,7 @@ _ReSharper*/
 # JustCode is a .NET coding add-in
 .JustCode
 
-# TeamCity is a build add-in
+# TeamCity is a build add-on
 _TeamCity*
 
 # DotCover is a Code Coverage Tool
@@ -174,20 +174,8 @@ publish/
 
 # Microsoft Azure Web App publish settings. Comment the next line if you want to
 # checkin your Azure Web App publish settings, but sensitive information contained
-# in these scripts will be unencrypted
-PublishScripts/
-
-# NuGet Packages
-*.nupkg
-# The packages folder can be ignored because of Package Restore
-**/[Pp]ackages/*
-# except build/, which is used as an MSBuild target.
-!**/[Pp]ackages/build/
-# Uncomment if necessary however generally it will be regenerated when needed
-#!**/[Pp]ackages/repositories.config
-# NuGet v3's project.json files produces more ignorable files
-*.nuget.props
-*.nuget.targets
+# in these files may be revealed
+*.azurePubxml
 
 # Microsoft Azure Build Output
 csx/
@@ -225,7 +213,7 @@ orleans.codegen.cs
 # (https://github.com/github/gitignore/pull/2483#issue-259490424)
 #*.snk
 
-# Since there are multiple workflows, uncomment next line to ignore bower_components
+# Since there are multiple workflows, uncomment the next line to ignore bower_components
 # (https://github.com/github/gitignore/pull/1529#issuecomment-104372622)
 #bower_components/
 
@@ -262,6 +250,9 @@ FakesAssemblies/
 # Node.js Tools for Visual Studio
 .ntvs_analysis.dat
 node_modules/
+
+# TypeScript v1 declaration files
+typings/
 
 # Visual Studio 6 build log
 *.plg
@@ -326,5 +317,94 @@ ASALocalRun/
 # NVidia Nsight GPU debugger configuration file
 *.nvuser
 
-# MFractors (Xamarin productivity tool) working folder 
-.mfractor/
+# MFractals generated code directory
+FractalsGeneratedCode/
+
+# Local History for Visual Studio
+.localhistory/
+
+## Azure Functions specific ignores
+local.settings.json
+*.azurefunctions.json
+
+# Azure Functions Runtime
+.vscode/
+
+# Azurite (Azure Storage Emulator)
+__blobstorage__/
+__queuestorage__/
+__azurite_db*__.json
+
+## Microsoft Update Server specific ignores
+
+# Update metadata storage
+store/
+content/
+out/
+
+# Temporary sync files
+*.sync
+*.tmp.*
+
+# Local configuration files (may contain sensitive data)
+appsettings.Development.json
+appsettings.Local.json
+
+# Coverage reports
+coverage/
+*.coverage
+coverage.json
+coverage.xml
+
+# Test results
+TestResults/
+*.trx
+
+# Local development certificates
+*.pfx
+*.p12
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Thumbnails
+._*
+
+# Files that might appear in the root of a volume
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Directories potentially created on remote AFP share
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Linux
+*~
+
+# temporary files which can be created if a process still has a handle open of a deleted file
+.fuse_hidden*
+
+# KDE directory preferences
+.directory
+
+# Linux trash folder which might appear on any partition or disk
+.Trash-*
+
+# .nfs files are created when an open file is removed but is still being accessed
+.nfs*
+
+# Aspire
+.aspire/
+
+# JetBrains
+*.sln.DotSettings.user
