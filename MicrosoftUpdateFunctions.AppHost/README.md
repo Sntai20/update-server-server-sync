@@ -1,10 +1,10 @@
 # Microsoft Update Functions AppHost
 
-This project provides Aspire-based orchestration for the Microsoft Update Functions, enabling containerized development and deployment with Azure Storage Emulator integration.
+This project provides Aspire-based orchestration for the Microsoft Update Functions, enabling containerized development and deployment with Azure Storage Emulator integration. The AppHost has been updated to support the new service layer architecture with comprehensive monitoring and health checks.
 
 ## Overview
 
-The AppHost uses .NET Aspire to orchestrate the Microsoft Update Functions along with supporting services like Azure Storage Emulator, providing a complete development environment that closely mirrors production Azure environments.
+The AppHost uses .NET Aspire to orchestrate the Microsoft Update Functions along with supporting services like Azure Storage Emulator, providing a complete development environment that closely mirrors production Azure environments. The application now includes enhanced configuration for the deduplicated service layer architecture.
 
 ## Prerequisites
 
@@ -13,14 +13,30 @@ The AppHost uses .NET Aspire to orchestrate the Microsoft Update Functions along
 - Azure Functions Core Tools 4.x
 - Docker (for containerized resources)
 
+## New Service Layer Architecture
+
+The AppHost now supports the consolidated Azure Functions architecture with:
+
+### Service Layer Components
+- **ISyncService**: Metadata and content synchronization
+- **IQueryService**: Metadata queries and exports
+- **IHealthService**: System health monitoring
+
+### Consolidated Functions
+- **MetadataSyncFunctions**: Unified sync operations (HTTP + Timer triggers)
+- **ContentSyncFunctions**: Content management 
+- **MetadataQueryFunctions**: Query operations
+- **StoreManagementFunctions**: Administrative tasks
+- **AutomatedSyncFunctions**: Scheduling and orchestration
+
 ## Configuration
 
-### Automatic Configuration
+### Enhanced Automatic Configuration
 
-Use the root-level configuration scripts to automatically configure and start the AppHost:
+Use the root-level configuration scripts with the updated AppHost:
 
 ```bash
-# Configure and start with Azure Storage Emulator
+# Configure and start with Azure Storage Emulator (recommended for development)
 ./configure-storage.sh --storage-mode AzureEmulator --use-apphost
 
 # Configure and start with FileSystem storage
@@ -34,209 +50,166 @@ cd MicrosoftUpdateFunctions.AppHost
 dotnet run
 ```
 
+### Configuration Options
+
+The AppHost now supports comprehensive configuration through environment variables and appsettings:
+
+```json
+{
+  "MetadataStorePath": "./store",
+  "ContentStorePath": "./content",
+  "FeatureFlags": {
+    "EnableScheduledSync": true,
+    "EnableContentSync": true,
+    "EnableHealthMonitoring": true
+  }
+}
+```
+
 ## Architecture
 
-### Components
+### Enhanced Components
 
-1. **Azure Storage Emulator**: Containerized Azure Storage service
-2. **Microsoft Update Functions**: Azure Functions application
-3. **Aspire Dashboard**: Web-based monitoring and management
+1. **Azure Storage Emulator**: Containerized Azure Storage service with health checks
+2. **Microsoft Update Functions**: Azure Functions with service layer architecture
+3. **Aspire Dashboard**: Web-based monitoring with enhanced metrics
+4. **Health Monitoring**: Automated health checks and dependency tracking
 
 ### Resource Dependencies
 
 ```
-Azure Storage Emulator → Microsoft Update Functions
+Azure Storage Emulator → Microsoft Update Functions (with health checks)
 ```
 
-The Functions depend on the storage emulator for:
-- Blob storage (metadata and content)
-- Queue storage (background processing)
-- Table storage (configuration and state)
+## Available Endpoints
 
-## Features
+Once the AppHost is running, the following endpoints are available:
 
-### Development Benefits
+### Sync Operations (New Unified API)
+- `POST /api/SyncMetadata` - Manual metadata synchronization
+- `POST /api/SyncContent` - Manual content synchronization
 
-- **Containerized Storage**: No need to install Azurite separately
-- **Service Discovery**: Automatic connection string management
-- **Health Monitoring**: Built-in health checks and metrics
-- **Hot Reload**: Automatic restarts on code changes
+### Query Operations (Enhanced)
+- `GET /api/StoreStatus` - Detailed store status and statistics
+- `POST /api/QueryMetadata` - Flexible metadata queries
+- `POST /api/MatchDrivers` - Hardware driver matching
+- `POST /api/ExportMetadata` - Export metadata in various formats
 
-### Production Parity
+### Administrative Operations (New)
+- `GET /api/HealthCheck` - Comprehensive system health check
+- `POST /api/ReindexStore` - Force metadata store reindexing
+- `GET /api/AvailableFilters` - Get available product/classification filters
 
-- **Azure Storage Emulation**: Identical APIs to Azure Storage
-- **Networking**: Service-to-service communication patterns
-- **Configuration**: Environment-based settings management
+### SOAP Endpoints (Unchanged)
+- `POST /api/ClientWebService/client.asmx` - Windows Update client sync
+- `POST /api/ServerWebService/server.asmx` - WSUS server-to-server sync
 
-## Usage
+### Content Serving (Unchanged)
+- `GET /api/content/{hash}` - Download update content files
 
-### Starting Services
+## Automated Scheduling
 
-The AppHost will automatically:
-1. Start Azure Storage Emulator container
-2. Configure connection strings
-3. Build and start Azure Functions
-4. Open Aspire Dashboard in browser
+The AppHost configures automated operations:
 
-### Accessing Services
+- **Every 4 hours**: Critical updates synchronization
+- **Daily at 2 AM UTC**: Comprehensive metadata sync
+- **Weekly Sunday 3 AM UTC**: Content synchronization
+- **Weekly Sunday 1 AM UTC**: Maintenance tasks
+- **Hourly**: Health monitoring and metrics collection
 
-- **Azure Functions**: http://localhost:7071
-- **Aspire Dashboard**: http://localhost:15000 (auto-opens)
-- **Storage Emulator**: Connection managed automatically
+## Monitoring and Health Checks
 
-### Key Endpoints
+### Aspire Dashboard Integration
 
-- **Store Status**: http://localhost:7071/api/GetStoreStatus
-- **Health Check**: http://localhost:7071/api/health
-- **SOAP Services**: http://localhost:7071/api/*WebService/*.asmx
+Access the enhanced Aspire dashboard at `http://localhost:15888` for:
+- Real-time function execution metrics
+- Health check status monitoring
+- Resource dependency visualization
+- Log aggregation and filtering
 
-## Development Workflow
+### Health Check Endpoints
 
-1. **Code Changes**: Edit files in `../MicrosoftUpdateFunctions/src/`
-2. **Auto Rebuild**: AppHost detects changes and rebuilds
-3. **Live Reload**: Functions restart automatically
-4. **Monitor**: Use Aspire Dashboard to monitor logs and metrics
+- `GET /api/HealthCheck` - Overall system health
+- `GET /api/SyncHealth` - Sync operation specific health
+- `GET /api/StoreStatus` - Metadata store health and statistics
 
-## Configuration Options
+### Development Features
 
-### Storage Modes
+- **Enhanced Logging**: Detailed startup information and endpoint listing
+- **Dependency Tracking**: Visual representation of service dependencies
+- **Configuration Validation**: Automatic validation of service configuration
+- **Hot Reload Support**: Development-time configuration changes
 
-The AppHost supports two storage configurations:
+## Migration from Previous Architecture
 
-#### Azure Storage Emulator
-```csharp
-var storage = builder.AddAzureStorage("storage").RunAsEmulator();
-var functions = builder.AddExecutable("update-functions", ...)
-    .WithReference(storage);
-```
+If you're migrating from the previous AppHost configuration:
 
-#### File System
-```csharp
-var functions = builder.AddExecutable("update-functions", ...)
-    .WithEnvironment("AzureWebJobsStorage", "")
-    .WithEnvironment("MetadataStorePath", "./store");
-```
-
-### Environment Variables
-
-The AppHost automatically configures:
-- `FUNCTIONS_WORKER_RUNTIME`: `dotnet-isolated`
-- `AzureWebJobsStorage`: Storage connection string
-- `ServiceConfigurationJson`: Function configuration
-- `ContentHttpRoot`: Content delivery URL
-
-## Monitoring
-
-### Aspire Dashboard
-
-The Aspire Dashboard provides:
-- **Service Status**: Real-time health of all services
-- **Logs**: Centralized log aggregation
-- **Metrics**: Performance and usage metrics
-- **Dependencies**: Visual service topology
-
-### Health Checks
-
-Built-in health checks for:
-- Azure Functions availability
-- Storage connectivity
-- SOAP endpoint responsiveness
+1. **No Breaking Changes**: All existing endpoints remain functional
+2. **Enhanced Configuration**: Additional configuration options available
+3. **Improved Monitoring**: Better health checks and dependency tracking
+4. **Service Layer**: Functions now use testable service layer architecture
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **Port Conflicts**:
-   - Functions: Default port 7071
-   - Dashboard: Default port 15000
-   - Use `--port` to override if needed
-
-2. **Storage Connection**:
-   - Verify Docker is running
-   - Check Azurite container status
-   - Review connection strings in logs
-
-3. **Build Errors**:
-   - Run `dotnet restore`
-   - Check project references
-   - Verify Aspire packages are installed
+1. **Functions not starting**: Verify Azure Functions Core Tools 4.x is installed
+2. **Storage connection issues**: Ensure Docker is running for storage emulator
+3. **Port conflicts**: Check that port 7071 is available
+4. **Health check failures**: Check metadata and content store paths
 
 ### Debug Mode
 
-Start with verbose logging:
+Run with enhanced logging:
+
 ```bash
-dotnet run --verbosity detailed
+cd MicrosoftUpdateFunctions.AppHost
+dotnet run --environment Development --verbosity detailed
 ```
 
-### Container Issues
+### Health Verification
 
-Check Docker status:
+After startup, verify all components are healthy:
+
 ```bash
-docker ps
-docker logs <container-id>
+# Check overall health
+curl http://localhost:7071/api/HealthCheck
+
+# Check store status  
+curl http://localhost:7071/api/StoreStatus
+
+# Verify Aspire dashboard
+open http://localhost:15888
 ```
 
-## Project Structure
+## Production Deployment
 
-```
-MicrosoftUpdateFunctions.AppHost/
-├── Program.cs                           # AppHost configuration
-├── MicrosoftUpdateFunctions.AppHost.csproj  # Project file with Aspire packages
-├── bin/                                 # Build outputs
-└── obj/                                 # Build intermediates
-```
+When deploying to production:
 
-## Dependencies
+1. **Update Storage Configuration**: Replace emulator with actual Azure Storage
+2. **Configure Authentication**: Set appropriate authorization levels
+3. **Scale Configuration**: Adjust timer intervals for production load
+4. **Monitoring**: Connect to production monitoring services
+5. **Security**: Configure network security groups and access policies
 
-### NuGet Packages
+## Service Layer Testing
 
-- `Aspire.Hosting` (9.5.1): Core Aspire hosting
-- `Aspire.Hosting.AppHost` (9.5.1): AppHost utilities
-- `Aspire.Hosting.Azure.Functions` (9.5.1-preview): Azure Functions integration
-- `Aspire.Hosting.Azure.Storage` (9.5.1): Azure Storage emulation
+The AppHost supports comprehensive testing:
 
-### Project References
+```bash
+# Run service layer unit tests
+dotnet test ../MicrosoftUpdateFunctions/tests/MicrosoftUpdateFunctions.Tests --filter "Category!=Integration"
 
-- `../MicrosoftUpdateFunctions/src/MicrosoftUpdateFunctions.csproj`
-
-## Advanced Features
-
-### Custom Service Configuration
-
-```csharp
-var functions = builder.AddExecutable("update-functions", "func", "../MicrosoftUpdateFunctions/src", "start")
-    .WithEnvironment("CUSTOM_SETTING", "value")
-    .WithHttpEndpoint(port: 7071, name: "http");
+# Run integration tests against AppHost
+dotnet test ../MicrosoftUpdateFunctions/tests/MicrosoftUpdateFunctions.Tests --filter "Category=Integration"
 ```
 
-### Health Check Customization
+## Performance Monitoring
 
-```csharp
-functions.WithHealthCheck("/health");
-```
+Monitor performance through:
+- Aspire dashboard metrics
+- Azure Functions runtime metrics
+- Custom health check endpoints
+- Storage operation statistics
 
-### Resource Scaling
-
-For production-like testing:
-```csharp
-var functions = builder.AddExecutable("update-functions", ...)
-    .WithReplicas(3);  // Multiple instances
-```
-
-## Related Documentation
-
-- [Azure Functions Documentation](../MicrosoftUpdateFunctions/README.md)
-- [.NET Aspire Documentation](https://learn.microsoft.com/en-us/dotnet/aspire/)
-- [Configuration Guide](../STORAGE_GUIDE.md)
-
-## Contributing
-
-1. Test changes with both storage modes
-2. Verify Docker container behavior
-3. Update configuration scripts as needed
-4. Document new environment variables
-5. Test scaling scenarios
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
+The AppHost now provides a complete development environment that mirrors the production architecture while supporting the new service layer pattern for improved maintainability and testability.
