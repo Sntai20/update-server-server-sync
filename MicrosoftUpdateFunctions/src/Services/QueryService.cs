@@ -60,7 +60,7 @@ public class QueryService : IQueryService
             {
                 var packageInfo = new PackageInfo
                 {
-                    Id = package.Id.ID,
+                    Id = package.Id.OpenId,
                     Title = package.Title,
                     PackageType = package.GetType().Name
                 };
@@ -130,7 +130,7 @@ public class QueryService : IQueryService
                 return new DriverMatchResult
                 {
                     MatchFound = true,
-                    DriverId = driverMatch.Driver.Id.ID,
+                    DriverId = driverMatch.Driver.Id.OpenId,
                     DriverTitle = driverMatch.Driver.Title,
                     MatchedHardwareId = driverMatch.MatchedHardwareId,
                     DriverVersion = driverMatch.MatchedVersion?.VersionString,
@@ -215,7 +215,7 @@ public class QueryService : IQueryService
                 case "json":
                     result.ExportData = System.Text.Json.JsonSerializer.Serialize(packages.Select(p => new
                     {
-                        Id = p.Id.ID,
+                        Id = p.Id.OpenId,
                         Title = p.Title,
                         Type = p.GetType().Name
                     }), new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
@@ -223,7 +223,7 @@ public class QueryService : IQueryService
                     
                 case "csv":
                     result.ExportData = "Id,Title,Type\n" + 
-                        string.Join("\n", packages.Select(p => $"{p.Id.ID},{p.Title},{p.GetType().Name}"));
+                        string.Join("\n", packages.Select(p => $"{p.Id.OpenId},{p.Title},{p.GetType().Name}"));
                     break;
                     
                 default:
@@ -258,7 +258,7 @@ public class QueryService : IQueryService
         {
             var packageInfo = new PackageInfo
             {
-                Id = package.Id.ID,
+                Id = package.Id.OpenId,
                 Title = package.Title,
                 PackageType = package.GetType().Name
             };
@@ -289,7 +289,7 @@ public class QueryService : IQueryService
             return new DriverMatchResult
             {
                 MatchFound = true,
-                DriverId = driverMatch.Driver.Id.ID,
+                DriverId = driverMatch.Driver.Id.OpenId,
                 DriverTitle = driverMatch.Driver.Title,
                 MatchedHardwareId = driverMatch.MatchedHardwareId,
                 DriverVersion = driverMatch.MatchedVersion?.VersionString,
