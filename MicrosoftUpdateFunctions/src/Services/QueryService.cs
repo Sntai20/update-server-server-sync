@@ -60,7 +60,7 @@ public class QueryService : IQueryService
             {
                 var packageInfo = new PackageInfo
                 {
-                    Id = package.Id.OpenId,
+                    Id = new Guid(package.Id.OpenId),
                     Title = package.Title,
                     PackageType = package.GetType().Name
                 };
