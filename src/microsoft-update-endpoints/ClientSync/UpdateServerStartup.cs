@@ -15,6 +15,7 @@ using Microsoft.PackageGraph.Storage.Local;
 using Newtonsoft.Json;
 using System.ServiceModel;
 using System.Text;
+using Microsoft.Extensions.Hosting;
 
 namespace Microsoft.PackageGraph.MicrosoftUpdate.Endpoints.ClientSync
 {
@@ -103,7 +104,7 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate.Endpoints.ClientSync
         /// <param name="app">App builder to configure</param>
         /// <param name="env">Hosting environment</param>
         /// <param name="loggerFactory">Logging factory</param>
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILoggerFactory loggerFactory)
         {
             if (env.IsDevelopment())
             {
