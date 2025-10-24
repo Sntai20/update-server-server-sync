@@ -276,9 +276,11 @@ public class MetadataExportFunctions
             switch (type.ToLowerInvariant())
             {
                 case "local":
-                    return createIfNotExists ? 
-                        Microsoft.PackageGraph.Storage.Local.PackageStore.Create(path) :
-                        Microsoft.PackageGraph.Storage.Local.PackageStore.Open(path);
+                    if (createIfNotExists && !Directory.Exists(path))
+                    {
+                        Directory.CreateDirectory(path);
+                    }
+                    return Microsoft.PackageGraph.Storage.Local.PackageStore.Open(path);
 
                 case "azure":
                     if (string.IsNullOrEmpty(connectionString))
@@ -298,7 +300,7 @@ public class MetadataExportFunctions
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, "Failed to create/open metadata store");
+            this.logger.LogError(ex, "Error accessing metadata store at {Path}", path);
             return null;
         }
     }

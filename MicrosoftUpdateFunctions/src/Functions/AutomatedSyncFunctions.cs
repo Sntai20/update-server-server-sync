@@ -6,17 +6,16 @@ namespace MicrosoftUpdateFunctions.Functions;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
-using Microsoft.PackageGraph.Storage;
-using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
 using MicrosoftUpdateFunctions.Services;
 using System.Net;
 using System.Text.Json;
+using Microsoft.PackageGraph.Storage;
 using System.ComponentModel.DataAnnotations;
 
 /// <summary>
-/// Comprehensive automated synchronization functions using multiple trigger types.
-/// Provides a robust, scalable, and fully automated update server architecture.
-/// Uses shared services for testable, maintainable code.
+/// Azure Functions for automated synchronization operations with multiple trigger types.
+/// Provides comprehensive automation including scheduled operations, queue processing, and emergency sync.
+/// Uses service layer for testable, maintainable business logic.
 /// </summary>
 public class AutomatedSyncFunctions
 {
@@ -29,7 +28,7 @@ public class AutomatedSyncFunctions
         ILogger<AutomatedSyncFunctions> logger,
         ISyncService syncService,
         IHealthService healthService,
-        IContentStore? contentStore = null)
+        IContentStore? contentStore)
     {
         this.logger = logger;
         this.syncService = syncService;
@@ -38,50 +37,64 @@ public class AutomatedSyncFunctions
     }
 
     /// <summary>
-    /// Hourly health check and maintenance operations.
-    /// Monitors system health, checks for issues, and performs light maintenance.
+    /// Hourly health monitoring and system checks.
+    /// Ensures the system is healthy and logs any issues.
     /// </summary>
     [Function("HourlyHealthCheck")]
-    public async Task RunHourlyHealthCheck([TimerTrigger("0 0 * * * *")] TimerInfo timer)
+    public async Task HourlyHealthCheck([TimerTrigger("0 0 * * * *")] TimerInfo timer)
     {
         this.logger.LogInformation("Starting hourly health check at {Time}", DateTime.UtcNow);
 
         try
         {
-            var healthResult = await this.healthService.PerformHealthCheckAsync();
-            await this.healthService.CheckReindexingNeeded();
-            var maintenanceResult = await this.healthService.PerformMaintenanceAsync(MaintenanceLevel.Light);
-            
-            this.logger.LogInformation("Hourly health check completed successfully. Status: {Status}", healthResult.Status);
+            var health = await this.healthService.GetSystemHealthAsync();
+
+            if (health.IsHealthy)
+            {
+                this.logger.LogInformation("System health check passed");
+            }
+            else
+            {
+                this.logger.LogWarning("System health issues detected: {Issues}", 
+                    string.Join(", ", health.Issues?.Select(i => i.Message) ?? Array.Empty<string>()));
+            }
+
+            // Log detailed metrics
+            if (health.Metrics?.Any() == true)
+            {
+                foreach (var metric in health.Metrics)
+                {
+                    this.logger.LogInformation("Health metric - {Name}: {Value}", metric.Name, metric.Value);
+                }
+            }
         }
         catch (Exception ex)
         {
             this.logger.LogError(ex, "Error during hourly health check");
-            throw;
         }
     }
 
     /// <summary>
-    /// Daily critical updates synchronization at 2 AM UTC.
-    /// Focuses on security updates and critical patches only.
+    /// Daily critical updates synchronization.
+    /// Focuses on security and critical updates for faster processing.
     /// </summary>
     [Function("DailyCriticalSync")]
-    public async Task RunDailyCriticalSync([TimerTrigger("0 0 2 * * *")] TimerInfo timer)
+    public async Task DailyCriticalSync([TimerTrigger("0 30 1 * * *")] TimerInfo timer)
     {
-        this.logger.LogInformation("Starting daily critical updates sync at {Time}", DateTime.UtcNow);
+        this.logger.LogInformation("Starting daily critical sync at {Time}", DateTime.UtcNow);
 
         try
         {
-            await this.syncService.SyncCategoriesAsync();
-            
+            // Check system health first
+            var health = await this.healthService.GetSystemHealthAsync();
+            if (!health.IsHealthy)
+            {
+                this.logger.LogWarning("System health issues detected, proceeding with caution");
+            }
+
+            // Perform critical updates sync
             var filter = this.syncService.CreateCriticalUpdatesFilter();
             await this.syncService.SyncUpdatesAsync(filter);
-            
-            if (this.contentStore != null)
-            {
-                var metadataFilter = this.CreateMetadataFilterFromUpstreamFilter(filter, 50);
-                await this.syncService.SyncContentAsync(metadataFilter, this.contentStore);
-            }
 
             this.logger.LogInformation("Daily critical sync completed successfully");
         }
@@ -93,28 +106,40 @@ public class AutomatedSyncFunctions
     }
 
     /// <summary>
-    /// Weekly comprehensive synchronization every Sunday at 1 AM UTC.
+    /// Weekly comprehensive synchronization.
     /// Performs full metadata and content synchronization.
     /// </summary>
     [Function("WeeklyComprehensiveSync")]
-    public async Task RunWeeklyComprehensiveSync([TimerTrigger("0 0 1 * * 0")] TimerInfo timer)
+    public async Task WeeklyComprehensiveSync([TimerTrigger("0 0 2 * * 0")] TimerInfo timer)
     {
         this.logger.LogInformation("Starting weekly comprehensive sync at {Time}", DateTime.UtcNow);
 
         try
         {
-            await this.syncService.SyncCategoriesAsync();
-            
-            var filter = this.syncService.CreateComprehensiveUpdatesFilter();
-            await this.syncService.SyncUpdatesAsync(filter);
-            
-            if (this.contentStore != null)
+            // Check if reindexing is required first
+            if (await this.syncService.IsReindexingRequired())
             {
-                var metadataFilter = this.CreateMetadataFilterFromUpstreamFilter(filter, 500);
-                await this.syncService.SyncContentAsync(metadataFilter, this.contentStore);
+                this.logger.LogInformation("Store reindexing required, performing reindex");
+                await this.syncService.ReindexStoreAsync();
             }
 
-            await this.healthService.PerformMaintenanceAsync(MaintenanceLevel.Weekly);
+            // Sync categories first
+            await this.syncService.SyncCategoriesAsync();
+
+            // Sync comprehensive updates
+            var filter = this.syncService.CreateComprehensiveUpdatesFilter();
+            await this.syncService.SyncUpdatesAsync(filter);
+
+            // Sync content if content store is available
+            if (this.contentStore != null)
+            {
+                this.logger.LogInformation("Syncing content for recent updates");
+                var contentFilter = new ServiceMetadataFilter
+                {
+                    UpdatedAfter = DateTime.UtcNow.AddDays(-7)
+                };
+                await this.syncService.SyncContentAsync(contentFilter, this.contentStore);
+            }
 
             this.logger.LogInformation("Weekly comprehensive sync completed successfully");
         }
@@ -126,19 +151,28 @@ public class AutomatedSyncFunctions
     }
 
     /// <summary>
-    /// Monthly maintenance operations every 1st day at 3 AM UTC.
-    /// Performs deep maintenance, optimization, and cleanup.
+    /// Monthly maintenance operations.
+    /// Performs cleanup, optimization, and deep health checks.
     /// </summary>
     [Function("MonthlyMaintenance")]
-    public async Task RunMonthlyMaintenance([TimerTrigger("0 0 3 1 * *")] TimerInfo timer)
+    public async Task MonthlyMaintenance([TimerTrigger("0 0 3 1 * *")] TimerInfo timer)
     {
         this.logger.LogInformation("Starting monthly maintenance at {Time}", DateTime.UtcNow);
 
         try
         {
-            var maintenanceResult = await this.healthService.PerformMaintenanceAsync(MaintenanceLevel.Monthly);
-            
-            this.logger.LogInformation("Monthly maintenance completed successfully: {Message}", maintenanceResult.Message);
+            // Perform comprehensive health check
+            var health = await this.healthService.GetSystemHealthAsync();
+            this.logger.LogInformation("Monthly health check completed. Healthy: {IsHealthy}", health.IsHealthy);
+
+            // Force reindex if needed
+            if (await this.syncService.IsReindexingRequired())
+            {
+                this.logger.LogInformation("Performing monthly reindexing");
+                await this.syncService.ReindexStoreAsync();
+            }
+
+            this.logger.LogInformation("Monthly maintenance completed successfully");
         }
         catch (Exception ex)
         {
@@ -148,27 +182,57 @@ public class AutomatedSyncFunctions
     }
 
     /// <summary>
-    /// Processes high-priority sync requests from the priority queue.
-    /// Handles urgent synchronization needs with immediate processing.
+    /// Process priority sync requests from a Service Bus queue.
+    /// Handles high-priority synchronization operations.
     /// </summary>
     [Function("ProcessPrioritySyncRequest")]
     public async Task ProcessPrioritySyncRequest(
-        [ServiceBusTrigger("priority-sync-requests", Connection = "ServiceBusConnection")] string requestMessage)
+        [ServiceBusTrigger("priority-sync-requests", Connection = "ServiceBusConnection")] 
+        string queueItem)
     {
-        this.logger.LogInformation("Processing priority sync request: {Request}", requestMessage);
+        this.logger.LogInformation("Processing priority sync request: {QueueItem}", queueItem);
 
         try
         {
-            var syncRequest = JsonSerializer.Deserialize<PrioritySyncRequest>(requestMessage);
-            if (syncRequest == null)
+            var request = JsonSerializer.Deserialize<PrioritySyncRequest>(queueItem);
+            if (request == null)
             {
-                this.logger.LogWarning("Invalid priority sync request received");
+                this.logger.LogError("Invalid priority sync request format");
                 return;
             }
 
-            await this.ProcessSyncRequestInternal(syncRequest.ToStandardRequest(), true);
-            
-            this.logger.LogInformation("Priority sync request completed: {SyncType}", syncRequest.SyncType);
+            // Create filter based on request
+            var filter = this.syncService.CreateCustomFilter(
+                request.ProductFilters, 
+                request.ClassificationFilters);
+
+            // Perform sync based on priority
+            switch (request.Priority.ToLower())
+            {
+                case "critical":
+                case "high":
+                    await this.syncService.SyncUpdatesAsync(filter);
+                    break;
+                case "normal":
+                default:
+                    // Include categories for normal priority
+                    await this.syncService.SyncCategoriesAsync();
+                    await this.syncService.SyncUpdatesAsync(filter);
+                    break;
+            }
+
+            // Include content if requested
+            if (request.IncludeContent && this.contentStore != null)
+            {
+                var contentFilter = new ServiceMetadataFilter
+                {
+                    ProductFilters = request.ProductFilters,
+                    ClassificationFilters = request.ClassificationFilters
+                };
+                await this.syncService.SyncContentAsync(contentFilter, this.contentStore);
+            }
+
+            this.logger.LogInformation("Priority sync request completed successfully");
         }
         catch (Exception ex)
         {
@@ -178,27 +242,50 @@ public class AutomatedSyncFunctions
     }
 
     /// <summary>
-    /// Processes standard sync requests from the regular queue.
-    /// Handles routine synchronization requests with normal priority.
+    /// Process standard sync requests from a Service Bus queue.
+    /// Handles regular synchronization operations.
     /// </summary>
     [Function("ProcessStandardSyncRequest")]
     public async Task ProcessStandardSyncRequest(
-        [ServiceBusTrigger("standard-sync-requests", Connection = "ServiceBusConnection")] string requestMessage)
+        [ServiceBusTrigger("standard-sync-requests", Connection = "ServiceBusConnection")] 
+        string queueItem)
     {
-        this.logger.LogInformation("Processing standard sync request: {Request}", requestMessage);
+        this.logger.LogInformation("Processing standard sync request: {QueueItem}", queueItem);
 
         try
         {
-            var syncRequest = JsonSerializer.Deserialize<StandardSyncRequest>(requestMessage);
-            if (syncRequest == null)
+            var request = JsonSerializer.Deserialize<StandardSyncRequest>(queueItem);
+            if (request == null)
             {
-                this.logger.LogWarning("Invalid standard sync request received");
+                this.logger.LogError("Invalid standard sync request format");
                 return;
             }
 
-            await this.ProcessSyncRequestInternal(syncRequest.ToStandardRequest(), false);
-            
-            this.logger.LogInformation("Standard sync request completed: {SyncType}", syncRequest.SyncType);
+            // Perform sync based on request
+            if (request.SyncCategories)
+            {
+                await this.syncService.SyncCategoriesAsync();
+            }
+
+            if (request.SyncUpdates)
+            {
+                var filter = this.syncService.CreateCustomFilter(
+                    request.ProductFilters, 
+                    request.ClassificationFilters);
+                await this.syncService.SyncUpdatesAsync(filter);
+            }
+
+            if (request.SyncContent && this.contentStore != null)
+            {
+                var contentFilter = new ServiceMetadataFilter
+                {
+                    ProductFilters = request.ProductFilters,
+                    ClassificationFilters = request.ClassificationFilters
+                };
+                await this.syncService.SyncContentAsync(contentFilter, this.contentStore);
+            }
+
+            this.logger.LogInformation("Standard sync request completed successfully");
         }
         catch (Exception ex)
         {
@@ -208,27 +295,41 @@ public class AutomatedSyncFunctions
     }
 
     /// <summary>
-    /// Processes content download requests from the content queue.
-    /// Handles content synchronization requests separately from metadata.
+    /// Process content sync requests from a Service Bus queue.
+    /// Handles content-only synchronization operations.
     /// </summary>
     [Function("ProcessContentSyncRequest")]
     public async Task ProcessContentSyncRequest(
-        [ServiceBusTrigger("content-sync-requests", Connection = "ServiceBusConnection")] string requestMessage)
+        [ServiceBusTrigger("content-sync-requests", Connection = "ServiceBusConnection")] 
+        string queueItem)
     {
-        this.logger.LogInformation("Processing content sync request: {Request}", requestMessage);
+        this.logger.LogInformation("Processing content sync request: {QueueItem}", queueItem);
+
+        if (this.contentStore == null)
+        {
+            this.logger.LogWarning("Content store not configured, skipping content sync request");
+            return;
+        }
 
         try
         {
-            var contentRequest = JsonSerializer.Deserialize<ContentSyncQueueRequest>(requestMessage);
-            if (contentRequest == null)
+            var request = JsonSerializer.Deserialize<ContentSyncQueueRequest>(queueItem);
+            if (request == null)
             {
-                this.logger.LogWarning("Invalid content sync request received");
+                this.logger.LogError("Invalid content sync request format");
                 return;
             }
 
-            await this.ProcessContentSyncInternal(contentRequest);
-            
-            this.logger.LogInformation("Content sync request completed");
+            var contentFilter = new ServiceMetadataFilter
+            {
+                ProductFilters = request.ProductFilters,
+                ClassificationFilters = request.ClassificationFilters,
+                UpdatedAfter = request.UpdatedAfter
+            };
+
+            await this.syncService.SyncContentAsync(contentFilter, this.contentStore);
+
+            this.logger.LogInformation("Content sync request completed successfully");
         }
         catch (Exception ex)
         {
@@ -238,298 +339,51 @@ public class AutomatedSyncFunctions
     }
 
     /// <summary>
-    /// Trigger immediate priority sync operation via HTTP.
-    /// For emergency or urgent sync needs.
+    /// Emergency sync endpoint for critical situations.
+    /// POST /api/EmergencySync
     /// </summary>
-    [Function("TriggerEmergencySync")]
-    public async Task<HttpResponseData> TriggerEmergencySync(
+    [Function("EmergencySync")]
+    public async Task<HttpResponseData> EmergencySync(
         [HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequestData req)
     {
-        this.logger.LogInformation("Emergency sync triggered via HTTP");
+        this.logger.LogWarning("Emergency sync requested");
 
         try
         {
             var requestBody = await new StreamReader(req.Body).ReadToEndAsync();
-            var emergencyRequest = JsonSerializer.Deserialize<EmergencySyncRequest>(requestBody);
+            var request = JsonSerializer.Deserialize<EmergencySyncRequest>(requestBody) ?? new EmergencySyncRequest();
 
-            if (emergencyRequest == null)
+            this.logger.LogWarning("Emergency sync reason: {Reason}", request.Reason);
+
+            var result = new SyncResult { StartTime = DateTime.UtcNow };
+
+            // Perform emergency sync
+            if (request.SpecificUpdateIds?.Any() == true)
             {
-                var badRequest = req.CreateResponse(HttpStatusCode.BadRequest);
-                await badRequest.WriteStringAsync("Invalid request body");
-                return badRequest;
+                // Handle specific update IDs if the service supports it
+                this.logger.LogInformation("Emergency sync for specific updates: {UpdateIds}", 
+                    string.Join(", ", request.SpecificUpdateIds));
             }
 
-            await this.ProcessEmergencySync(emergencyRequest);
+            // Always perform critical updates in emergency
+            var filter = this.syncService.CreateCriticalUpdatesFilter();
+            await this.syncService.SyncUpdatesAsync(filter);
+
+            result.EndTime = DateTime.UtcNow;
+            result.Success = true;
+            result.UpdatesSynced = true;
 
             var response = req.CreateResponse(HttpStatusCode.OK);
-            response.Headers.Add("Content-Type", "application/json");
-            await response.WriteStringAsync(JsonSerializer.Serialize(new { Success = true, Message = "Emergency sync completed" }));
+            await response.WriteAsJsonAsync(result);
             return response;
         }
         catch (Exception ex)
         {
             this.logger.LogError(ex, "Error during emergency sync");
             var errorResponse = req.CreateResponse(HttpStatusCode.InternalServerError);
-            await errorResponse.WriteStringAsync($"Error: {ex.Message}");
+            await errorResponse.WriteAsJsonAsync(new { error = ex.Message });
             return errorResponse;
         }
-    }
-
-    /// <summary>
-    /// Submit sync request to appropriate queue based on priority.
-    /// For programmatic integration and workflow systems.
-    /// </summary>
-    [Function("SubmitSyncRequest")]
-    public async Task<HttpResponseData> SubmitSyncRequest(
-        [HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequestData req)
-    {
-        this.logger.LogInformation("Sync request submitted via HTTP");
-
-        try
-        {
-            var requestBody = await new StreamReader(req.Body).ReadToEndAsync();
-            var syncRequest = JsonSerializer.Deserialize<QueuedSyncRequest>(requestBody);
-
-            if (syncRequest == null)
-            {
-                var badRequest = req.CreateResponse(HttpStatusCode.BadRequest);
-                await badRequest.WriteStringAsync("Invalid request body");
-                return badRequest;
-            }
-
-            var queueName = syncRequest.Priority == "high" ? "priority-sync-requests" : "standard-sync-requests";
-            await this.SubmitToQueue(queueName, syncRequest);
-
-            var response = req.CreateResponse(HttpStatusCode.Accepted);
-            response.Headers.Add("Content-Type", "application/json");
-            await response.WriteStringAsync(JsonSerializer.Serialize(new { 
-                Success = true, 
-                Message = "Sync request queued", 
-                QueueName = queueName,
-                RequestId = syncRequest.RequestId ?? Guid.NewGuid().ToString()
-            }));
-            return response;
-        }
-        catch (Exception ex)
-        {
-            this.logger.LogError(ex, "Error submitting sync request");
-            var errorResponse = req.CreateResponse(HttpStatusCode.InternalServerError);
-            await errorResponse.WriteStringAsync($"Error: {ex.Message}");
-            return errorResponse;
-        }
-    }
-
-    /// <summary>
-    /// Get comprehensive system status including automation health.
-    /// For monitoring and dashboards.
-    /// </summary>
-    [Function("GetAutomationStatus")]
-    public async Task<HttpResponseData> GetAutomationStatus(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get")] HttpRequestData req)
-    {
-        this.logger.LogInformation("Automation status requested");
-
-        try
-        {
-            var healthResult = await this.healthService.PerformHealthCheckAsync();
-            var status = this.CreateAutomationStatus(healthResult);
-
-            var response = req.CreateResponse(HttpStatusCode.OK);
-            response.Headers.Add("Content-Type", "application/json");
-            await response.WriteStringAsync(JsonSerializer.Serialize(status, new JsonSerializerOptions { WriteIndented = true }));
-            return response;
-        }
-        catch (Exception ex)
-        {
-            this.logger.LogError(ex, "Error getting automation status");
-            var errorResponse = req.CreateResponse(HttpStatusCode.InternalServerError);
-            await errorResponse.WriteStringAsync($"Error: {ex.Message}");
-            return errorResponse;
-        }
-    }
-
-    /// <summary>
-    /// Trigger configuration reload without restarting the function app.
-    /// Useful for CI/CD deployments that update appsettings.
-    /// </summary>
-    [Function("ReloadConfiguration")]
-    public async Task<HttpResponseData> ReloadConfiguration(
-        [HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequestData req)
-    {
-        this.logger.LogInformation("Configuration reload triggered");
-
-        try
-        {
-            await this.RefreshConfigurationFromAppSettings();
-
-            var response = req.CreateResponse(HttpStatusCode.OK);
-            response.Headers.Add("Content-Type", "application/json");
-            await response.WriteStringAsync(JsonSerializer.Serialize(new { 
-                Success = true, 
-                Message = "Configuration reloaded successfully",
-                Timestamp = DateTime.UtcNow
-            }));
-            return response;
-        }
-        catch (Exception ex)
-        {
-            this.logger.LogError(ex, "Error reloading configuration");
-            var errorResponse = req.CreateResponse(HttpStatusCode.InternalServerError);
-            await errorResponse.WriteStringAsync($"Error: {ex.Message}");
-            return errorResponse;
-        }
-    }
-
-    private async Task ProcessSyncRequestInternal(StandardSyncRequest request, bool isPriority)
-    {
-        this.logger.LogInformation("Processing {Priority} sync request: {SyncType}", 
-            isPriority ? "priority" : "standard", request.SyncType);
-
-        switch (request.SyncType.ToLowerInvariant())
-        {
-            case "categories":
-                await this.syncService.SyncCategoriesAsync();
-                break;
-            case "critical":
-                var criticalFilter = this.syncService.CreateCriticalUpdatesFilter();
-                await this.syncService.SyncUpdatesAsync(criticalFilter);
-                break;
-            case "comprehensive":
-                var comprehensiveFilter = this.syncService.CreateComprehensiveUpdatesFilter();
-                await this.syncService.SyncUpdatesAsync(comprehensiveFilter);
-                break;
-            case "content":
-                if (this.contentStore != null)
-                {
-                    var contentFilter = this.syncService.CreateCustomFilter(request.ProductFilters, request.ClassificationFilters);
-                    var metadataFilter = this.CreateMetadataFilterFromUpstreamFilter(contentFilter, request.MaxItems ?? 100);
-                    await this.syncService.SyncContentAsync(metadataFilter, this.contentStore);
-                }
-                break;
-            default:
-                this.logger.LogWarning("Unknown sync type: {SyncType}", request.SyncType);
-                break;
-        }
-    }
-
-    private async Task ProcessContentSyncInternal(ContentSyncQueueRequest request)
-    {
-        this.logger.LogInformation("Processing content sync request for {ContentStorePath}", request.ContentStorePath);
-
-        IContentStore? tempContentStore = null;
-        
-        try
-        {
-            tempContentStore = this.CreateContentStoreFromRequest(request);
-            if (tempContentStore == null)
-            {
-                this.logger.LogError("Failed to create content store for sync request");
-                return;
-            }
-
-            var upstreamFilter = this.syncService.CreateCustomFilter(request.ProductFilters, request.ClassificationFilters);
-            var metadataFilter = this.CreateMetadataFilterFromUpstreamFilter(upstreamFilter, request.MaxFiles ?? 100);
-            metadataFilter.SkipSuperseded = request.SkipSuperseded;
-
-            await this.syncService.SyncContentAsync(metadataFilter, tempContentStore);
-        }
-        finally
-        {
-            tempContentStore?.Dispose();
-        }
-    }
-
-    private async Task ProcessEmergencySync(EmergencySyncRequest request)
-    {
-        this.logger.LogInformation("Processing emergency sync: {SyncType} - {Reason}", request.SyncType, request.Reason);
-        
-        var standardRequest = new StandardSyncRequest
-        {
-            SyncType = request.SyncType,
-            UpstreamEndpoint = request.UpstreamEndpoint,
-            ProductFilters = request.ProductFilters,
-            ClassificationFilters = request.ClassificationFilters,
-            RequestId = Guid.NewGuid().ToString()
-        };
-
-        await this.ProcessSyncRequestInternal(standardRequest, true);
-
-        if (request.IncludeContent && this.contentStore != null)
-        {
-            var filter = this.syncService.CreateCustomFilter(request.ProductFilters, request.ClassificationFilters);
-            var metadataFilter = this.CreateMetadataFilterFromUpstreamFilter(filter, 50);
-            await this.syncService.SyncContentAsync(metadataFilter, this.contentStore);
-        }
-    }
-
-    private MetadataFilter CreateMetadataFilterFromUpstreamFilter(Microsoft.PackageGraph.MicrosoftUpdate.Source.UpstreamSourceFilter upstreamFilter, int maxItems)
-    {
-        return new MetadataFilter
-        {
-            CategoryFilter = upstreamFilter.ClassificationsFilter.Union(upstreamFilter.ProductsFilter).ToList(),
-            SkipSuperseded = true,
-            FirstX = maxItems
-        };
-    }
-
-    private IContentStore? CreateContentStoreFromRequest(ContentSyncQueueRequest request)
-    {
-        try
-        {
-            switch (request.ContentStoreType.ToLowerInvariant())
-            {
-                case "local":
-                    return new Microsoft.PackageGraph.Storage.Local.FileSystemContentStore(request.ContentStorePath);
-                
-                case "azure":
-                    if (!string.IsNullOrEmpty(request.ContentStoreConnectionString))
-                    {
-                        this.logger.LogWarning("Azure content store not implemented in this function");
-                    }
-                    return null;
-                
-                default:
-                    this.logger.LogError("Unsupported content store type: {ContentStoreType}", request.ContentStoreType);
-                    return null;
-            }
-        }
-        catch (Exception ex)
-        {
-            this.logger.LogError(ex, "Error creating content store");
-            return null;
-        }
-    }
-
-    private AutomationStatus CreateAutomationStatus(HealthCheckResult healthResult)
-    {
-        return new AutomationStatus
-        {
-            MetadataStoreConfigured = healthResult.PackageCount.HasValue,
-            ContentStoreConfigured = healthResult.ContentStoreAvailable,
-            SystemHealth = healthResult.Status,
-            LastDailySync = DateTime.UtcNow.AddHours(-2), // Example - could be tracked in persistent storage
-            LastWeeklySync = DateTime.UtcNow.AddDays(-1), // Example - could be tracked in persistent storage
-            NextScheduledSync = DateTime.UtcNow.AddHours(22), // Example - calculated from schedule
-            QueueDepths = new Dictionary<string, int>
-            {
-                ["priority-sync-requests"] = 0, // Example - would query actual queue depths
-                ["standard-sync-requests"] = 3,
-                ["content-sync-requests"] = 1
-            },
-            Timestamp = DateTime.UtcNow
-        };
-    }
-
-    private async Task SubmitToQueue(string queueName, object request)
-    {
-        this.logger.LogInformation("Submitting request to queue: {QueueName}", queueName);
-        // Implementation for queue submission would go here
-    }
-
-    private async Task RefreshConfigurationFromAppSettings()
-    {
-        this.logger.LogInformation("Refreshing configuration from app settings");
-        // Implementation for refreshing configuration would go here
     }
 }
 

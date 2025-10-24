@@ -7,9 +7,11 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.PackageGraph.Storage;
+using Microsoft.PackageGraph.ObjectModel;
 using MicrosoftUpdateFunctions.Services;
 using System.Net;
 using System.Text.Json;
+using System.ComponentModel.DataAnnotations;
 
 /// <summary>
 /// Azure Functions for content synchronization operations.
@@ -53,20 +55,12 @@ public class ContentSyncFunctions
             var requestBody = await new StreamReader(req.Body).ReadToEndAsync();
             var request = JsonSerializer.Deserialize<SyncContentRequest>(requestBody) ?? new SyncContentRequest();
 
-            // Create metadata filter
-            var filter = new MetadataFilter();
-            if (request.ProductFilters?.Any() == true)
-            {
-                filter.ProductFilters = request.ProductFilters;
-            }
-            if (request.ClassificationFilters?.Any() == true)
-            {
-                filter.ClassificationFilters = request.ClassificationFilters;
-            }
+            // Create service metadata filter
+            var filter = request.ToServiceFilter();
 
             var result = new SyncResult { StartTime = DateTime.UtcNow };
 
-            // Perform content synchronization
+            // Perform content synchronization using service layer
             await this.syncService.SyncContentAsync(filter, this.contentStore);
 
             result.EndTime = DateTime.UtcNow;
@@ -104,7 +98,7 @@ public class ContentSyncFunctions
         try
         {
             // Sync content for recent updates (last 30 days)
-            var filter = new MetadataFilter
+            var filter = new ServiceMetadataFilter
             {
                 UpdatedAfter = DateTime.UtcNow.AddDays(-30)
             };
@@ -142,7 +136,7 @@ public class ContentSyncFunctions
             {
                 configured = true,
                 type = this.contentStore.GetType().Name,
-                // Add more statistics here based on IContentStore capabilities
+                timestamp = DateTime.UtcNow
             };
 
             var response = req.CreateResponse(HttpStatusCode.OK);

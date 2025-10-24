@@ -48,7 +48,7 @@ public class MetadataSyncFunctions
                 ? this.syncService.CreateComprehensiveUpdatesFilter()
                 : this.syncService.CreateCriticalUpdatesFilter();
 
-            if (request.CustomFilters?.Any() == true)
+            if (request.CustomFilters?.ProductFilters?.Any() == true || request.CustomFilters?.ClassificationFilters?.Any() == true)
             {
                 filter = this.syncService.CreateCustomFilter(
                     request.CustomFilters.ProductFilters,
