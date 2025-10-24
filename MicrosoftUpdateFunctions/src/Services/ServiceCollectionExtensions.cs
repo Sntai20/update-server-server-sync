@@ -1,8 +1,11 @@
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.PackageGraph.Storage;
 using Microsoft.PackageGraph.Storage.Local;
+using Microsoft.PackageGraph.Storage.Azure;
+using Microsoft.Azure.Storage;
+using Microsoft.Azure.Storage.Blob;
 using Microsoft.PackageGraph.MicrosoftUpdate.Endpoints.ClientSync;
 using Microsoft.PackageGraph.MicrosoftUpdate.Endpoints.ServerSync;
 using Microsoft.UpdateServices.WebServices.ClientSync;
@@ -19,40 +22,75 @@ namespace MicrosoftUpdateFunctions.Services
             services.AddSingleton<IMetadataStore>(provider =>
             {
                 var logger = provider.GetRequiredService<ILogger<IMetadataStore>>();
-                var metadataPath = configuration["MetadataStorePath"] ?? "./store";
-                var metadataStorageConnection = configuration["MetadataStorageConnection"];
+                var metadataConnectionString = configuration.GetConnectionString("MetadataStorageConnection");
+                var useAzureStorage = bool.Parse(configuration["UseAzureStorage"] ?? "false");
                 
-                // For now, only support local file system until Azure Storage packages are added
-                if (!string.IsNullOrEmpty(metadataStorageConnection) && metadataStorageConnection != "")
+                logger.LogInformation("🔍 Metadata Store Init: UseAzure={UseAzure}, HasConnectionString={HasConnection}", 
+                    useAzureStorage, !string.IsNullOrEmpty(metadataConnectionString));
+                
+                if (useAzureStorage && !string.IsNullOrEmpty(metadataConnectionString))
                 {
-                    logger.LogWarning("Azure Storage connection detected but Azure Storage packages not available. Using local file system instead.");
+                    logger.LogInformation("Using Azure Blob Storage for metadata store");
+                    var storageAccount = CloudStorageAccount.Parse(metadataConnectionString);
+                    var blobClient = storageAccount.CreateCloudBlobClient();
+                    var containerName = configuration["MetadataContainerName"] ?? "metadata";
+                    
+                    return Microsoft.PackageGraph.Storage.Azure.PackageStore.OpenOrCreate(blobClient, containerName);
                 }
-                
-                logger.LogInformation("Using local file system for metadata store: '{MetadataPath}'", metadataPath);
-                return PackageStore.Open(metadataPath);
+                else
+                {
+                    var metadataPath = configuration["MetadataStorePath"] ?? "./store";
+                    logger.LogInformation("Using local file system for metadata store: '{MetadataPath}'", metadataPath);
+                    
+                    // Ensure directory exists
+                    if (!Directory.Exists(metadataPath))
+                    {
+                        Directory.CreateDirectory(metadataPath);
+                    }
+                    
+                    return Microsoft.PackageGraph.Storage.Local.PackageStore.Open(metadataPath);
+                }
             });
 
             // Register content store with dynamic storage selection (optional)
             services.AddSingleton<IContentStore?>(provider =>
             {
                 var logger = provider.GetRequiredService<ILogger<IContentStore>>();
-                var contentPath = configuration["ContentStorePath"];
-                var contentStorageConnection = configuration["ContentStorageConnection"];
+                var contentConnectionString = configuration.GetConnectionString("ContentStorageConnection");
+                var useAzureStorage = bool.Parse(configuration["UseAzureStorage"] ?? "false");
                 
-                if (string.IsNullOrEmpty(contentPath))
+                logger.LogInformation("🔍 Content Store Init: UseAzure={UseAzure}, HasConnectionString={HasConnection}", 
+                    useAzureStorage, !string.IsNullOrEmpty(contentConnectionString));
+                
+                if (useAzureStorage && !string.IsNullOrEmpty(contentConnectionString))
                 {
-                    logger.LogInformation("No content storage configured");
-                    return null;
+                    logger.LogInformation("Using Azure Blob Storage for content store");
+                    var storageAccount = CloudStorageAccount.Parse(contentConnectionString);
+                    var blobClient = storageAccount.CreateCloudBlobClient();
+                    var containerName = configuration["ContentContainerName"] ?? "content";
+                    
+                    return BlobContentStore.OpenOrCreate(blobClient, containerName);
                 }
-                
-                // For now, only support local file system until Azure Storage packages are added
-                if (!string.IsNullOrEmpty(contentStorageConnection) && contentStorageConnection != "")
+                else
                 {
-                    logger.LogWarning("Azure Storage connection detected but Azure Storage packages not available. Using local file system instead.");
+                    var contentPath = configuration["ContentStorePath"];
+                    
+                    if (string.IsNullOrEmpty(contentPath))
+                    {
+                        logger.LogInformation("No content storage configured");
+                        return null;
+                    }
+                    
+                    logger.LogInformation("Using local file system for content store: '{ContentPath}'", contentPath);
+                    
+                    // Ensure directory exists
+                    if (!Directory.Exists(contentPath))
+                    {
+                        Directory.CreateDirectory(contentPath);
+                    }
+                    
+                    return new FileSystemContentStore(contentPath);
                 }
-                
-                logger.LogInformation("Using local file system for content store: '{ContentPath}'", contentPath);
-                return new FileSystemContentStore(contentPath);
             });
 
             // Register configuration objects
