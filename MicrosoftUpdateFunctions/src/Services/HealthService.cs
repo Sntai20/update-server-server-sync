@@ -61,6 +61,130 @@ public class HealthService : IHealthService
         return result;
     }
 
+    public async Task<HealthStatus> GetSystemHealthAsync()
+    {
+        this.logger.LogInformation("Getting system health status");
+        
+        var health = new HealthStatus
+        {
+            IsHealthy = true,
+            Issues = new List<HealthIssue>(),
+            Metrics = new List<HealthMetric>()
+        };
+
+        // Check metadata store
+        if (this.metadataStore != null)
+        {
+            try
+            {
+                var packageCount = this.metadataStore.Cast<Microsoft.PackageGraph.ObjectModel.IPackage>().Count();
+                health.Metrics.Add(new HealthMetric { Name = "PackageCount", Value = packageCount.ToString(), Unit = "packages" });
+                
+                if (this.metadataStore.IsReindexingRequired)
+                {
+                    health.Issues.Add(new HealthIssue 
+                    { 
+                        Component = "MetadataStore", 
+                        Message = "Reindexing required", 
+                        Severity = "Warning" 
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, "Error checking metadata store health");
+                health.IsHealthy = false;
+                health.Issues.Add(new HealthIssue 
+                { 
+                    Component = "MetadataStore", 
+                    Message = ex.Message, 
+                    Severity = "Error" 
+                });
+            }
+        }
+        else
+        {
+            health.IsHealthy = false;
+            health.Issues.Add(new HealthIssue 
+            { 
+                Component = "MetadataStore", 
+                Message = "Not configured", 
+                Severity = "Error" 
+            });
+        }
+
+        // Check content store
+        if (this.contentStore != null)
+        {
+            health.Metrics.Add(new HealthMetric { Name = "ContentStoreAvailable", Value = "true" });
+        }
+        else
+        {
+            health.Metrics.Add(new HealthMetric { Name = "ContentStoreAvailable", Value = "false" });
+        }
+
+        return health;
+    }
+
+    public async Task<HealthStatus> GetSyncHealthAsync()
+    {
+        this.logger.LogInformation("Getting sync-specific health status");
+        
+        var health = new HealthStatus
+        {
+            IsHealthy = true,
+            Issues = new List<HealthIssue>(),
+            Metrics = new List<HealthMetric>()
+        };
+
+        // Check if stores are ready for sync operations
+        if (this.metadataStore != null)
+        {
+            try
+            {
+                var packageCount = this.metadataStore.Cast<Microsoft.PackageGraph.ObjectModel.IPackage>().Count();
+                health.Metrics.Add(new HealthMetric { Name = "SyncablePackages", Value = packageCount.ToString(), Unit = "packages" });
+                
+                if (this.metadataStore.IsReindexingRequired)
+                {
+                    health.Issues.Add(new HealthIssue 
+                    { 
+                        Component = "SyncReadiness", 
+                        Message = "Metadata store requires reindexing before sync", 
+                        Severity = "Warning" 
+                    });
+                }
+                else
+                {
+                    health.Metrics.Add(new HealthMetric { Name = "SyncReadiness", Value = "Ready" });
+                }
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, "Error checking sync readiness");
+                health.IsHealthy = false;
+                health.Issues.Add(new HealthIssue 
+                { 
+                    Component = "SyncReadiness", 
+                    Message = $"Cannot determine sync readiness: {ex.Message}", 
+                    Severity = "Error" 
+                });
+            }
+        }
+        else
+        {
+            health.IsHealthy = false;
+            health.Issues.Add(new HealthIssue 
+            { 
+                Component = "SyncReadiness", 
+                Message = "Metadata store not configured - sync not possible", 
+                Severity = "Error" 
+            });
+        }
+
+        return health;
+    }
+
     public async Task CleanupTemporaryFilesAsync()
     {
         this.logger.LogInformation("Starting temporary file cleanup");

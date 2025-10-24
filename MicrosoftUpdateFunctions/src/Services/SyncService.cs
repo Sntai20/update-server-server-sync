@@ -47,11 +47,14 @@ public class SyncService : ISyncService
         this.logger.LogInformation("Updates synchronization completed");
     }
 
-    public async Task SyncContentAsync(MetadataFilter filter, IContentStore contentStore, CancellationToken cancellationToken = default)
+    public async Task SyncContentAsync(ServiceMetadataFilter filter, IContentStore contentStore, CancellationToken cancellationToken = default)
     {
         this.logger.LogInformation("Starting content synchronization");
 
-        var filteredPackages = filter.Apply(this.metadataStore);
+        // Convert ServiceMetadataFilter to library MetadataFilter
+        var metadataFilter = this.ConvertToMetadataFilter(filter);
+        
+        var filteredPackages = metadataFilter.Apply(this.metadataStore);
         var filesToDownload = filteredPackages
             .Where(p => p.Files != null)
             .SelectMany(p => p.Files)
@@ -156,6 +159,56 @@ public class SyncService : ISyncService
         }
 
         return new UpstreamSourceFilter(products, classifications);
+    }
+
+    /// <summary>
+    /// Converts ServiceMetadataFilter to library MetadataFilter for internal use.
+    /// </summary>
+    private MetadataFilter ConvertToMetadataFilter(ServiceMetadataFilter serviceFilter)
+    {
+        var metadataFilter = new MetadataFilter();
+
+        // Convert product filters to GUIDs
+        if (serviceFilter.ProductFilters?.Any() == true)
+        {
+            var productGuids = new List<Guid>();
+            foreach (var product in serviceFilter.ProductFilters)
+            {
+                if (Guid.TryParse(product, out var productGuid))
+                {
+                    productGuids.Add(productGuid);
+                }
+            }
+            metadataFilter.CategoryFilter = productGuids;
+        }
+
+        // Convert classification filters to GUIDs and add to category filter
+        if (serviceFilter.ClassificationFilters?.Any() == true)
+        {
+            var classificationGuids = new List<Guid>();
+            foreach (var classification in serviceFilter.ClassificationFilters)
+            {
+                if (Guid.TryParse(classification, out var classificationGuid))
+                {
+                    classificationGuids.Add(classificationGuid);
+                }
+            }
+            
+            // Combine with existing category filter
+            if (metadataFilter.CategoryFilter?.Any() == true)
+            {
+                metadataFilter.CategoryFilter = metadataFilter.CategoryFilter.Concat(classificationGuids).ToList();
+            }
+            else
+            {
+                metadataFilter.CategoryFilter = classificationGuids;
+            }
+        }
+
+        // Note: MetadataFilter doesn't have UpdatedAfter/UpdatedBefore properties
+        // Those would need to be handled differently based on the library's capabilities
+
+        return metadataFilter;
     }
 
     /// <summary>

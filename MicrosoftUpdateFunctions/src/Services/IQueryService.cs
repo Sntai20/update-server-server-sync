@@ -15,6 +15,11 @@ public interface IQueryService
     DriverMatchResult MatchDriver(IEnumerable<string> hardwareIds, List<Guid> computerHardwareIds, List<Guid> prerequisites);
     DetailedStoreStatus GetDetailedStoreStatus();
     MetadataFilter? BuildFilterFromRequest(IMetadataFilterRequest request);
+    Task<MetadataQueryResult> QueryMetadataAsync(MetadataQueryRequest request);
+    Task<DetailedStoreStatus> GetStoreStatusAsync();
+    Task<DriverMatchResult> MatchDriversAsync(DriverMatchRequest request);
+    Task<AvailableFilters> GetAvailableFiltersAsync();
+    Task<MetadataExportResult> ExportMetadataAsync(MetadataExportRequest request);
 }
 
 /// <summary>

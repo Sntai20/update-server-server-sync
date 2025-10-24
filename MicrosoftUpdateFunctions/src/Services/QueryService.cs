@@ -23,6 +23,227 @@ public class QueryService : IQueryService
         this.metadataStore = metadataStore;
     }
 
+    public async Task<MetadataQueryResult> QueryMetadataAsync(MetadataQueryRequest request)
+    {
+        this.logger.LogInformation("Executing metadata query with {MaxResults} max results", request.MaxResults);
+        
+        var startTime = DateTime.UtcNow;
+        var result = new MetadataQueryResult
+        {
+            PackageType = "Updates",
+            RequestTimestamp = request.RequestTimestamp
+        };
+
+        try
+        {
+            // Build filter from request
+            var filterRequest = new MetadataFilterRequest
+            {
+                ProductsFilter = request.ProductFilters,
+                ClassificationsFilter = request.ClassificationFilters,
+                TitleFilter = request.SearchTerm,
+                SkipSuperseded = !request.IncludeSuperseded,
+                FirstX = request.MaxResults
+            };
+
+            var filter = this.BuildFilterFromRequest(filterRequest);
+            if (filter == null)
+            {
+                result.TotalMatches = 0;
+                return result;
+            }
+
+            var filteredPackages = filter.Apply(this.metadataStore);
+            result.TotalMatches = filteredPackages.Count();
+            
+            foreach (var package in filteredPackages.Take(request.MaxResults))
+            {
+                var packageInfo = new PackageInfo
+                {
+                    Id = package.Id.ID,
+                    Title = package.Title,
+                    PackageType = package.GetType().Name
+                };
+
+                if (package is MicrosoftUpdatePackage updatePackage)
+                {
+                    packageInfo.Description = updatePackage.Description;
+                    packageInfo.Size = updatePackage.Files?.Sum(f => (long)f.Size) ?? 0;
+                    packageInfo.Classification = updatePackage.Classification?.Title;
+                    packageInfo.Product = updatePackage.ProductNames?.FirstOrDefault();
+                    packageInfo.KbArticle = updatePackage.KBArticleId;
+                    packageInfo.IsSuperseded = updatePackage.IsSuperseded;
+                    packageInfo.CreationDate = updatePackage.CreationDate;
+                }
+
+                result.Packages.Add(packageInfo);
+            }
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Error during metadata query");
+            throw;
+        }
+
+        result.QueryDuration = DateTime.UtcNow - startTime;
+        return result;
+    }
+
+    public async Task<DetailedStoreStatus> GetStoreStatusAsync()
+    {
+        this.logger.LogInformation("Getting detailed store status");
+        
+        var packageCount = this.metadataStore.Cast<IPackage>().Count();
+        var updateCount = this.metadataStore.OfType<MicrosoftUpdatePackage>().Count();
+        var driverCount = this.metadataStore.OfType<DriverUpdate>().Count();
+        var classificationCount = this.metadataStore.OfType<ClassificationCategory>().Count();
+        var productCount = this.metadataStore.OfType<ProductCategory>().Count();
+
+        return new DetailedStoreStatus
+        {
+            TotalPackageCount = packageCount,
+            UpdateCount = updateCount,
+            DriverCount = driverCount,
+            ClassificationCount = classificationCount,
+            ProductCount = productCount,
+            PackageIdIndexed = this.metadataStore is IMetadataStore,
+            ReindexingRequired = this.metadataStore.IsReindexingRequired,
+            LastUpdated = DateTime.UtcNow,
+            Timestamp = DateTime.UtcNow
+        };
+    }
+
+    public async Task<DriverMatchResult> MatchDriversAsync(DriverMatchRequest request)
+    {
+        this.logger.LogInformation("Matching drivers for {HardwareIdCount} hardware IDs", request.HardwareIds.Count);
+        
+        try
+        {
+            var driverMatching = DriverUpdateMatching.FromPackageSource(this.metadataStore);
+            var computerHardwareIds = new List<Guid>(); // Could be parsed from request if needed
+            var prerequisites = new List<Guid>(); // Could be parsed from request if needed
+            
+            var driverMatch = driverMatching.MatchDriver(request.HardwareIds, computerHardwareIds, prerequisites);
+
+            if (driverMatch != null)
+            {
+                return new DriverMatchResult
+                {
+                    MatchFound = true,
+                    DriverId = driverMatch.Driver.Id.ID,
+                    DriverTitle = driverMatch.Driver.Title,
+                    MatchedHardwareId = driverMatch.MatchedHardwareId,
+                    DriverVersion = driverMatch.MatchedVersion?.VersionString,
+                    DriverDate = driverMatch.MatchedVersion?.Date,
+                    MatchedComputerHardwareId = driverMatch.MatchedComputerHardwareId,
+                    FeatureScore = driverMatch.MatchedFeatureScore?.Score,
+                    OperatingSystem = driverMatch.MatchedFeatureScore?.OperatingSystem
+                };
+            }
+
+            return new DriverMatchResult { MatchFound = false };
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Error during driver matching");
+            throw;
+        }
+    }
+
+    public async Task<AvailableFilters> GetAvailableFiltersAsync()
+    {
+        this.logger.LogInformation("Getting available filter options");
+        
+        var products = this.metadataStore.OfType<ProductCategory>()
+            .Select(p => p.Title)
+            .Where(title => !string.IsNullOrEmpty(title))
+            .Distinct()
+            .ToList();
+
+        var classifications = this.metadataStore.OfType<ClassificationCategory>()
+            .Select(c => c.Title)
+            .Where(title => !string.IsNullOrEmpty(title))
+            .Distinct()
+            .ToList();
+
+        return new AvailableFilters
+        {
+            Products = products,
+            Classifications = classifications,
+            LastUpdated = DateTime.UtcNow
+        };
+    }
+
+    public async Task<MetadataExportResult> ExportMetadataAsync(MetadataExportRequest request)
+    {
+        this.logger.LogInformation("Exporting metadata in {Format} format", request.Format);
+        
+        var startTime = DateTime.UtcNow;
+        var result = new MetadataExportResult
+        {
+            Format = request.Format,
+            ExportTimestamp = startTime
+        };
+
+        try
+        {
+            // Build filter from request
+            var filterRequest = new MetadataFilterRequest
+            {
+                ProductsFilter = request.ProductsFilter,
+                ClassificationsFilter = request.ClassificationsFilter,
+                SkipSuperseded = !request.IncludeSuperseded,
+                FirstX = int.MaxValue // Export all matching items
+            };
+
+            var filter = this.BuildFilterFromRequest(filterRequest);
+            if (filter == null)
+            {
+                result.Success = false;
+                result.ErrorMessage = "Invalid filter parameters";
+                return result;
+            }
+
+            var filteredPackages = filter.Apply(this.metadataStore);
+            var packages = filteredPackages.ToList();
+            
+            result.ItemsExported = packages.Count;
+
+            // Convert to export format based on request.Format
+            switch (request.Format.ToLowerInvariant())
+            {
+                case "json":
+                    result.ExportData = System.Text.Json.JsonSerializer.Serialize(packages.Select(p => new
+                    {
+                        Id = p.Id.ID,
+                        Title = p.Title,
+                        Type = p.GetType().Name
+                    }), new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+                    break;
+                    
+                case "csv":
+                    result.ExportData = "Id,Title,Type\n" + 
+                        string.Join("\n", packages.Select(p => $"{p.Id.ID},{p.Title},{p.GetType().Name}"));
+                    break;
+                    
+                default:
+                    result.Success = false;
+                    result.ErrorMessage = $"Unsupported export format: {request.Format}";
+                    return result;
+            }
+
+            result.Success = true;
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Error during metadata export");
+            result.Success = false;
+            result.ErrorMessage = ex.Message;
+        }
+
+        return result;
+    }
+
     public MetadataQueryResult QueryPackages(string packageType, MetadataFilter filter)
     {
         var filteredPackages = filter.Apply(this.metadataStore);
@@ -99,6 +320,7 @@ public class QueryService : IQueryService
             ProductCount = productCount,
             PackageIdIndexed = this.metadataStore is IMetadataStore,
             ReindexingRequired = this.metadataStore.IsReindexingRequired,
+            LastUpdated = DateTime.UtcNow,
             Timestamp = DateTime.UtcNow
         };
     }
@@ -187,4 +409,20 @@ public class QueryService : IQueryService
             return null;
         }
     }
+}
+
+/// <summary>
+/// Implementation of IMetadataFilterRequest for internal use.
+/// </summary>
+public class MetadataFilterRequest : IMetadataFilterRequest
+{
+    public IEnumerable<string>? ProductsFilter { get; set; }
+    public IEnumerable<string>? ClassificationsFilter { get; set; }
+    public IEnumerable<string>? IdFilter { get; set; }
+    public string? TitleFilter { get; set; }
+    public string? HardwareIdFilter { get; set; }
+    public string? ComputerHardwareIdFilter { get; set; }
+    public IEnumerable<string>? KbArticleFilter { get; set; }
+    public bool SkipSuperseded { get; set; }
+    public int FirstX { get; set; }
 }

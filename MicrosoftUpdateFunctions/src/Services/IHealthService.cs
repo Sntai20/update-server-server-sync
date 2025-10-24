@@ -14,6 +14,8 @@ public interface IHealthService
     Task CleanupTemporaryFilesAsync();
     Task<MaintenanceResult> PerformMaintenanceAsync(MaintenanceLevel level);
     Task<bool> CheckReindexingNeeded();
+    Task<HealthStatus> GetSystemHealthAsync();
+    Task<HealthStatus> GetSyncHealthAsync();
 }
 
 /// <summary>
