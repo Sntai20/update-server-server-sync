@@ -1,389 +1,192 @@
+namespace MicrosoftUpdateFunctions.Functions;
+
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
-using Microsoft.PackageGraph.Storage;
-using Microsoft.PackageGraph.MicrosoftUpdate.Source;
+using MicrosoftUpdateFunctions.Services;
 using System.Net;
-using System.Text;
 using System.Text.Json;
 
-namespace MicrosoftUpdateFunctions.Functions;
-
 /// <summary>
-/// Azure Functions for metadata synchronization operations.
-/// These functions provide the same capabilities as the upsync tool but in a serverless environment.
+/// Unified Azure Functions for metadata synchronization operations.
+/// Combines HTTP endpoints, scheduled operations, and event-driven synchronization.
+/// Uses service layer for testable, maintainable business logic.
 /// </summary>
 public class MetadataSyncFunctions
 {
     private readonly ILogger<MetadataSyncFunctions> logger;
-    private readonly IMetadataStore? metadataStore;
+    private readonly ISyncService syncService;
+    private readonly IHealthService healthService;
 
-    public MetadataSyncFunctions(ILogger<MetadataSyncFunctions> logger, IMetadataStore? metadataStore)
+    public MetadataSyncFunctions(
+        ILogger<MetadataSyncFunctions> logger,
+        ISyncService syncService,
+        IHealthService healthService)
     {
         this.logger = logger;
-        this.metadataStore = metadataStore;
+        this.syncService = syncService;
+        this.healthService = healthService;
     }
 
     /// <summary>
-    /// Fetches server configuration data from upstream Microsoft Update endpoint.
-    /// Equivalent to: upsync fetch-config
+    /// HTTP endpoint for manual metadata synchronization.
+    /// POST /api/SyncMetadata
     /// </summary>
-    [Function("FetchConfiguration")]
-    public async Task<HttpResponseData> FetchConfiguration(
+    [Function("SyncMetadata")]
+    public async Task<HttpResponseData> SyncMetadata(
         [HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequestData req)
     {
-        this.logger.LogInformation("FetchConfiguration function started");
+        this.logger.LogInformation("Manual metadata sync requested");
 
         try
         {
             var requestBody = await new StreamReader(req.Body).ReadToEndAsync();
-            var options = JsonSerializer.Deserialize<FetchConfigurationRequest>(requestBody);
+            var request = JsonSerializer.Deserialize<SyncMetadataRequest>(requestBody) ?? new SyncMetadataRequest();
 
-            if (options == null)
+            // Create filter based on request
+            var filter = string.IsNullOrEmpty(request.FilterType) || request.FilterType.ToLower() == "comprehensive"
+                ? this.syncService.CreateComprehensiveUpdatesFilter()
+                : this.syncService.CreateCriticalUpdatesFilter();
+
+            if (request.CustomFilters?.Any() == true)
             {
-                var badRequest = req.CreateResponse(HttpStatusCode.BadRequest);
-                await badRequest.WriteStringAsync("Invalid request body");
-                return badRequest;
+                filter = this.syncService.CreateCustomFilter(
+                    request.CustomFilters.ProductFilters,
+                    request.CustomFilters.ClassificationFilters);
             }
 
-            // Set default upstream endpoint if not provided
-            var upstreamEndpoint = string.IsNullOrEmpty(options.UpstreamEndpoint) 
-                ? Microsoft.PackageGraph.MicrosoftUpdate.Source.Endpoint.Default 
-                : new Microsoft.PackageGraph.MicrosoftUpdate.Source.Endpoint(options.UpstreamEndpoint);
+            // Perform synchronization
+            var result = new SyncResult { StartTime = DateTime.UtcNow };
 
-            var server = new UpstreamServerClient(upstreamEndpoint);
-            var configData = await server.GetServerConfigData();
+            if (request.SyncCategories)
+            {
+                await this.syncService.SyncCategoriesAsync();
+                result.CategoriesSynced = true;
+            }
+
+            if (request.SyncUpdates)
+            {
+                await this.syncService.SyncUpdatesAsync(filter);
+                result.UpdatesSynced = true;
+            }
+
+            result.EndTime = DateTime.UtcNow;
+            result.Success = true;
 
             var response = req.CreateResponse(HttpStatusCode.OK);
-            response.Headers.Add("Content-Type", "application/json");
+            await response.WriteAsJsonAsync(result);
+            return response;
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Error during metadata synchronization");
+            var errorResponse = req.CreateResponse(HttpStatusCode.InternalServerError);
+            await errorResponse.WriteAsJsonAsync(new { error = ex.Message });
+            return errorResponse;
+        }
+    }
+
+    /// <summary>
+    /// Scheduled metadata synchronization - daily at 2 AM UTC.
+    /// Performs comprehensive sync for regular maintenance.
+    /// </summary>
+    [Function("ScheduledMetadataSync")]
+    public async Task ScheduledMetadataSync([TimerTrigger("0 0 2 * * *")] TimerInfo timer)
+    {
+        this.logger.LogInformation("Starting scheduled comprehensive metadata sync at {Time}", DateTime.UtcNow);
+
+        try
+        {
+            // Check if reindexing is required first
+            if (await this.syncService.IsReindexingRequired())
+            {
+                this.logger.LogInformation("Store reindexing required, performing reindex");
+                await this.syncService.ReindexStoreAsync();
+            }
+
+            // Sync categories and comprehensive updates
+            await this.syncService.SyncCategoriesAsync();
             
-            var configJson = JsonSerializer.Serialize(configData, new JsonSerializerOptions { WriteIndented = true });
-            await response.WriteStringAsync(configJson);
+            var filter = this.syncService.CreateComprehensiveUpdatesFilter();
+            await this.syncService.SyncUpdatesAsync(filter);
 
-            this.logger.LogInformation("Configuration fetched successfully from {Endpoint}", upstreamEndpoint.URI);
-            return response;
+            this.logger.LogInformation("Scheduled metadata sync completed successfully");
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, "Error fetching configuration");
-            var errorResponse = req.CreateResponse(HttpStatusCode.InternalServerError);
-            await errorResponse.WriteStringAsync($"Error: {ex.Message}");
-            return errorResponse;
+            this.logger.LogError(ex, "Error during scheduled metadata sync");
+            throw;
         }
     }
 
     /// <summary>
-    /// Fetches and stores product categories and classifications from upstream.
-    /// Equivalent to: upsync fetch-categories
+    /// Critical updates synchronization - every 4 hours.
+    /// Focuses on security and critical updates for faster sync.
     /// </summary>
-    [Function("FetchCategories")]
-    public async Task<HttpResponseData> FetchCategories(
-        [HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequestData req)
+    [Function("CriticalUpdatesSync")]
+    public async Task CriticalUpdatesSync([TimerTrigger("0 0 */4 * * *")] TimerInfo timer)
     {
-        this.logger.LogInformation("FetchCategories function started");
-
-        if (this.metadataStore == null)
-        {
-            var configError = req.CreateResponse(HttpStatusCode.ServiceUnavailable);
-            await configError.WriteStringAsync("Metadata store not configured");
-            return configError;
-        }
+        this.logger.LogInformation("Starting critical updates sync at {Time}", DateTime.UtcNow);
 
         try
         {
-            var requestBody = await new StreamReader(req.Body).ReadToEndAsync();
-            var options = JsonSerializer.Deserialize<FetchCategoriesRequest>(requestBody);
+            var filter = this.syncService.CreateCriticalUpdatesFilter();
+            await this.syncService.SyncUpdatesAsync(filter);
 
-            if (options == null)
-            {
-                var badRequest = req.CreateResponse(HttpStatusCode.BadRequest);
-                await badRequest.WriteStringAsync("Invalid request body");
-                return badRequest;
-            }
+            this.logger.LogInformation("Critical updates sync completed successfully");
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Error during critical updates sync");
+            throw;
+        }
+    }
 
-            var upstreamEndpoint = string.IsNullOrEmpty(options.UpstreamEndpoint) 
-                ? Microsoft.PackageGraph.MicrosoftUpdate.Source.Endpoint.Default 
-                : new Microsoft.PackageGraph.MicrosoftUpdate.Source.Endpoint(options.UpstreamEndpoint);
-
-            this.logger.LogInformation("Fetching categories from {Endpoint}", upstreamEndpoint.URI);
-
-            var categoriesSource = new UpstreamCategoriesSource(upstreamEndpoint);
-            var cancellationToken = new CancellationTokenSource();
-            
-            // Copy categories to metadata store
-            categoriesSource.CopyTo(this.metadataStore, cancellationToken.Token);
-
+    /// <summary>
+    /// Health check for sync operations.
+    /// GET /api/SyncHealth
+    /// </summary>
+    [Function("SyncHealth")]
+    public async Task<HttpResponseData> GetSyncHealth(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get")] HttpRequestData req)
+    {
+        try
+        {
+            var health = await this.healthService.GetSyncHealthAsync();
             var response = req.CreateResponse(HttpStatusCode.OK);
-            await response.WriteStringAsync("Categories fetched and stored successfully");
-
-            this.logger.LogInformation("Categories fetched successfully");
+            await response.WriteAsJsonAsync(health);
             return response;
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, "Error fetching categories");
+            this.logger.LogError(ex, "Error retrieving sync health");
             var errorResponse = req.CreateResponse(HttpStatusCode.InternalServerError);
-            await errorResponse.WriteStringAsync($"Error: {ex.Message}");
+            await errorResponse.WriteAsJsonAsync(new { error = ex.Message });
             return errorResponse;
         }
-    }
-
-    /// <summary>
-    /// Fetches update metadata from upstream based on filter criteria.
-    /// Equivalent to: upsync fetch-updates
-    /// </summary>
-    [Function("FetchUpdates")]
-    public async Task<HttpResponseData> FetchUpdates(
-        [HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequestData req)
-    {
-        this.logger.LogInformation("FetchUpdates function started");
-
-        if (this.metadataStore == null)
-        {
-            var configError = req.CreateResponse(HttpStatusCode.ServiceUnavailable);
-            await configError.WriteStringAsync("Metadata store not configured");
-            return configError;
-        }
-
-        try
-        {
-            var requestBody = await new StreamReader(req.Body).ReadToEndAsync();
-            var options = JsonSerializer.Deserialize<FetchUpdatesRequest>(requestBody);
-
-            if (options == null)
-            {
-                var badRequest = req.CreateResponse(HttpStatusCode.BadRequest);
-                await badRequest.WriteStringAsync("Invalid request body");
-                return badRequest;
-            }
-
-            var upstreamEndpoint = string.IsNullOrEmpty(options.UpstreamEndpoint) 
-                ? Microsoft.PackageGraph.MicrosoftUpdate.Source.Endpoint.Default 
-                : new Microsoft.PackageGraph.MicrosoftUpdate.Source.Endpoint(options.UpstreamEndpoint);
-
-            this.logger.LogInformation("Fetching updates from {Endpoint}", upstreamEndpoint.URI);
-
-            // First ensure categories are available
-            var categoriesSource = new UpstreamCategoriesSource(upstreamEndpoint);
-            var cancellationToken = new CancellationTokenSource();
-            categoriesSource.CopyTo(this.metadataStore, cancellationToken.Token);
-
-            // Handle specific update IDs if provided
-            if (options.UpdateIds?.Any() == true)
-            {
-                var server = new UpstreamServerClient(upstreamEndpoint);
-                
-                foreach (var updateId in options.UpdateIds)
-                {
-                    if (Guid.TryParse(updateId, out var updateIdGuid))
-                    {
-                        this.logger.LogInformation("Searching for update {UpdateId}", updateId);
-                        var foundPackage = await server.TryGetExpiredUpdate(updateIdGuid, 300, 100);
-                        
-                        if (foundPackage != null)
-                        {
-                            this.metadataStore.AddPackage(foundPackage);
-                            this.logger.LogInformation("Added update {UpdateId}", updateId);
-                        }
-                        else
-                        {
-                            this.logger.LogWarning("Update {UpdateId} not found", updateId);
-                        }
-                    }
-                    else
-                    {
-                        this.logger.LogError("Invalid GUID format: {UpdateId}", updateId);
-                    }
-                }
-            }
-            else
-            {
-                // Fetch updates based on filter criteria
-                var sourceFilter = CreateFilterFromRequest(options, this.metadataStore);
-                var updatesSource = new UpstreamUpdatesSource(upstreamEndpoint, sourceFilter);
-                updatesSource.CopyTo(this.metadataStore, cancellationToken.Token);
-            }
-
-            var response = req.CreateResponse(HttpStatusCode.OK);
-            await response.WriteStringAsync("Updates fetched and stored successfully");
-
-            this.logger.LogInformation("Updates fetched successfully");
-            return response;
-        }
-        catch (Exception ex)
-        {
-            this.logger.LogError(ex, "Error fetching updates");
-            var errorResponse = req.CreateResponse(HttpStatusCode.InternalServerError);
-            await errorResponse.WriteStringAsync($"Error: {ex.Message}");
-            return errorResponse;
-        }
-    }
-
-    /// <summary>
-    /// Rebuilds the metadata store search index.
-    /// Equivalent to: upsync reindex
-    /// </summary>
-    [Function("ReindexStore")]
-    public async Task<HttpResponseData> ReindexStore(
-        [HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequestData req)
-    {
-        this.logger.LogInformation("ReindexStore function started");
-
-        if (this.metadataStore == null)
-        {
-            var configError = req.CreateResponse(HttpStatusCode.ServiceUnavailable);
-            await configError.WriteStringAsync("Metadata store not configured");
-            return configError;
-        }
-
-        try
-        {
-            var requestBody = await new StreamReader(req.Body).ReadToEndAsync();
-            var options = JsonSerializer.Deserialize<ReindexRequest>(requestBody);
-
-            if (!this.metadataStore.IsMetadataIndexingSupported)
-            {
-                var notSupported = req.CreateResponse(HttpStatusCode.BadRequest);
-                await notSupported.WriteStringAsync("Metadata store does not support indexing");
-                return notSupported;
-            }
-
-            bool forceReindex = options?.ForceReindex ?? false;
-
-            if (this.metadataStore.IsReindexingRequired || forceReindex)
-            {
-                this.logger.LogInformation("Starting reindexing (force: {ForceReindex})", forceReindex);
-                this.metadataStore.ReIndex();
-                
-                var response = req.CreateResponse(HttpStatusCode.OK);
-                await response.WriteStringAsync("Store reindexed successfully");
-                
-                this.logger.LogInformation("Reindexing completed");
-                return response;
-            }
-            else
-            {
-                var notRequired = req.CreateResponse(HttpStatusCode.OK);
-                await notRequired.WriteStringAsync("Reindexing not required");
-                return notRequired;
-            }
-        }
-        catch (Exception ex)
-        {
-            this.logger.LogError(ex, "Error during reindexing");
-            var errorResponse = req.CreateResponse(HttpStatusCode.InternalServerError);
-            await errorResponse.WriteStringAsync($"Error: {ex.Message}");
-            return errorResponse;
-        }
-    }
-
-    /// <summary>
-    /// Gets the current status of the metadata store.
-    /// </summary>
-    [Function("GetStoreStatus")]
-    public async Task<HttpResponseData> GetStoreStatus(
-        [HttpTrigger(AuthorizationLevel.Function, "get")] HttpRequestData req)
-    {
-        this.logger.LogInformation("GetStoreStatus function started");
-
-        try
-        {
-            var status = new
-            {
-                IsConfigured = this.metadataStore != null,
-                SupportsIndexing = this.metadataStore?.IsMetadataIndexingSupported ?? false,
-                RequiresReindexing = this.metadataStore?.IsReindexingRequired ?? false,
-                PackageCount = this.metadataStore?.Count() ?? 0,
-                LastUpdated = DateTime.UtcNow
-            };
-
-            var response = req.CreateResponse(HttpStatusCode.OK);
-            response.Headers.Add("Content-Type", "application/json");
-            
-            var statusJson = JsonSerializer.Serialize(status, new JsonSerializerOptions { WriteIndented = true });
-            await response.WriteStringAsync(statusJson);
-
-            return response;
-        }
-        catch (Exception ex)
-        {
-            this.logger.LogError(ex, "Error getting store status");
-            var errorResponse = req.CreateResponse(HttpStatusCode.InternalServerError);
-            await errorResponse.WriteStringAsync($"Error: {ex.Message}");
-            return errorResponse;
-        }
-    }
-
-    private static UpstreamSourceFilter CreateFilterFromRequest(FetchUpdatesRequest options, IMetadataStore metadataStore)
-    {
-        // Create product filter
-        var productFilter = new List<Guid>();
-        if (options.ProductFilters?.Any() == true)
-        {
-            foreach (var guidString in options.ProductFilters)
-            {
-                if (Guid.TryParse(guidString, out var guid))
-                {
-                    productFilter.Add(guid);
-                }
-            }
-        }
-        else
-        {
-            // Use all available products if no filter specified
-            productFilter = metadataStore.OfType<Microsoft.PackageGraph.MicrosoftUpdate.Metadata.ProductCategory>()
-                .Select(p => p.Id.ID)
-                .ToList();
-        }
-
-        // Create classification filter  
-        var classificationFilter = new List<Guid>();
-        if (options.ClassificationFilters?.Any() == true)
-        {
-            foreach (var guidString in options.ClassificationFilters)
-            {
-                if (Guid.TryParse(guidString, out var guid))
-                {
-                    classificationFilter.Add(guid);
-                }
-            }
-        }
-        else
-        {
-            // Use all available classifications if no filter specified
-            classificationFilter = metadataStore.OfType<Microsoft.PackageGraph.MicrosoftUpdate.Metadata.ClassificationCategory>()
-                .Select(c => c.Id.ID)
-                .ToList();
-        }
-
-        return new UpstreamSourceFilter(productFilter, classificationFilter);
     }
 }
 
 // Request/Response models for the metadata sync functions
-public class FetchConfigurationRequest
+public class SyncMetadataRequest
 {
-    public string? UpstreamEndpoint { get; set; }
+    public bool SyncCategories { get; set; } = true;
+    public bool SyncUpdates { get; set; } = true;
+    public string? FilterType { get; set; }
+    public CustomFilter? CustomFilters { get; set; }
 }
 
-public class FetchCategoriesRequest
+public class CustomFilter
 {
-    public string? UpstreamEndpoint { get; set; }
-    public string? AccountName { get; set; }
-    public string? AccountGuid { get; set; }
-}
-
-public class FetchUpdatesRequest
-{
-    public string? UpstreamEndpoint { get; set; }
-    public string? AccountName { get; set; }
-    public string? AccountGuid { get; set; }
-    public List<string>? UpdateIds { get; set; }
     public List<string>? ProductFilters { get; set; }
     public List<string>? ClassificationFilters { get; set; }
 }
 
-public class ReindexRequest
+public class SyncResult
 {
-    public bool ForceReindex { get; set; }
+    public bool Success { get; set; }
+    public DateTime StartTime { get; set; }
+    public DateTime EndTime { get; set; }
+    public bool CategoriesSynced { get; set; }
+    public bool UpdatesSynced { get; set; }
 }
