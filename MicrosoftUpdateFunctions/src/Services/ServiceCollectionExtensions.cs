@@ -17,101 +17,169 @@ namespace MicrosoftUpdateFunctions.Services
     {
         public static IServiceCollection AddMicrosoftUpdateServices(this IServiceCollection services, IConfiguration configuration)
         {
-            // Register metadata store with dynamic storage selection
+            RegisterMetadataStore(services, configuration);
+            RegisterContentStore(services, configuration);
+            RegisterConfigurations(services, configuration);
+            RegisterWebServices(services, configuration);
+
+            return services;
+        }
+
+        private static void RegisterMetadataStore(IServiceCollection services, IConfiguration configuration)
+        {
             services.AddSingleton<IMetadataStore>(provider =>
             {
                 var logger = provider.GetRequiredService<ILogger<IMetadataStore>>();
                 var metadataConnectionString = configuration.GetConnectionString("MetadataStorageConnection");
                 var useAzureStorage = bool.Parse(configuration["UseAzureStorage"] ?? "false");
-                
-                logger.LogInformation("🔍 Metadata Store Init: UseAzure={UseAzure}, HasConnectionString={HasConnection}", 
-                    useAzureStorage, !string.IsNullOrEmpty(metadataConnectionString));
-                
+
+                logger.LogInformation(
+                    "Initializing metadata store - UseAzure: {UseAzure}, HasConnection: {HasConnection}",
+                    useAzureStorage,
+                    !string.IsNullOrEmpty(metadataConnectionString));
+
                 if (useAzureStorage && !string.IsNullOrEmpty(metadataConnectionString))
                 {
                     logger.LogInformation("Using Azure Blob Storage for metadata store");
-                    var blobServiceClient = new BlobServiceClient(metadataConnectionString);
-                    var containerName = configuration["MetadataContainerName"] ?? "metadata";
                     
-                    return Microsoft.PackageGraph.Storage.Azure.PackageStore.OpenOrCreate(blobServiceClient, containerName);
-                }
-                else
-                {
-                    var metadataPath = configuration["MetadataStorePath"] ?? "./store";
-                    logger.LogInformation("Using local file system for metadata store: '{MetadataPath}'", metadataPath);
-                    
-                    // Ensure directory exists
-                    if (!Directory.Exists(metadataPath))
+                    try
                     {
-                        Directory.CreateDirectory(metadataPath);
-                    }
-                    
-                    return Microsoft.PackageGraph.Storage.Local.PackageStore.Open(metadataPath);
-                }
-            });
+                        var blobServiceClient = new BlobServiceClient(metadataConnectionString);
+                        var containerName = configuration["MetadataContainerName"] ?? "metadata";
+ 
+                        // Verify connection and create container
+                        var containerClient = blobServiceClient.GetBlobContainerClient(containerName);
+                        var createResponse = containerClient.CreateIfNotExists();
+                        
+                        if (createResponse != null)
+                        {
+                            logger.LogInformation("Created Azure Blob container: {ContainerName}", containerName);
+                        }
+                        else
+                        {
+                            logger.LogInformation("Azure Blob container already exists: {ContainerName}", containerName);
+                        }
+  
+                        logger.LogInformation("Successfully connected to Azure Storage account: {AccountName}", 
+                            blobServiceClient.AccountName);
 
-            // Register content store with dynamic storage selection (optional)
+                        return Microsoft.PackageGraph.Storage.Azure.PackageStore.OpenOrCreate(blobServiceClient, containerName);
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError(ex, "Failed to initialize Azure Blob Storage for metadata store. Connection string: {ConnectionString}", 
+                            metadataConnectionString?.Substring(0, Math.Min(100, metadataConnectionString.Length)));
+                        throw;
+                    }
+                }
+
+                var metadataPath = configuration["MetadataStorePath"] ?? "./store";
+                logger.LogInformation("Using local file system for metadata store: '{MetadataPath}'", metadataPath);
+
+                // Ensure directory exists
+                if (!Directory.Exists(metadataPath))
+                {
+                    Directory.CreateDirectory(metadataPath);
+                    logger.LogInformation("Created metadata directory: {Path}", metadataPath);
+                }
+
+                return Microsoft.PackageGraph.Storage.Local.PackageStore.OpenOrCreate(metadataPath);
+            });
+        }
+
+        private static void RegisterContentStore(IServiceCollection services, IConfiguration configuration)
+        {
             services.AddSingleton<IContentStore?>(provider =>
             {
                 var logger = provider.GetRequiredService<ILogger<IContentStore>>();
                 var contentConnectionString = configuration.GetConnectionString("ContentStorageConnection");
                 var useAzureStorage = bool.Parse(configuration["UseAzureStorage"] ?? "false");
-                
-                logger.LogInformation("🔍 Content Store Init: UseAzure={UseAzure}, HasConnectionString={HasConnection}", 
-                    useAzureStorage, !string.IsNullOrEmpty(contentConnectionString));
-                
+
+                logger.LogInformation(
+                    "Initializing content store - UseAzure: {UseAzure}, HasConnection: {HasConnection}",
+                    useAzureStorage,
+                    !string.IsNullOrEmpty(contentConnectionString));
+
                 if (useAzureStorage && !string.IsNullOrEmpty(contentConnectionString))
                 {
                     logger.LogInformation("Using Azure Blob Storage for content store");
-                    var blobServiceClient = new BlobServiceClient(contentConnectionString);
-                    var containerName = configuration["ContentContainerName"] ?? "content";
-                    
-                    return BlobContentStore.OpenOrCreate(blobServiceClient, containerName);
-                }
-                else
-                {
-                    var contentPath = configuration["ContentStorePath"];
-                    
-                    if (string.IsNullOrEmpty(contentPath))
+        
+                    try
                     {
-                        logger.LogInformation("No content storage configured");
-                        return null;
-                    }
-                    
-                    logger.LogInformation("Using local file system for content store: '{ContentPath}'", contentPath);
-                    
-                    // Ensure directory exists
-                    if (!Directory.Exists(contentPath))
-                    {
-                        Directory.CreateDirectory(contentPath);
-                    }
-                    
-                    return new FileSystemContentStore(contentPath);
-                }
-            });
+                        var blobServiceClient = new BlobServiceClient(contentConnectionString);
+                        var containerName = configuration["ContentContainerName"] ?? "content";
+         
+                        // Verify connection and create container
+                        var containerClient = blobServiceClient.GetBlobContainerClient(containerName);
+                        var createResponse = containerClient.CreateIfNotExists();
+     
+                        if (createResponse != null)
+                        {
+                            logger.LogInformation("Created Azure Blob container: {ContainerName}", containerName);
+                        }
+                        else
+                        {
+                            logger.LogInformation("Azure Blob container already exists: {ContainerName}", containerName);
+                        }
+        
+                        logger.LogInformation("Successfully connected to Azure Storage account: {AccountName}", 
+                            blobServiceClient.AccountName);
 
-            // Register configuration objects
-            services.AddSingleton<Config?>(provider =>
+                        return BlobContentStore.OpenOrCreate(blobServiceClient, containerName);
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError(ex, "Failed to initialize Azure Blob Storage for content store");
+                        throw;
+                    }
+                }
+
+                var contentPath = configuration["ContentStorePath"];
+
+                if (string.IsNullOrEmpty(contentPath))
+                {
+                    logger.LogInformation("Content storage not configured");
+                    return null;
+                }
+
+                logger.LogInformation("Using local file system for content store: '{ContentPath}'", contentPath);
+
+                // Ensure directory exists
+                if (!Directory.Exists(contentPath))
+                {
+                    Directory.CreateDirectory(contentPath);
+                    logger.LogInformation("Created content directory: {Path}", contentPath);
+                }
+
+                return new FileSystemContentStore(contentPath);
+            });
+        }
+
+        private static void RegisterConfigurations(IServiceCollection services, IConfiguration configuration)
+        {
+            services.AddSingleton(provider =>
             {
                 var serviceConfigJson = configuration["ServiceConfigurationJson"];
                 if (!string.IsNullOrEmpty(serviceConfigJson))
                 {
                     return JsonSerializer.Deserialize<Config>(serviceConfigJson);
                 }
-                return null;
+                return null as Config;
             });
 
-            services.AddSingleton<ServerSyncConfigData?>(provider =>
+            services.AddSingleton(provider =>
             {
                 var serviceConfigJson = configuration["ServiceConfigurationJson"];
                 if (!string.IsNullOrEmpty(serviceConfigJson))
                 {
                     return JsonSerializer.Deserialize<ServerSyncConfigData>(serviceConfigJson);
                 }
-                return null;
+                return null as ServerSyncConfigData;
             });
+        }
 
-            // Register web services
+        private static void RegisterWebServices(IServiceCollection services, IConfiguration configuration)
+        {
             services.AddScoped<ClientSyncWebService>(provider =>
             {
                 var service = new ClientSyncWebService();
@@ -124,17 +192,17 @@ namespace MicrosoftUpdateFunctions.Services
                 try
                 {
                     service.SetPackageStore(metadataStore);
-                    
+
                     if (config != null)
                     {
                         service.SetServiceConfiguration(config);
                         logger.LogInformation("Client sync service configuration loaded");
                     }
-                    
+
                     if (contentStore != null && !string.IsNullOrEmpty(contentRoot))
                     {
                         service.SetContentURLBase(contentRoot);
-                        logger.LogInformation($"Content URL base set to: {contentRoot}");
+                        logger.LogInformation("Content URL base set to: {ContentRoot}", contentRoot);
                     }
                 }
                 catch (Exception ex)
@@ -157,13 +225,15 @@ namespace MicrosoftUpdateFunctions.Services
                 try
                 {
                     service.SetPackageStore(metadataStore);
-                    
+
                     if (config != null)
                     {
                         // Set catalog-only mode based on content store availability
                         config.CatalogOnlySync = contentStore == null;
                         service.SetServerConfiguration(config);
-                        logger.LogInformation($"Server sync service configuration loaded (CatalogOnly: {config.CatalogOnlySync})");
+                        logger.LogInformation(
+                            "Server sync service configuration loaded (CatalogOnly: {CatalogOnly})",
+                            config.CatalogOnlySync);
                     }
                 }
                 catch (Exception ex)
@@ -175,12 +245,8 @@ namespace MicrosoftUpdateFunctions.Services
                 return service;
             });
 
-            // Register other web services
             services.AddScoped<SimpleAuthenticationWebService>();
             services.AddScoped<AuthenticationWebService>();
-            // Note: ReportingWebService has conflicts - register separately if needed
-
-            return services;
         }
     }
 }

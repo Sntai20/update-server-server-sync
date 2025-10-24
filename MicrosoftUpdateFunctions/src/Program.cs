@@ -8,103 +8,123 @@ using MicrosoftUpdateFunctions.Services;
 using System.Text.Json;
 
 var hostBuilder = new HostBuilder()
-    .ConfigureFunctionsWebApplication()
+  .ConfigureFunctionsWebApplication()
     .ConfigureServices((context, services) =>
     {
-        // 🔍 ADD DIAGNOSTIC LOGGING FIRST - Before anything can fail
-        var tempLogger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger("Startup");
-        
-        tempLogger.LogInformation("=== Storage Configuration Diagnostics ===");
-        tempLogger.LogInformation("UseAzureStorage: {UseAzureStorage}", context.Configuration["UseAzureStorage"]);
-        tempLogger.LogInformation("MetadataStorePath: {MetadataStorePath}", context.Configuration["MetadataStorePath"]);
-        tempLogger.LogInformation("ContentStorePath: {ContentStorePath}", context.Configuration["ContentStorePath"]);
-        tempLogger.LogInformation("MetadataStorageConnection: {HasConnection}", 
-            !string.IsNullOrEmpty(context.Configuration.GetConnectionString("MetadataStorageConnection")));
-        tempLogger.LogInformation("ContentStorageConnection: {HasConnection}", 
-            !string.IsNullOrEmpty(context.Configuration.GetConnectionString("ContentStorageConnection")));
-        tempLogger.LogInformation("MetadataContainerName: {ContainerName}", context.Configuration["MetadataContainerName"]);
-        tempLogger.LogInformation("ContentContainerName: {ContainerName}", context.Configuration["ContentContainerName"]);
-        
-        // 🔍 ADD THIS: Show all connection strings
-        tempLogger.LogInformation("=== All Connection Strings ===");
-        foreach (var connStr in context.Configuration.GetSection("ConnectionStrings").GetChildren())
-        {
-            var value = connStr.Value ?? "";
-            tempLogger.LogInformation("  {Key} = {Value}", connStr.Key, value.Substring(0, Math.Min(50, value.Length)));
-        }
-        
-        // Create directory if using file system and it doesn't exist
-        var useAzureStorage = bool.Parse(context.Configuration["UseAzureStorage"] ?? "false");
-        if (!useAzureStorage)
-        {
-            var metadataPath = context.Configuration["MetadataStorePath"] ?? "./store";
-            var contentPath = context.Configuration["ContentStorePath"] ?? "./content";
-            
-            if (!Directory.Exists(metadataPath))
-            {
-                tempLogger.LogInformation("Creating metadata directory: {Path}", metadataPath);
-                Directory.CreateDirectory(metadataPath);
-            }
-            
-            if (!string.IsNullOrEmpty(contentPath) && !Directory.Exists(contentPath))
-            {
-                tempLogger.LogInformation("Creating content directory: {Path}", contentPath);
-                Directory.CreateDirectory(contentPath);
-            }
-        }
-
-        // Bind configuration from ServiceConfigurationJson environment variable
-        var configJson = context.Configuration["ServiceConfigurationJson"];
-        if (!string.IsNullOrEmpty(configJson))
-        {
-            var config = JsonSerializer.Deserialize<ServiceConfiguration>(configJson);
-            services.AddSingleton(config ?? new ServiceConfiguration());
-        }
-
-        // Or bind from individual settings
-        services.Configure<ServiceConfiguration>(
-            context.Configuration.GetSection("ServiceConfiguration"));
-
-        // Register all Microsoft Update services using the extension method
-        services.AddMicrosoftUpdateServices(context.Configuration);
-
-        // Register the service layer
-        services.AddScoped<ISyncService, SyncService>();
-        services.AddScoped<IQueryService, QueryService>();
-        services.AddScoped<IHealthService, HealthService>();
+        ConfigureLogging(context);
+        ConfigureDirectories(context);
+        ConfigureServices(services, context.Configuration);
     });
 
 var host = hostBuilder.Build();
 
-// Force eager initialization of storage services to create containers
-using (var scope = host.Services.CreateScope())
+// Initialize storage services eagerly to create containers/directories
+await InitializeStorageAsync(host);
+
+await host.RunAsync();
+
+static void ConfigureLogging(HostBuilderContext context)
 {
+    var tempLogger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger("Startup");
+
+    tempLogger.LogInformation("=== Storage Configuration ===");
+    tempLogger.LogInformation("UseAzureStorage: {UseAzureStorage}", context.Configuration["UseAzureStorage"]);
+    tempLogger.LogInformation("MetadataStorePath: {MetadataStorePath}", context.Configuration["MetadataStorePath"]);
+    tempLogger.LogInformation("ContentStorePath: {ContentStorePath}", context.Configuration["ContentStorePath"]);
+    tempLogger.LogInformation("MetadataContainerName: {ContainerName}", context.Configuration["MetadataContainerName"]);
+    tempLogger.LogInformation("ContentContainerName: {ContainerName}", context.Configuration["ContentContainerName"]);
+
+    tempLogger.LogInformation("=== Connection Strings ===");
+    foreach (var connStr in context.Configuration.GetSection("ConnectionStrings").GetChildren())
+    {
+        var value = connStr.Value ?? "";
+        var displayValue = value.Length > 50 ? value.Substring(0, 50) + "..." : value;
+        tempLogger.LogInformation("  {Key} = {Value}", connStr.Key, displayValue);
+    }
+}
+
+static void ConfigureDirectories(HostBuilderContext context)
+{
+    var useAzureStorage = bool.Parse(context.Configuration["UseAzureStorage"] ?? "false");
+    if (useAzureStorage)
+    {
+        return; // No local directories needed for Azure Storage
+    }
+
+    var tempLogger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger("Startup");
+    var metadataPath = context.Configuration["MetadataStorePath"] ?? "./store";
+    var contentPath = context.Configuration["ContentStorePath"];
+
+    if (!Directory.Exists(metadataPath))
+    {
+        tempLogger.LogInformation("Creating metadata directory: {Path}", metadataPath);
+        Directory.CreateDirectory(metadataPath);
+    }
+
+    if (!string.IsNullOrEmpty(contentPath) && !Directory.Exists(contentPath))
+    {
+        tempLogger.LogInformation("Creating content directory: {Path}", contentPath);
+        Directory.CreateDirectory(contentPath);
+    }
+}
+
+static void ConfigureServices(IServiceCollection services, IConfiguration configuration)
+{
+    // Bind service configuration from JSON
+    var configJson = configuration["ServiceConfigurationJson"];
+    if (!string.IsNullOrEmpty(configJson))
+    {
+        var config = JsonSerializer.Deserialize<ServiceConfiguration>(configJson);
+        if (config != null)
+        {
+            services.AddSingleton(config);
+        }
+    }
+
+    // Configure from settings
+    services.Configure<ServiceConfiguration>(configuration.GetSection("ServiceConfiguration"));
+
+    // Register Microsoft Update services
+    services.AddMicrosoftUpdateServices(configuration);
+
+    // Register application services
+    services.AddScoped<ISyncService, SyncService>();
+    services.AddScoped<IQueryService, QueryService>();
+    services.AddScoped<IHealthService, HealthService>();
+}
+
+static async Task InitializeStorageAsync(IHost host)
+{
+    using var scope = host.Services.CreateScope();
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
 
     try
     {
-        // This will trigger container creation in Azure Storage
+        // Initialize metadata store (creates Azure containers if needed)
         var metadataStore = scope.ServiceProvider.GetRequiredService<IMetadataStore>();
-        logger.LogInformation("✅ Metadata store initialized successfully");
+        logger.LogInformation("Metadata store initialized successfully");
 
+        // Initialize content store if configured
         var contentStore = scope.ServiceProvider.GetService<IContentStore>();
         if (contentStore != null)
         {
-            logger.LogInformation("✅ Content store initialized successfully");
+            logger.LogInformation("Content store initialized successfully");
         }
         else
         {
-            logger.LogInformation("ℹ️ Content store not configured");
+            logger.LogInformation("Content store not configured (running in catalog-only mode)");
         }
     }
     catch (DirectoryNotFoundException ex)
     {
-        logger.LogError(ex, "❌ Directory not found - likely using file system storage but directory doesn't exist: {Path}", ex.Message);
+        logger.LogError(ex, "Directory not found: {Message}", ex.Message);
+        throw;
     }
     catch (Exception ex)
     {
-        logger.LogError(ex, "❌ Failed to initialize storage services: {Message}", ex.Message);
+        logger.LogError(ex, "Failed to initialize storage services: {Message}", ex.Message);
+        throw;
     }
-}
 
-host.Run();
+    await Task.CompletedTask;
+}
