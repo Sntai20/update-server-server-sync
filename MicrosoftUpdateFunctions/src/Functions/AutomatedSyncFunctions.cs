@@ -10,7 +10,6 @@ using MicrosoftUpdateFunctions.Services;
 using System.Net;
 using System.Text.Json;
 using Microsoft.PackageGraph.Storage;
-using System.ComponentModel.DataAnnotations;
 
 /// <summary>
 /// Azure Functions for automated synchronization operations with multiple trigger types.
@@ -55,7 +54,7 @@ public class AutomatedSyncFunctions
             }
             else
             {
-                this.logger.LogWarning("System health issues detected: {Issues}", 
+                this.logger.LogWarning("System health issues detected: {Issues}",
                     string.Join(", ", health.Issues?.Select(i => i.Message) ?? Array.Empty<string>()));
             }
 
@@ -187,14 +186,14 @@ public class AutomatedSyncFunctions
     /// </summary>
     [Function("ProcessPrioritySyncRequest")]
     public async Task ProcessPrioritySyncRequest(
-        [ServiceBusTrigger("priority-sync-requests", Connection = "ServiceBusConnection")] 
+        [ServiceBusTrigger("priority-sync-requests", Connection = "ServiceBusConnection")]
         string queueItem)
     {
         this.logger.LogInformation("Processing priority sync request: {QueueItem}", queueItem);
 
         try
         {
-            var request = JsonSerializer.Deserialize<PrioritySyncRequest>(queueItem);
+            var request = JsonSerializer.Deserialize<Services.PrioritySyncRequest>(queueItem);
             if (request == null)
             {
                 this.logger.LogError("Invalid priority sync request format");
@@ -203,18 +202,17 @@ public class AutomatedSyncFunctions
 
             // Create filter based on request
             var filter = this.syncService.CreateCustomFilter(
-                request.ProductFilters, 
+                request.ProductFilters,
                 request.ClassificationFilters);
 
             // Perform sync based on priority
-            switch (request.Priority.ToLower())
+            switch (request.Priority)
             {
-                case "critical":
-                case "high":
+                case 1: // Critical
+                case 2: // High
                     await this.syncService.SyncUpdatesAsync(filter);
                     break;
-                case "normal":
-                default:
+                default: // Normal
                     // Include categories for normal priority
                     await this.syncService.SyncCategoriesAsync();
                     await this.syncService.SyncUpdatesAsync(filter);
@@ -247,14 +245,14 @@ public class AutomatedSyncFunctions
     /// </summary>
     [Function("ProcessStandardSyncRequest")]
     public async Task ProcessStandardSyncRequest(
-        [ServiceBusTrigger("standard-sync-requests", Connection = "ServiceBusConnection")] 
+        [ServiceBusTrigger("standard-sync-requests", Connection = "ServiceBusConnection")]
         string queueItem)
     {
         this.logger.LogInformation("Processing standard sync request: {QueueItem}", queueItem);
 
         try
         {
-            var request = JsonSerializer.Deserialize<StandardSyncRequest>(queueItem);
+            var request = JsonSerializer.Deserialize<Services.StandardSyncRequest>(queueItem);
             if (request == null)
             {
                 this.logger.LogError("Invalid standard sync request format");
@@ -270,7 +268,7 @@ public class AutomatedSyncFunctions
             if (request.SyncUpdates)
             {
                 var filter = this.syncService.CreateCustomFilter(
-                    request.ProductFilters, 
+                    request.ProductFilters,
                     request.ClassificationFilters);
                 await this.syncService.SyncUpdatesAsync(filter);
             }
@@ -300,7 +298,7 @@ public class AutomatedSyncFunctions
     /// </summary>
     [Function("ProcessContentSyncRequest")]
     public async Task ProcessContentSyncRequest(
-        [ServiceBusTrigger("content-sync-requests", Connection = "ServiceBusConnection")] 
+        [ServiceBusTrigger("content-sync-requests", Connection = "ServiceBusConnection")]
         string queueItem)
     {
         this.logger.LogInformation("Processing content sync request: {QueueItem}", queueItem);
@@ -313,7 +311,7 @@ public class AutomatedSyncFunctions
 
         try
         {
-            var request = JsonSerializer.Deserialize<ContentSyncQueueRequest>(queueItem);
+            var request = JsonSerializer.Deserialize<Services.ContentSyncQueueRequest>(queueItem);
             if (request == null)
             {
                 this.logger.LogError("Invalid content sync request format");
@@ -351,17 +349,17 @@ public class AutomatedSyncFunctions
         try
         {
             var requestBody = await new StreamReader(req.Body).ReadToEndAsync();
-            var request = JsonSerializer.Deserialize<EmergencySyncRequest>(requestBody) ?? new EmergencySyncRequest();
+            var request = JsonSerializer.Deserialize<Services.EmergencySyncRequest>(requestBody) ?? new Services.EmergencySyncRequest();
 
             this.logger.LogWarning("Emergency sync reason: {Reason}", request.Reason);
 
-            var result = new SyncResult { StartTime = DateTime.UtcNow };
+            var result = new Services.SyncResult { StartTime = DateTime.UtcNow };
 
             // Perform emergency sync
             if (request.SpecificUpdateIds?.Any() == true)
             {
                 // Handle specific update IDs if the service supports it
-                this.logger.LogInformation("Emergency sync for specific updates: {UpdateIds}", 
+                this.logger.LogInformation("Emergency sync for specific updates: {UpdateIds}",
                     string.Join(", ", request.SpecificUpdateIds));
             }
 
@@ -385,78 +383,4 @@ public class AutomatedSyncFunctions
             return errorResponse;
         }
     }
-}
-
-// Move these models to a shared Models namespace/folder
-public class PrioritySyncRequest
-{
-    public string SyncType { get; set; } = string.Empty;
-    public string? UpstreamEndpoint { get; set; }
-    public List<string>? ProductFilters { get; set; }
-    public List<string>? ClassificationFilters { get; set; }
-    public int? MaxItems { get; set; }
-    public string? Reason { get; set; }
-
-    public StandardSyncRequest ToStandardRequest()
-    {
-        return new StandardSyncRequest
-        {
-            SyncType = this.SyncType,
-            UpstreamEndpoint = this.UpstreamEndpoint,
-            ProductFilters = this.ProductFilters,
-            ClassificationFilters = this.ClassificationFilters,
-            MaxItems = this.MaxItems
-        };
-    }
-}
-
-public class StandardSyncRequest
-{
-    public string SyncType { get; set; } = string.Empty;
-    public string? UpstreamEndpoint { get; set; }
-    public List<string>? ProductFilters { get; set; }
-    public List<string>? ClassificationFilters { get; set; }
-    public int? MaxItems { get; set; }
-    public string? RequestId { get; set; }
-}
-
-public class ContentSyncQueueRequest
-{
-    public string ContentStorePath { get; set; } = string.Empty;
-    public string ContentStoreType { get; set; } = "local";
-    public string? ContentStoreConnectionString { get; set; }
-    public List<string>? ProductFilters { get; set; }
-    public List<string>? ClassificationFilters { get; set; }
-    public bool SkipSuperseded { get; set; } = true;
-    public int? MaxFiles { get; set; }
-}
-
-public class EmergencySyncRequest
-{
-    [Required]
-    public string SyncType { get; set; } = string.Empty;
-    public string? UpstreamEndpoint { get; set; }
-    public List<string>? ProductFilters { get; set; }
-    public List<string>? ClassificationFilters { get; set; }
-    public string Reason { get; set; } = string.Empty;
-    public bool IncludeContent { get; set; } = false;
-}
-
-public class QueuedSyncRequest : StandardSyncRequest
-{
-    public string Priority { get; set; } = "normal";
-    public DateTime? ScheduledTime { get; set; }
-    public string? CallbackUrl { get; set; }
-}
-
-public class AutomationStatus
-{
-    public bool MetadataStoreConfigured { get; set; }
-    public bool ContentStoreConfigured { get; set; }
-    public DateTime? LastDailySync { get; set; }
-    public DateTime? LastWeeklySync { get; set; }
-    public DateTime? NextScheduledSync { get; set; }
-    public Dictionary<string, int> QueueDepths { get; set; } = new();
-    public string SystemHealth { get; set; } = string.Empty;
-    public DateTime Timestamp { get; set; }
 }

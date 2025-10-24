@@ -26,7 +26,7 @@ public class QueryService : IQueryService
     public async Task<MetadataQueryResult> QueryMetadataAsync(MetadataQueryRequest request)
     {
         this.logger.LogInformation("Executing metadata query with {MaxResults} max results", request.MaxResults);
-        
+
         var startTime = DateTime.UtcNow;
         var result = new MetadataQueryResult
         {
@@ -55,26 +55,44 @@ public class QueryService : IQueryService
 
             var filteredPackages = filter.Apply(this.metadataStore);
             result.TotalMatches = filteredPackages.Count();
-            
+
+            // Get category lookup for resolving classification and product names
+            var categoriesLookup = this.metadataStore
+            .OfType<MicrosoftUpdatePackage>()
+                .Where(p => p is ClassificationCategory || p is ProductCategory)
+                  .ToLookup(p => new Guid(p.Id.OpenId));
+
             foreach (var package in filteredPackages.Take(request.MaxResults))
             {
                 var packageInfo = new PackageInfo
                 {
                     Id = new Guid(package.Id.OpenId),
                     Title = package.Title,
-                    PackageType = package.GetType().Name
+                    PackageType = package.GetType().Name,
+                    Description = package.Description,
+                    Size = package.Files?.Sum(f => (long)f.Size) ?? 0
                 };
 
-                if (package is MicrosoftUpdatePackage updatePackage)
+                // Get categories for this package
+                var categories = (package as MicrosoftUpdatePackage)?.GetCategories(categoriesLookup);
+                if (categories != null)
                 {
-                    packageInfo.Description = updatePackage.Description;
-                    packageInfo.Size = updatePackage.Files?.Sum(f => (long)f.Size) ?? 0;
-                    packageInfo.Classification = updatePackage.Classification?.Title;
-                    packageInfo.Product = updatePackage.ProductNames?.FirstOrDefault();
-                    packageInfo.KbArticle = updatePackage.KBArticleId;
-                    packageInfo.IsSuperseded = updatePackage.IsSuperseded;
-                    packageInfo.CreationDate = updatePackage.CreationDate;
+                    var classification = categories.OfType<ClassificationCategory>().FirstOrDefault();
+                    var product = categories.OfType<ProductCategory>().FirstOrDefault();
+
+                    packageInfo.Classification = classification?.Title;
+                    packageInfo.Product = product?.Title;
                 }
+
+                // Get KB Article and superseded status if this is a SoftwareUpdate
+                if (package is SoftwareUpdate softwareUpdate)
+                {
+                    packageInfo.KbArticle = softwareUpdate.KBArticleId;
+                    packageInfo.IsSuperseded = softwareUpdate.IsSupersededBy != null && softwareUpdate.IsSupersededBy.Any();
+                }
+
+                // CreationDate is not available in the new API, using current time as placeholder
+                packageInfo.CreationDate = DateTime.UtcNow;
 
                 result.Packages.Add(packageInfo);
             }
@@ -89,10 +107,28 @@ public class QueryService : IQueryService
         return result;
     }
 
+    private int? ParseOperatingSystemToInt(string? operatingSystem)
+    {
+        // Try to parse OS string to int, or return null
+        if (string.IsNullOrEmpty(operatingSystem))
+        {
+            return null;
+        }
+
+        // Simple int parse - the OS might be represented as a numeric value
+        if (int.TryParse(operatingSystem, out int osInt))
+        {
+            return osInt;
+        }
+
+        // Could add more sophisticated parsing logic here if needed
+        return null;
+    }
+
     public async Task<DetailedStoreStatus> GetStoreStatusAsync()
     {
         this.logger.LogInformation("Getting detailed store status");
-        
+
         var packageCount = this.metadataStore.Cast<IPackage>().Count();
         var updateCount = this.metadataStore.OfType<MicrosoftUpdatePackage>().Count();
         var driverCount = this.metadataStore.OfType<DriverUpdate>().Count();
@@ -116,13 +152,13 @@ public class QueryService : IQueryService
     public async Task<DriverMatchResult> MatchDriversAsync(DriverMatchRequest request)
     {
         this.logger.LogInformation("Matching drivers for {HardwareIdCount} hardware IDs", request.HardwareIds.Count);
-        
+
         try
         {
             var driverMatching = DriverUpdateMatching.FromPackageSource(this.metadataStore);
             var computerHardwareIds = new List<Guid>(); // Could be parsed from request if needed
             var prerequisites = new List<Guid>(); // Could be parsed from request if needed
-            
+
             var driverMatch = driverMatching.MatchDriver(request.HardwareIds, computerHardwareIds, prerequisites);
 
             if (driverMatch != null)
@@ -130,14 +166,14 @@ public class QueryService : IQueryService
                 return new DriverMatchResult
                 {
                     MatchFound = true,
-                    DriverId = driverMatch.Driver.Id.OpenId,
+                    DriverId = new Guid(driverMatch.Driver.Id.OpenId),
                     DriverTitle = driverMatch.Driver.Title,
                     MatchedHardwareId = driverMatch.MatchedHardwareId,
                     DriverVersion = driverMatch.MatchedVersion?.VersionString,
                     DriverDate = driverMatch.MatchedVersion?.Date,
                     MatchedComputerHardwareId = driverMatch.MatchedComputerHardwareId,
                     FeatureScore = driverMatch.MatchedFeatureScore?.Score,
-                    OperatingSystem = driverMatch.MatchedFeatureScore?.OperatingSystem
+                    OperatingSystem = ParseOperatingSystemToInt(driverMatch.MatchedFeatureScore?.OperatingSystem)
                 };
             }
 
@@ -153,18 +189,18 @@ public class QueryService : IQueryService
     public async Task<AvailableFilters> GetAvailableFiltersAsync()
     {
         this.logger.LogInformation("Getting available filter options");
-        
+
         var products = this.metadataStore.OfType<ProductCategory>()
-            .Select(p => p.Title)
+           .Select(p => p.Title)
             .Where(title => !string.IsNullOrEmpty(title))
-            .Distinct()
-            .ToList();
+                  .Distinct()
+                .ToList();
 
         var classifications = this.metadataStore.OfType<ClassificationCategory>()
-            .Select(c => c.Title)
+        .Select(c => c.Title)
             .Where(title => !string.IsNullOrEmpty(title))
-            .Distinct()
-            .ToList();
+           .Distinct()
+         .ToList();
 
         return new AvailableFilters
         {
@@ -177,7 +213,7 @@ public class QueryService : IQueryService
     public async Task<MetadataExportResult> ExportMetadataAsync(MetadataExportRequest request)
     {
         this.logger.LogInformation("Exporting metadata in {Format} format", request.Format);
-        
+
         var startTime = DateTime.UtcNow;
         var result = new MetadataExportResult
         {
@@ -206,7 +242,7 @@ public class QueryService : IQueryService
 
             var filteredPackages = filter.Apply(this.metadataStore);
             var packages = filteredPackages.ToList();
-            
+
             result.ItemsExported = packages.Count;
 
             // Convert to export format based on request.Format
@@ -220,12 +256,12 @@ public class QueryService : IQueryService
                         Type = p.GetType().Name
                     }), new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
                     break;
-                    
+
                 case "csv":
-                    result.ExportData = "Id,Title,Type\n" + 
-                        string.Join("\n", packages.Select(p => $"{p.Id.OpenId},{p.Title},{p.GetType().Name}"));
+                    result.ExportData = "Id,Title,Type\n" +
+                   string.Join("\n", packages.Select(p => $"{p.Id.OpenId},{p.Title},{p.GetType().Name}"));
                     break;
-                    
+
                 default:
                     result.Success = false;
                     result.ErrorMessage = $"Unsupported export format: {request.Format}";
@@ -254,23 +290,39 @@ public class QueryService : IQueryService
             Packages = new List<PackageInfo>()
         };
 
+        // Get category lookup
+        var categoriesLookup = this.metadataStore
+    .OfType<MicrosoftUpdatePackage>()
+  .Where(p => p is ClassificationCategory || p is ProductCategory)
+            .ToLookup(p => new Guid(p.Id.OpenId));
+
         foreach (var package in filteredPackages.Take(100)) // Limit to first 100 for performance
         {
             var packageInfo = new PackageInfo
             {
                 Id = new Guid(package.Id.OpenId),
                 Title = package.Title,
-                PackageType = package.GetType().Name
+                PackageType = package.GetType().Name,
+                Description = package.Description,
+                Size = package.Files?.Sum(f => (long)f.Size) ?? 0
             };
 
-            if (package is MicrosoftUpdatePackage updatePackage)
+            // Get categories for this package
+            var categories = (package as MicrosoftUpdatePackage)?.GetCategories(categoriesLookup);
+            if (categories != null)
             {
-                packageInfo.Description = updatePackage.Description;
-                packageInfo.Size = updatePackage.Files?.Sum(f => (long)f.Size) ?? 0;
-                packageInfo.Classification = updatePackage.Classification?.Title;
-                packageInfo.Product = updatePackage.ProductNames?.FirstOrDefault();
-                packageInfo.KbArticle = updatePackage.KBArticleId;
-                packageInfo.IsSuperseded = updatePackage.IsSuperseded;
+                var classification = categories.OfType<ClassificationCategory>().FirstOrDefault();
+                var product = categories.OfType<ProductCategory>().FirstOrDefault();
+
+                packageInfo.Classification = classification?.Title;
+                packageInfo.Product = product?.Title;
+            }
+
+            // Get KB Article and superseded status if this is a SoftwareUpdate
+            if (package is SoftwareUpdate softwareUpdate)
+            {
+                packageInfo.KbArticle = softwareUpdate.KBArticleId;
+                packageInfo.IsSuperseded = softwareUpdate.IsSupersededBy != null && softwareUpdate.IsSupersededBy.Any();
             }
 
             result.Packages.Add(packageInfo);
@@ -289,14 +341,14 @@ public class QueryService : IQueryService
             return new DriverMatchResult
             {
                 MatchFound = true,
-                DriverId = driverMatch.Driver.Id.OpenId,
+                DriverId = new Guid(driverMatch.Driver.Id.OpenId),
                 DriverTitle = driverMatch.Driver.Title,
                 MatchedHardwareId = driverMatch.MatchedHardwareId,
                 DriverVersion = driverMatch.MatchedVersion?.VersionString,
                 DriverDate = driverMatch.MatchedVersion?.Date,
                 MatchedComputerHardwareId = driverMatch.MatchedComputerHardwareId,
                 FeatureScore = driverMatch.MatchedFeatureScore?.Score,
-                OperatingSystem = driverMatch.MatchedFeatureScore?.OperatingSystem
+                OperatingSystem = ParseOperatingSystemToInt(driverMatch.MatchedFeatureScore?.OperatingSystem)
             };
         }
 
@@ -356,7 +408,7 @@ public class QueryService : IQueryService
 
             // Parse classification and product filters
             var categoryGuids = new List<Guid>();
-            
+
             if (request.ClassificationsFilter != null)
             {
                 foreach (var classification in request.ClassificationsFilter)

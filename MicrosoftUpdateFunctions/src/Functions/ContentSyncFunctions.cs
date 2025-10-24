@@ -53,12 +53,12 @@ public class ContentSyncFunctions
         try
         {
             var requestBody = await new StreamReader(req.Body).ReadToEndAsync();
-            var request = JsonSerializer.Deserialize<SyncContentRequest>(requestBody) ?? new SyncContentRequest();
+            var request = JsonSerializer.Deserialize<Services.SyncContentRequest>(requestBody) ?? new Services.SyncContentRequest();
 
             // Create service metadata filter
             var filter = request.ToServiceFilter();
 
-            var result = new SyncResult { StartTime = DateTime.UtcNow };
+            var result = new Services.SyncResult { StartTime = DateTime.UtcNow };
 
             // Perform content synchronization using service layer
             await this.syncService.SyncContentAsync(filter, this.contentStore);
@@ -160,27 +160,27 @@ public class ContentSyncRequest
 {
     [Required]
     public string ContentStorePath { get; set; } = string.Empty;
-    
+
     public string ContentStoreType { get; set; } = "local";
-    
+
     public string? ContentStoreConnectionString { get; set; }
-    
+
     public IEnumerable<string>? ProductsFilter { get; set; }
-    
+
     public IEnumerable<string>? ClassificationsFilter { get; set; }
-    
+
     public IEnumerable<string>? IdFilter { get; set; }
-    
+
     public string? TitleFilter { get; set; }
-    
+
     public string? HardwareIdFilter { get; set; }
-    
+
     public string? ComputerHardwareIdFilter { get; set; }
-    
+
     public IEnumerable<string>? KbArticleFilter { get; set; }
-    
+
     public bool SkipSuperseded { get; set; } = false;
-    
+
     public int FirstX { get; set; } = 0;
 }
 
