@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/MicrosoftUpdateServices/">
+    <Project Path="src/microsoft-update-endpoints/microsoft-update-endpoints.csproj" />
+    <Project Path="src/microsoft-update-partition/microsoft-update-partition.csproj" />
+    <Project Path="src/microsoft-update-upstream-package-source/microsoft-update-upstream-source.csproj" />
+    <Project Path="src/microsoft-update-webservices/microsoft-update-webservices.csproj" />
+  </Folder>
+  <Project Path="MicrosoftUpdateFunctions.AppHost/MicrosoftUpdateFunctions.AppHost.csproj" />
+  <Project Path="MicrosoftUpdateFunctions/src/MicrosoftUpdateFunctions.csproj" />
+  <Project Path="MicrosoftUpdateFunctions/tests/MicrosoftUpdateFunctions.Tests/MicrosoftUpdateFunctions.Tests.csproj" />
+</Solution>
