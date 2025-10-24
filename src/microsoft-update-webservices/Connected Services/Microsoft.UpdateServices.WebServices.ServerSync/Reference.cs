@@ -11,6 +11,7 @@ namespace Microsoft.UpdateServices.WebServices.ServerSync
 {
 #pragma warning disable 1591
     using System.Runtime.Serialization;
+    using System.ServiceModel;
 
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.CodeDom.Compiler.GeneratedCodeAttribute("dotnet-svcutil", "1.0.0.1")]
