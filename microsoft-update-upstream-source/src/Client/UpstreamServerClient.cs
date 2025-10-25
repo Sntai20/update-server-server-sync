@@ -1,17 +1,17 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using Microsoft.UpdateServices.WebServices.ServerSync;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Collections.Concurrent;
-using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
-using Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Content;
-
 namespace Microsoft.PackageGraph.MicrosoftUpdate.Source
 {
+    using Microsoft.UpdateServices.WebServices.ServerSync;
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Threading.Tasks;
+    using System.Collections.Concurrent;
+    using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
+    using Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Content;
+
     /// <summary>
     /// <para>
     /// Retrieves update metadata for expired updates from an upstream update server.

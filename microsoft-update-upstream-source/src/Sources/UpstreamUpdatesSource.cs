@@ -1,17 +1,17 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
-using Microsoft.PackageGraph.ObjectModel;
-using Microsoft.PackageGraph.Storage;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading;
-
 namespace Microsoft.PackageGraph.MicrosoftUpdate.Source
 {
+    using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
+    using Microsoft.PackageGraph.ObjectModel;
+    using Microsoft.PackageGraph.Storage;
+    using System;
+    using System.Collections.Generic;
+    using System.IO;
+    using System.Linq;
+    using System.Threading;
+
     /// <summary>
     /// Retrieves updates from the Microsoft Update catalog or a WSUS upstream server.
     /// </summary>

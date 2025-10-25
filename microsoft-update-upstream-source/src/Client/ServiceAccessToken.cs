@@ -1,13 +1,13 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using Microsoft.UpdateServices.WebServices.ServerSync;
-using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-
 namespace Microsoft.PackageGraph.MicrosoftUpdate.Source
 {
+    using Microsoft.UpdateServices.WebServices.ServerSync;
+    using Newtonsoft.Json;
+    using System;
+    using System.Collections.Generic;
+
     /// <summary>
     /// Grants access to an upstream update server. Requried for most requests to an update server.
     /// </summary>

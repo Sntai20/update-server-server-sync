@@ -1,18 +1,18 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using Microsoft.PackageGraph.MicrosoftUpdate.Compression;
-using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
-using Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Content;
-using Microsoft.UpdateServices.WebServices.ServerSync;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.IO.Compression;
-using System.Text;
-
 namespace Microsoft.PackageGraph.MicrosoftUpdate.Source
 {
+    using Microsoft.PackageGraph.MicrosoftUpdate.Compression;
+    using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
+    using Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Content;
+    using Microsoft.UpdateServices.WebServices.ServerSync;
+    using System;
+    using System.Collections.Generic;
+    using System.IO;
+    using System.IO.Compression;
+    using System.Text;
+
     abstract class InMemoryUpdateFactory
     {
         internal static MicrosoftUpdatePackage FromServerSyncData(ServerSyncUpdateData serverSyncData, Dictionary<string, UpdateFileUrl> filesCollection)

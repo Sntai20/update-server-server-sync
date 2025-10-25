@@ -1,18 +1,18 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
-using Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Prerequisites;
-using Microsoft.PackageGraph.ObjectModel;
-using Microsoft.PackageGraph.Storage;
-using Microsoft.UpdateServices.WebServices.ServerSync;
-using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace Microsoft.PackageGraph.MicrosoftUpdate.Source
 {
+    using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
+    using Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Prerequisites;
+    using Microsoft.PackageGraph.ObjectModel;
+    using Microsoft.PackageGraph.Storage;
+    using Microsoft.UpdateServices.WebServices.ServerSync;
+    using Newtonsoft.Json;
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+
     /// <summary>
     /// Implements a filter for updates based by product and/or classification.
     /// <para>

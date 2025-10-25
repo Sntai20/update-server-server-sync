@@ -1,13 +1,13 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using Microsoft.PackageGraph.ObjectModel;
-using Microsoft.PackageGraph.Storage;
-using System.Collections;
-using System.Collections.Generic;
-
 namespace Microsoft.UpdateServices.MicrosoftUpdate.ServerServerSync.Sources
 {
+    using Microsoft.PackageGraph.ObjectModel;
+    using Microsoft.PackageGraph.Storage;
+    using System.Collections;
+    using System.Collections.Generic;
+
     class PackagesEnumerator : IEnumerator<IPackage>
     {
         readonly IMetadataStore _Source;

@@ -1,10 +1,10 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using System;
-
 namespace Microsoft.PackageGraph.MicrosoftUpdate.Source
 {
+    using System;
+
     /// <summary>
     /// The MetadataQueryStage enumeration represents, for reporting purposes, the possible execution states of an update metadata query.
     /// </summary>

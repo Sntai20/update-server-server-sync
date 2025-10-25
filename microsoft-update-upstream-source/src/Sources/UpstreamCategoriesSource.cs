@@ -1,17 +1,17 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
-using Microsoft.PackageGraph.ObjectModel;
-using Microsoft.PackageGraph.Storage;
-
 namespace Microsoft.PackageGraph.MicrosoftUpdate.Source
 {
+    using System;
+    using System.Collections.Generic;
+    using System.IO;
+    using System.Linq;
+    using System.Threading;
+    using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
+    using Microsoft.PackageGraph.ObjectModel;
+    using Microsoft.PackageGraph.Storage;
+
     /// <summary>
     /// Retrieves all available categories from the Microsoft Update catalog.
     /// <para>
