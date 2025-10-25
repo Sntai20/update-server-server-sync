@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using AppHost;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
@@ -141,9 +142,11 @@ if (!useAzureStorage && builder.Environment.IsDevelopment())
 
     // Add health check for metadata store
     builder.Services.AddHealthChecks()
-  .AddCheck("metadata-store", () =>
-    StorageSetupHelper.ValidateLocalStorage(metadataStorePath)
-       ? HealthCheckResult.Healthy("Metadata store directory exists")
+        .AddCheck(
+        "metadata-store",
+        () =>
+        StorageSetupHelper.ValidateLocalStorage(metadataStorePath)
+        ? HealthCheckResult.Healthy("Metadata store directory exists")
     : HealthCheckResult.Unhealthy("Metadata store path not found"));
 }
 

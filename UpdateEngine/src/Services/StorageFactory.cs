@@ -110,8 +110,8 @@ public static class StorageFactory
             {
                 Type = store.GetType().Name,
                 IsIndexed = !store.IsReindexingRequired,
-                UpdateCount = store.GetUpdates().Count(),
-                CategoryCount = store.GetCategories().Count()
+                UpdateCount = store.GetPendingPackages().Count,
+                TotalPackageCount = store.GetPackageIdentities().Count
             };
         }
         catch (Exception ex)
