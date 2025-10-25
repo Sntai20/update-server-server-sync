@@ -23,13 +23,13 @@ public static class StorageFactory
         string? connectionString,
         string? containerName,
         bool createIfNotExists,
-        ILogger logger)
+  ILogger logger)
     {
         logger.LogInformation(
-            "Creating metadata store - Type: {Type}, Path: {Path}, CreateIfNotExists: {Create}",
-            storeType,
-            storePath,
-            createIfNotExists);
+      "Creating metadata store - Type: {Type}, Path: {Path}, CreateIfNotExists: {Create}",
+       storeType,
+  storePath,
+    createIfNotExists);
 
         switch (storeType.ToLowerInvariant())
         {
@@ -50,12 +50,12 @@ public static class StorageFactory
     /// Opens or creates a content store based on configuration.
     /// </summary>
     public static IContentStore? CreateContentStore(
-        string? storePath,
-        string storeType,
+  string? storePath,
+     string storeType,
         string? connectionString,
-        string? containerName,
+ string? containerName,
         bool createIfNotExists,
-        ILogger logger)
+   ILogger logger)
     {
         if (string.IsNullOrEmpty(storePath))
         {
@@ -64,10 +64,10 @@ public static class StorageFactory
         }
 
         logger.LogInformation(
-            "Creating content store - Type: {Type}, Path: {Path}, CreateIfNotExists: {Create}",
+          "Creating content store - Type: {Type}, Path: {Path}, CreateIfNotExists: {Create}",
             storeType,
-            storePath,
-            createIfNotExists);
+              storePath,
+         createIfNotExists);
 
         switch (storeType.ToLowerInvariant())
         {
@@ -84,11 +84,129 @@ public static class StorageFactory
         }
     }
 
+    /// <summary>
+    /// Validates or creates a directory for local storage.
+    /// </summary>
+    public static void ValidateOrCreateDirectory(string path, ILogger logger)
+    {
+        if (Directory.Exists(path))
+        {
+            logger.LogInformation("Directory already exists: {Path}", path);
+            return;
+        }
+
+        logger.LogInformation("Creating directory: {Path}", path);
+        Directory.CreateDirectory(path);
+    }
+
+    /// <summary>
+    /// Gets diagnostic information about a metadata store.
+    /// </summary>
+    public static object GetStoreInfo(IMetadataStore store, ILogger logger)
+    {
+        try
+        {
+            return new
+            {
+                Type = store.GetType().Name,
+                IsIndexed = !store.IsReindexingRequired,
+                UpdateCount = store.GetUpdates().Count(),
+                CategoryCount = store.GetCategories().Count()
+            };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to get store information");
+            return new { Status = "Error", Error = ex.Message };
+        }
+    }
+
+    /// <summary>
+    /// Gets diagnostic information about a content store.
+    /// </summary>
+    public static object? GetStoreInfo(IContentStore? store, ILogger logger)
+    {
+        if (store == null)
+        {
+            return new { Status = "Not configured" };
+        }
+
+        try
+        {
+            return new
+            {
+                Type = store.GetType().Name,
+                Status = "Operational"
+            };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to get content store information");
+            return new { Status = "Error", Error = ex.Message };
+        }
+    }
+
+    /// <summary>
+    /// Validates storage configuration without creating stores.
+    /// </summary>
+    public static StorageValidationResult ValidateConfiguration(
+  string storePath,
+        string storeType,
+  string? connectionString,
+ILogger logger)
+    {
+        var result = new StorageValidationResult();
+
+        try
+        {
+            switch (storeType.ToLowerInvariant())
+            {
+                case "azure":
+                case "azureblob":
+                    if (string.IsNullOrEmpty(connectionString))
+                    {
+                        result.IsValid = false;
+                        result.ErrorMessage = "Connection string is required for Azure storage";
+                    }
+                    else
+                    {
+                        // Try to parse connection string
+                        _ = new BlobServiceClient(connectionString);
+                        result.IsValid = true;
+                    }
+                    break;
+
+                case "local":
+                case "filesystem":
+                    var directoryInfo = new DirectoryInfo(storePath);
+                    result.IsValid = directoryInfo.Parent?.Exists ?? false;
+                    if (!result.IsValid)
+                    {
+                        result.ErrorMessage = $"Parent directory does not exist: {directoryInfo.Parent?.FullName}";
+                    }
+                    break;
+
+                default:
+                    result.IsValid = false;
+                    result.ErrorMessage = $"Unsupported store type: {storeType}";
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            result.IsValid = false;
+            result.ErrorMessage = ex.Message;
+            logger.LogError(ex, "Storage configuration validation failed");
+        }
+
+        return result;
+    }
+
     private static IMetadataStore CreateAzureBlobMetadataStore(
         string? connectionString,
         string containerName,
         bool createIfNotExists,
-        ILogger logger)
+   ILogger logger)
     {
         if (string.IsNullOrEmpty(connectionString))
         {
@@ -114,8 +232,8 @@ public static class StorageFactory
             }
 
             logger.LogInformation(
-                "Successfully connected to Azure Storage account: {AccountName}",
-                blobServiceClient.AccountName);
+   "Successfully connected to Azure Storage account: {AccountName}",
+             blobServiceClient.AccountName);
 
             return Microsoft.PackageGraph.Storage.Azure.PackageStore.OpenOrCreate(blobServiceClient, containerName);
         }
@@ -150,7 +268,7 @@ public static class StorageFactory
         string? connectionString,
         string containerName,
         bool createIfNotExists,
-        ILogger logger)
+    ILogger logger)
     {
         if (string.IsNullOrEmpty(connectionString))
         {
@@ -176,8 +294,8 @@ public static class StorageFactory
             }
 
             logger.LogInformation(
-                "Successfully connected to Azure Storage account: {AccountName}",
-                blobServiceClient.AccountName);
+                      "Successfully connected to Azure Storage account: {AccountName}",
+                  blobServiceClient.AccountName);
 
             return BlobContentStore.OpenOrCreate(blobServiceClient, containerName);
         }
@@ -190,7 +308,7 @@ public static class StorageFactory
 
     private static IContentStore CreateLocalContentStore(
         string storePath,
-        bool createIfNotExists,
+   bool createIfNotExists,
         ILogger logger)
     {
         if (createIfNotExists && !Directory.Exists(storePath))
@@ -207,4 +325,13 @@ public static class StorageFactory
         logger.LogInformation("Using local file system for content store: '{Path}'", storePath);
         return new FileSystemContentStore(storePath);
     }
+}
+
+/// <summary>
+/// Result of storage configuration validation.
+/// </summary>
+public class StorageValidationResult
+{
+    public bool IsValid { get; set; }
+    public string? ErrorMessage { get; set; }
 }

@@ -48,23 +48,27 @@ static void ConfigureDirectories(HostBuilderContext context)
     var useAzureStorage = bool.Parse(context.Configuration["UseAzureStorage"] ?? "false");
     if (useAzureStorage)
     {
-        return; // No local directories needed for Azure Storage
+        return; // Storage validation happens during DI registration
     }
 
     var tempLogger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger("Startup");
     var metadataPath = context.Configuration["MetadataStorePath"] ?? "./store";
     var contentPath = context.Configuration["ContentStorePath"];
 
-    if (!Directory.Exists(metadataPath))
+    // Validate directories can be created using StorageFactory
+    try
     {
-        tempLogger.LogInformation("Creating metadata directory: {Path}", metadataPath);
-        Directory.CreateDirectory(metadataPath);
-    }
+        StorageFactory.ValidateOrCreateDirectory(metadataPath, tempLogger);
 
-    if (!string.IsNullOrEmpty(contentPath) && !Directory.Exists(contentPath))
+        if (!string.IsNullOrEmpty(contentPath))
+        {
+            StorageFactory.ValidateOrCreateDirectory(contentPath, tempLogger);
+        }
+    }
+    catch (Exception ex)
     {
-        tempLogger.LogInformation("Creating content directory: {Path}", contentPath);
-        Directory.CreateDirectory(contentPath);
+        tempLogger.LogError(ex, "Failed to validate storage directories");
+        throw;
     }
 }
 

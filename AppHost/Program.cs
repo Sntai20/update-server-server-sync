@@ -137,22 +137,14 @@ if (string.IsNullOrEmpty(metadataStorePath))
 if (!useAzureStorage && builder.Environment.IsDevelopment())
 {
     // Create local directories if using file system storage
-    if (!Directory.Exists(metadataStorePath))
-    {
-        Directory.CreateDirectory(metadataStorePath);
-    }
-
-    if (!string.IsNullOrEmpty(contentStorePath) && !Directory.Exists(contentStorePath))
-    {
-        Directory.CreateDirectory(contentStorePath);
-    }
+    StorageSetupHelper.EnsureLocalDirectories(metadataStorePath, contentStorePath);
 
     // Add health check for metadata store
     builder.Services.AddHealthChecks()
-        .AddCheck("metadata-store", () =>
-            Directory.Exists(metadataStorePath)
-                ? HealthCheckResult.Healthy("Metadata store directory exists")
-                : HealthCheckResult.Unhealthy("Metadata store path not found"));
+  .AddCheck("metadata-store", () =>
+    StorageSetupHelper.ValidateLocalStorage(metadataStorePath)
+       ? HealthCheckResult.Healthy("Metadata store directory exists")
+    : HealthCheckResult.Unhealthy("Metadata store path not found"));
 }
 
 var app = builder.Build();
