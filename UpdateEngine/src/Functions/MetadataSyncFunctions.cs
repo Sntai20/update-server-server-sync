@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
 namespace UpdateEngine.Functions;
 
 using Microsoft.Azure.Functions.Worker;

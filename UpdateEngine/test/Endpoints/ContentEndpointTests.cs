@@ -1,11 +1,14 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+namespace UpdateEngineTest.Endpoints;
+
 using FluentAssertions;
-using UpdateEngine.Tests.Infrastructure;
+using UpdateEngineTest.Infrastructure;
 using System.Net;
 using System.Net.Http.Headers;
 using Xunit;
 using Xunit.Abstractions;
-
-namespace UpdateEngine.Tests.Endpoints;
 
 [Collection("MicrosoftUpdate")]
 public class ContentEndpointTests

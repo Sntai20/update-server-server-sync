@@ -1,11 +1,14 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+namespace UpdateEngineTest.Infrastructure;
+
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System.Net.Http;
 using Xunit;
-
-namespace UpdateEngine.Tests.Infrastructure;
 
 public class MicrosoftUpdateTestFixture : IAsyncLifetime
 {

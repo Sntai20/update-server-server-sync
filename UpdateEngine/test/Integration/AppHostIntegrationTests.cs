@@ -1,10 +1,13 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+namespace UpdateEngineTest.Integration;
+
 using FluentAssertions;
-using UpdateEngine.Tests.Infrastructure;
+using UpdateEngineTest.Infrastructure;
 using System.Net;
 using System.Text;
 using Xunit;
-
-namespace UpdateEngine.Tests.Integration;
 
 /// <summary>
 /// Integration tests using the complete distributed application via AppHost

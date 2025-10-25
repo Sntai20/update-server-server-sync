@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+namespace UpdateEngineTest.Services;
+
 using System;
 using System.IO;
 using Azure.Storage.Blobs;
@@ -9,8 +11,6 @@ using Microsoft.PackageGraph.Storage;
 using Moq;
 using UpdateEngine.Services;
 using Xunit;
-
-namespace UpdateEngineTest.Services;
 
 public class StorageFactoryTests : IDisposable
 {

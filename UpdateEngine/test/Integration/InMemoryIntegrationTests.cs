@@ -1,15 +1,15 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+namespace UpdateEngineTest.Integration;
+
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.PackageGraph.Storage;
 using UpdateEngine.Services;
 using UpdateEngine.Models;
-using UpdateEngine.Tests.Infrastructure;
+using UpdateEngineTest.Infrastructure;
 using Xunit;
-
-namespace UpdateEngine.Tests.Integration;
 
 /// <summary>
 /// In-memory integration tests that don't require Azurite or persistent storage.

@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+namespace UpdateEngineTest.Infrastructure;
+
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.PackageGraph.Storage;
@@ -8,8 +10,6 @@ using Microsoft.PackageGraph.Storage.Local;
 using UpdateEngine.Services;
 using UpdateEngine.Models;
 using Xunit;
-
-namespace UpdateEngine.Tests.Infrastructure;
 
 /// <summary>
 /// In-memory test fixture that provides a fully configured service provider

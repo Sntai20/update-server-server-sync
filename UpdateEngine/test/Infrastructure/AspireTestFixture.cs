@@ -1,8 +1,11 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+namespace UpdateEngineTest.Infrastructure;
+
 using System.Diagnostics;
 using System.Net.Http;
 using Xunit;
-
-namespace UpdateEngine.Tests.Infrastructure;
 
 /// <summary>
 /// Simplified test fixture that starts Azure Functions using func CLI

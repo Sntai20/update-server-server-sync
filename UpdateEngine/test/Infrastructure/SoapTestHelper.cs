@@ -1,9 +1,12 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+namespace UpdateEngineTest.Infrastructure;
+
 using System.ServiceModel;
 using System.ServiceModel.Channels;
 using System.Text;
 using System.Xml;
-
-namespace UpdateEngine.Tests.Infrastructure;
 
 public static class SoapTestHelper
 {

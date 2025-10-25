@@ -1,8 +1,11 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+namespace UpdateEngineTest.Infrastructure;
+
 using System.Diagnostics;
 using System.Net.Http;
 using Xunit;
-
-namespace UpdateEngine.Tests.Infrastructure;
 
 /// <summary>
 /// Advanced Aspire test fixture that manages Azure Functions with proper lifecycle management

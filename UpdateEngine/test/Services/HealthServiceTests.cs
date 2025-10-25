@@ -1,4 +1,7 @@
-namespace UpdateEngine.Tests.Services;
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+namespace UpdateEngineTest.Services;
 
 using Microsoft.Extensions.Logging;
 using Microsoft.PackageGraph.Storage;
