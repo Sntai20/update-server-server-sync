@@ -36,7 +36,7 @@ The Azure Functions implementation provides the same functionality as the origin
 
 ## Prerequisites
 
-- .NET 8.0 SDK
+- .NET 9.0 SDK
 - Azure Functions Core Tools v4
 - Azure subscription
 - Update metadata and content (sync from Microsoft Update first)

@@ -49,7 +49,7 @@ dotnet build
 | **Build Solution** | `dotnet build` |
 | **Clean Build** | `dotnet clean && dotnet build` |
 | **Restore Packages** | `dotnet restore` |
-| **Run Functions Locally** | `dotnet run --project MicrosoftUpdateFunctions.AppHost` |
+| **Run Functions Locally** | `dotnet run --project AppHost` |
 | **Stop Functions** | `Ctrl + C` |
 
 ### Testing
@@ -112,7 +112,7 @@ dotnet build
 
 # Solution 2: Delete and recreate
 Remove-Item ./store -Recurse -Force
-dotnet run --project MicrosoftUpdateFunctions.AppHost
+dotnet run --project AppHost
 ```
 </details>
 
@@ -283,8 +283,8 @@ git push upstream v1.0.0
 
 - [API Reference](./src/documentation/docfx-config/index.md)
 - [Code Examples](./src/documentation/docfx-config/examples/)
-- [Azure Functions Guide](./MicrosoftUpdateFunctions/README.md)
-- [Triggers Guide](./MicrosoftUpdateFunctions/src/TRIGGERS_GUIDE.md)
+- [Azure Functions Guide](./UpdateEngine/README.md)
+- [Triggers Guide](./UpdateEngine/src/TRIGGERS_GUIDE.md)
 
 ### Architecture
 
@@ -325,7 +325,7 @@ git push upstream v1.0.0
 # Create aliases in your PowerShell profile
 Set-Alias -Name build -Value "dotnet build"
 Set-Alias -Name test -Value "./scripts/test/Run-InMemoryTests.ps1"
-Set-Alias -Name run -Value "dotnet run --project MicrosoftUpdateFunctions.AppHost"
+Set-Alias -Name run -Value "dotnet run --project AppHost"
 
 # Quick rebuild
 function rebuild { dotnet clean; dotnet build }

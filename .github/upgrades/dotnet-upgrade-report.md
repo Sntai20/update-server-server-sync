@@ -31,7 +31,7 @@ The .NET 9.0 upgrade has been **successfully completed** for all production proj
    - Target Framework: ✅ net9.0
    - Build Status: ✅ Clean (2 warnings - obsolete IHostingEnvironment)
 
-5. **MicrosoftUpdateFunctions\src\MicrosoftUpdateFunctions.csproj** ⭐
+5. **UpdateEngine\src\UpdateEngine.csproj** ⭐
    - Target Framework: ✅ net9.0
    - Build Status: ✅ **Clean** (4 warnings - nullability)
    - Major API Breaking Changes: ✅ **All Fixed!**
@@ -43,7 +43,7 @@ The .NET 9.0 upgrade has been **successfully completed** for all production proj
      - Added OperatingSystem string-to-int conversion
      - Used proper type casting for MicrosoftUpdatePackage
 
-6. **MicrosoftUpdateFunctions.AppHost\MicrosoftUpdateFunctions.AppHost.csproj**
+6. **AppHost\AppHost.csproj**
    - Target Framework: ✅ net9.0
    - NuGet Packages: ✅ Updated
      - Aspire.Hosting → Aspire.Hosting.AppHost 9.5.2
@@ -55,7 +55,7 @@ The .NET 9.0 upgrade has been **successfully completed** for all production proj
 
 ### ⚠️ Test Project (Non-Blocking)
 
-**MicrosoftUpdateFunctions\tests\MicrosoftUpdateFunctions.Tests\MicrosoftUpdateFunctions.Tests.csproj**
+** UpdateEngine\test\UpdateEngineTest.csproj**
 
 **Status:** Test code needs updates for new library APIs (11 errors)
 
@@ -201,7 +201,7 @@ var request = JsonSerializer.Deserialize<Services.SyncContentRequest>(requestBod
 ✅ microsoft-update-upstream-source    → net9.0 (1 warning)
 ✅ microsoft-update-endpoints → net9.0 (2 warnings)
 ✅ MicrosoftUpdateFunctions     → net9.0 (4 warnings)
-✅ MicrosoftUpdateFunctions.AppHost   → net9.0 (1 warning)
+✅ AppHost   → net9.0 (1 warning)
 ```
 
 ### Test Project (Non-Blocking ⚠️)
@@ -234,7 +234,7 @@ var request = JsonSerializer.Deserialize<Services.SyncContentRequest>(requestBod
 
 ```bash
 # Build solution
-dotnet build MicrosoftUpdateFunctions.slnx --configuration Release
+dotnet build microsoft-update.sln --configuration Release
 
 # Run Azure Functions locally
 cd MicrosoftUpdateFunctions\src

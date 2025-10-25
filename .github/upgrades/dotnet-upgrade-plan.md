@@ -10,11 +10,11 @@ Execute steps below sequentially one by one in the order they are listed.
 4. Upgrade src\microsoft-update-partition\microsoft-update-partition.csproj
 5. Upgrade src\microsoft-update-upstream-package-source\microsoft-update-upstream-source.csproj
 6. Upgrade src\microsoft-update-endpoints\microsoft-update-endpoints.csproj
-7. Upgrade MicrosoftUpdateFunctions\src\MicrosoftUpdateFunctions.csproj
-8. Upgrade MicrosoftUpdateFunctions.AppHost\MicrosoftUpdateFunctions.AppHost.csproj
-9. Upgrade MicrosoftUpdateFunctions\tests\MicrosoftUpdateFunctions.Tests\MicrosoftUpdateFunctions.Tests.csproj
+7. Upgrade UpdateEngine\src\UpdateEngine.csproj
+8. Upgrade AppHost\AppHost.csproj
+9. Upgrade  UpdateEngine\test\UpdateEngineTest.csproj
 10. Run unit tests to validate upgrade in the projects listed below:
-   - MicrosoftUpdateFunctions\tests\MicrosoftUpdateFunctions.Tests\MicrosoftUpdateFunctions.Tests.csproj
+   -  UpdateEngine\test\UpdateEngineTest.csproj
 
 ## Settings
 
@@ -90,7 +90,7 @@ NuGet packages changes:
 Project properties changes:
   - Target framework should be changed from `net6.0` to `net9.0`
 
-#### MicrosoftUpdateFunctions\src\MicrosoftUpdateFunctions.csproj modifications
+#### UpdateEngine\src\UpdateEngine.csproj modifications
 
 Project properties changes:
   - Target framework should be changed from `net8.0` to `net9.0`
@@ -100,7 +100,7 @@ NuGet packages changes:
   - Microsoft.Azure.Functions.Worker.Extensions.EventHubs version `5.6.0` should be added (*Additional package recommended with ServiceBus extensions*)
   - System.ComponentModel.Annotations should be removed (*Package functionality included with framework reference*)
 
-#### MicrosoftUpdateFunctions.AppHost\MicrosoftUpdateFunctions.AppHost.csproj modifications
+#### AppHost\AppHost.csproj modifications
 
 Project properties changes:
   - Target framework should be changed from `net8.0` to `net9.0`
@@ -111,7 +111,7 @@ NuGet packages changes:
   - Aspire.Hosting.Azure.Functions should be updated from `9.5.1-preview.1.25502.11` to `9.5.2-preview.1.25522.3` (*Recommended for .NET 9.0*)
   - Aspire.Hosting.Azure.Storage should be updated from `9.5.1` to `9.5.2` (*Recommended for .NET 9.0*)
 
-#### MicrosoftUpdateFunctions\tests\MicrosoftUpdateFunctions.Tests\MicrosoftUpdateFunctions.Tests.csproj modifications
+####  UpdateEngine\test\UpdateEngineTest.csproj modifications
 
 Project properties changes:
   - Target framework should be changed from `net8.0` to `net9.0`

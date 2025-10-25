@@ -100,7 +100,7 @@ If you don't have Visual Studio or prefer command-line tools:
 6. **Rebuild** and test:
    ```powershell
 dotnet build
-   dotnet run --project MicrosoftUpdateFunctions.AppHost
+   dotnet run --project AppHost
    ```
 
 ### ?? Potential Issues with Command Line Method
@@ -139,7 +139,7 @@ However, this defeats the purpose of upgrading to .NET 9 and should only be used
 
 2. **Restart Azure Functions:**
    ```powershell
- dotnet run --project MicrosoftUpdateFunctions.AppHost
+ dotnet run --project AppHost
    ```
 
 3. **Test the sync:**

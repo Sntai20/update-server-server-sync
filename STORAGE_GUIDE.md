@@ -127,7 +127,7 @@ These triggers require storage connections and will show warnings with file syst
 
 ### Functions won't start
 1. Check that `func` CLI is installed: `func --version`
-2. Verify .NET 8.0 is installed: `dotnet --version`
+2. Verify .NET 9.0 is installed: `dotnet --version`
 3. For Azure Storage mode, ensure Azurite is running
 
 ### Storage connection errors

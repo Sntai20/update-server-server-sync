@@ -92,7 +92,7 @@ The new metadata synchronization functions are thoroughly tested across all scen
 
 ### Prerequisites
 1. Azure Functions Core Tools (`func` CLI)
-2. .NET 8.0 SDK
+2. .NET 9.0 SDK
 3. Docker (optional, for containerized testing)
 
 ### Local Development
@@ -101,10 +101,10 @@ The new metadata synchronization functions are thoroughly tested across all scen
 dotnet build
 
 # Run basic unit tests
-dotnet test tests/UpdateEngine.Tests/ --filter "Category!=Integration"
+dotnet test tests/UpdateEngineTest/ --filter "Category!=Integration"
 
 # Run integration tests (requires Azure Functions to be running)
-dotnet test tests/UpdateEngine.Tests/ --filter "Category=Integration"
+dotnet test tests/UpdateEngineTest/ --filter "Category=Integration"
 
 # Run specific test class
 dotnet test --filter "FullyQualifiedName~MetadataSyncIntegrationTests"

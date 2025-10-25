@@ -60,8 +60,8 @@ update-server-server-sync/
 ??? ??? .deprecated/     # NEW: Archived obsolete files
 ?   ??? ...    # Old/duplicate files
 ?
-??? MicrosoftUpdateFunctions/ # Azure Functions (cleaned up)
-??? MicrosoftUpdateFunctions.AppHost/ # Aspire host (cleaned up)
+??? UpdateEngine/ # Azure Functions (cleaned up)
+??? AppHost/ # Aspire host (cleaned up)
 ??? src/# Core libraries
 ??? tests/        # Test projects
 ??? REPOSITORY_STRUCTURE.md   # NEW: This structure guide
@@ -140,7 +140,7 @@ dotnet build
 dotnet test
 
 # 4. Start Functions and test
-dotnet run --project MicrosoftUpdateFunctions.AppHost
+dotnet run --project AppHost
 # Test endpoints...
 ```
 

@@ -18,8 +18,8 @@ update-server-server-sync/
 ?   ??? test/         # Testing scripts
 ?   ??? maintenance/      # Maintenance and regeneration scripts
 ?
-??? MicrosoftUpdateFunctions/     # Azure Functions implementation
-??? MicrosoftUpdateFunctions.AppHost/ # Aspire application host
+??? UpdateEngine/     # Azure Functions implementation
+??? AppHost/ # Aspire application host
 ??? src/            # Core libraries
 ??? tests/         # Test projects
 ```
@@ -44,25 +44,25 @@ update-server-server-sync/
 | [.github/upgrades/dotnet-upgrade-plan.md](./.github/upgrades/dotnet-upgrade-plan.md) | .NET upgrade plan | ? Keep |
 | [.github/upgrades/dotnet-upgrade-report.md](./.github/upgrades/dotnet-upgrade-report.md) | .NET upgrade report | ? Keep |
 
-### MicrosoftUpdateFunctions
+### UpdateEngine
 
 | File | Purpose | Status |
 |------|---------|--------|
-| [MicrosoftUpdateFunctions/README.md](./MicrosoftUpdateFunctions/README.md) | Functions overview | ? Keep |
-| [MicrosoftUpdateFunctions/MicrosoftUpdateFunctions - Deduplicate.md](./MicrosoftUpdateFunctions/MicrosoftUpdateFunctions%20-%20Deduplicate.md) | Deduplication notes | ??? Archive or delete |
-| [MicrosoftUpdateFunctions/src/README.md](./MicrosoftUpdateFunctions/src/README.md) | Source code overview | ? Keep |
-| [MicrosoftUpdateFunctions/src/TRIGGERS_GUIDE.md](./MicrosoftUpdateFunctions/src/TRIGGERS_GUIDE.md) | Azure Functions triggers | ? Keep |
-| [MicrosoftUpdateFunctions/tests/.../TESTING_GUIDE.md](./MicrosoftUpdateFunctions/tests/MicrosoftUpdateFunctions.Tests/TESTING_GUIDE.md) | Testing strategies | ?? Merge with INMEMORY_TESTING_GUIDE.md |
+| [UpdateEngine/README.md](./UpdateEngine/README.md) | Functions overview | ? Keep |
+| [UpdateEngine/UpdateEngine - Deduplicate.md](./UpdateEngine/UpdateEngine%20-%20Deduplicate.md) | Deduplication notes | ??? Archive or delete |
+| [UpdateEngine/src/README.md](./UpdateEngine/src/README.md) | Source code overview | ? Keep |
+| [UpdateEngine/src/TRIGGERS_GUIDE.md](./UpdateEngine/src/TRIGGERS_GUIDE.md) | Azure Functions triggers | ? Keep |
+| [UpdateEngine/test/.../TESTING_GUIDE.md](./UpdateEngine/test/UpdateEngineTest/TESTING_GUIDE.md) | Testing strategies | ?? Merge with INMEMORY_TESTING_GUIDE.md |
 
-### MicrosoftUpdateFunctions.AppHost
+### AppHost
 
 | File | Purpose | Status |
 |------|---------|--------|
-| [MicrosoftUpdateFunctions.AppHost/README.md](./MicrosoftUpdateFunctions.AppHost/README.md) | AppHost overview | ? Keep |
-| [MicrosoftUpdateFunctions.AppHost/MIGRATION_SUMMARY.md](./MicrosoftUpdateFunctions.AppHost/MIGRATION_SUMMARY.md) | Migration notes | ?? Move to docs/guides/ |
-| [MicrosoftUpdateFunctions.AppHost/CONTAINER_VERIFICATION.md](./MicrosoftUpdateFunctions.AppHost/CONTAINER_VERIFICATION.md) | Container testing | ?? Move to docs/troubleshooting/ |
-| [MicrosoftUpdateFunctions.AppHost/SYNC_TROUBLESHOOTING.md](./MicrosoftUpdateFunctions.AppHost/SYNC_TROUBLESHOOTING.md) | Sync issues | ?? Move to docs/troubleshooting/ |
-| [MicrosoftUpdateFunctions.AppHost/TROUBLESHOOTING_STORAGE.md](./MicrosoftUpdateFunctions.AppHost/TROUBLESHOOTING_STORAGE.md) | Storage issues | ?? Move to docs/troubleshooting/ |
+| [AppHost/README.md](./AppHost/README.md) | AppHost overview | ? Keep |
+| [AppHost/MIGRATION_SUMMARY.md](./AppHost/MIGRATION_SUMMARY.md) | Migration notes | ?? Move to docs/guides/ |
+| [AppHost/CONTAINER_VERIFICATION.md](./AppHost/CONTAINER_VERIFICATION.md) | Container testing | ?? Move to docs/troubleshooting/ |
+| [AppHost/SYNC_TROUBLESHOOTING.md](./AppHost/SYNC_TROUBLESHOOTING.md) | Sync issues | ?? Move to docs/troubleshooting/ |
+| [AppHost/TROUBLESHOOTING_STORAGE.md](./AppHost/TROUBLESHOOTING_STORAGE.md) | Storage issues | ?? Move to docs/troubleshooting/ |
 
 ### src/documentation
 
@@ -90,8 +90,8 @@ update-server-server-sync/
 
 | Script | Purpose | Status |
 |--------|---------|--------|
-| [MicrosoftUpdateFunctions.AppHost/Regenerate-WCFReferences.ps1](./MicrosoftUpdateFunctions.AppHost/Regenerate-WCFReferences.ps1) | Regenerate WCF | ??? Duplicate - use root version |
-| [MicrosoftUpdateFunctions.AppHost/Test-SyncWithDiagnostics.ps1](./MicrosoftUpdateFunctions.AppHost/Test-SyncWithDiagnostics.ps1) | Test sync | ?? Move to scripts/test/ |
+| [AppHost/Regenerate-WCFReferences.ps1](./AppHost/Regenerate-WCFReferences.ps1) | Regenerate WCF | ??? Duplicate - use root version |
+| [AppHost/Test-SyncWithDiagnostics.ps1](./AppHost/Test-SyncWithDiagnostics.ps1) | Test sync | ?? Move to scripts/test/ |
 
 ## ?? Recommended Actions
 
@@ -141,7 +141,7 @@ update-server-server-sync/
 ### Phase 5: Cleanup
 
 1. **Archive obsolete files**
-   - MicrosoftUpdateFunctions - Deduplicate.md
+   - UpdateEngine - Deduplicate.md
    - Duplicate scripts
    
 2. **Create .deprecated/ folder for historical reference**
@@ -156,7 +156,7 @@ update-server-server-sync/
 | Configure Storage | [STORAGE_GUIDE.md](./STORAGE_GUIDE.md) |
 | Run Tests | [INMEMORY_TESTING_GUIDE.md](./INMEMORY_TESTING_GUIDE.md) |
 | Fix WCF Issues | [WCF_NET9_FIX_GUIDE.md](./WCF_NET9_FIX_GUIDE.md) |
-| Sync Troubleshooting | [AppHost/SYNC_TROUBLESHOOTING.md](./MicrosoftUpdateFunctions.AppHost/SYNC_TROUBLESHOOTING.md) |
+| Sync Troubleshooting | [AppHost/SYNC_TROUBLESHOOTING.md](./AppHost/SYNC_TROUBLESHOOTING.md) |
 
 ### For Operators
 
@@ -165,7 +165,7 @@ update-server-server-sync/
 | Configure Storage | `./configure-storage.ps1` |
 | Run Tests | `./Run-InMemoryTests.ps1` |
 | Validate Build | `./validate-build.ps1` |
-| Test Sync | `./MicrosoftUpdateFunctions.AppHost/Test-SyncWithDiagnostics.ps1` |
+| Test Sync | `./AppHost/Test-SyncWithDiagnostics.ps1` |
 
 ## ?? Migration Status
 

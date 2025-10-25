@@ -1,4 +1,4 @@
-# Windows Update Services Server-Server Sync Protocol
+﻿# Windows Update Services Server-Server Sync Protocol
 
 Provide a C# implementation (.NET Core) of the Microsoft Update Server-Server sync protocol, both client and server.
 
@@ -24,25 +24,25 @@ dotnet build
 ./scripts/test/Run-InMemoryTests.ps1
 
 # Or run with Azure Functions
-dotnet run --project MicrosoftUpdateFunctions.AppHost
+dotnet run --project AppHost
 ```
 
 **?? For detailed instructions, see [QUICK_REFERENCE.md](./QUICK_REFERENCE.md)**
 
-## ?? Repository Organization
+## 📂 Repository Organization
 
 This repository is organized as follows:
 
 - **[docs/](./docs/)** - All documentation (guides, troubleshooting, development)
 - **[scripts/](./scripts/)** - All automation scripts (setup, build, test, maintenance)
 - **[src/](./src/)** - Core libraries and implementation
-- **[MicrosoftUpdateFunctions/](./MicrosoftUpdateFunctions/)** - Azure Functions implementation (.NET 9)
-- **[MicrosoftUpdateFunctions.AppHost/](./MicrosoftUpdateFunctions.AppHost/)** - .NET Aspire application host
-- **[tests/](./tests/)** - Test projects
+- **[UpdateEngine/](./UpdateEngine/)** - Azure Functions implementation (.NET 9)
+- **[AppHost/](./AppHost/)** - .NET Aspire application host
+- **[test/](./test/)** - Test projects
 
-**?? For complete structure details, see [REPOSITORY_STRUCTURE.md](./REPOSITORY_STRUCTURE.md)**
+**📚 For complete structure details, see [REPOSITORY_STRUCTURE.md](./REPOSITORY_STRUCTURE.md)**
 
-## ?? Documentation
+## 📖 Documentation
 
 ### Essential Guides
 
@@ -63,18 +63,18 @@ This repository is organized as follows:
 - **[API Reference](https://microsoft.github.io/update-server-server-sync/)** - Complete API documentation
 - **[Code Examples](https://microsoft.github.io/update-server-server-sync/examples/categories-fetch.html)** - Usage examples
 
-## ?? Common Tasks
+## 🛠️ Common Tasks
 
 | Task | Command |
 |------|---------|
 | **Build** | `dotnet build` |
 | **Test (Fast)** | `./scripts/test/Run-InMemoryTests.ps1` |
 | **Test (All)** | `dotnet test` |
-| **Run Functions** | `dotnet run --project MicrosoftUpdateFunctions.AppHost` |
+| **Run Functions** | `dotnet run --project AppHost/src/AppHost.csproj` |
 | **Configure Storage** | `./scripts/setup/Configure-Storage.ps1` |
 | **Validate Build** | `./scripts/build/Validate-Build.ps1` |
 
-**?? For more commands, see [QUICK_REFERENCE.md](./QUICK_REFERENCE.md)**
+**📖 For more commands, see [QUICK_REFERENCE.md](./QUICK_REFERENCE.md)**
 
 ## Reference the library in your project
 
@@ -90,17 +90,17 @@ Or download and unzip upsync from [https://github.com/microsoft/update-server-se
 
 See [upsync examples](https://github.com/microsoft/update-server-server-sync/wiki/UpSync-V3-examples)
 
-## ? What's New in .NET 9
+## ✨ What's New in .NET 9
 
-- ? **Azure Functions support** - Run as serverless Azure Functions
-- ? **In-memory testing** - Fast tests with no infrastructure
-- ? **Azure Storage integration** - Modern Azure.Storage.Blobs SDK
-- ? **WCF .NET 9 compatibility** - Fixed service reference issues
-- ? **Persistent storage** - Azurite with Docker volumes
+- 🚀 **Azure Functions support** - Run as serverless Azure Functions
+- ⚡ **In-memory testing** - Fast tests with no infrastructure
+- ☁️ **Azure Storage integration** - Modern Azure.Storage.Blobs SDK
+- 🔧 **WCF .NET 9 compatibility** - Fixed service reference issues
+- 💾 **Persistent storage** - Azurite with Docker volumes
 
-**?? For migration details, see [docs/guides/MIGRATION_SUMMARY.md](./docs/guides/MIGRATION_SUMMARY.md)**
+**📚 For migration details, see [docs/guides/MIGRATION_SUMMARY.md](./docs/guides/MIGRATION_SUMMARY.md)**
 
-## ?? Testing
+## 🧪 Testing
 
 This project includes comprehensive testing with **no infrastructure required** for fast development:
 

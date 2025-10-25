@@ -8,7 +8,7 @@ The AppHost uses .NET Aspire to orchestrate the Microsoft Update Functions along
 
 ## Prerequisites
 
-- .NET 8.0 SDK
+- .NET 9.0 SDK
 - .NET Aspire packages (installed via NuGet)
 - Azure Functions Core Tools 4.x
 - Docker (for containerized resources)
@@ -198,10 +198,10 @@ The AppHost supports comprehensive testing:
 
 ```bash
 # Run service layer unit tests
-dotnet test ../UpdateEngine/tests/UpdateEngine.Tests --filter "Category!=Integration"
+dotnet test ../UpdateEngine/test/UpdateEngineTest --filter "Category!=Integration"
 
 # Run integration tests against AppHost
-dotnet test ../UpdateEngine/tests/UpdateEngine.Tests --filter "Category=Integration"
+dotnet test ../UpdateEngine/test/UpdateEngineTest --filter "Category=Integration"
 ```
 
 ## Performance Monitoring

@@ -1,6 +1,6 @@
 # Microsoft Update Functions - Service Layer Architecture
 
-A comprehensive Azure Functions implementation of the Microsoft Update Server-Server sync protocol using .NET 8.0 and a modern service layer architecture.
+A comprehensive Azure Functions implementation of the Microsoft Update Server-Server sync protocol using .NET 9.0 and a modern service layer architecture.
 
 ## 🏗️ Architecture Overview
 
@@ -28,7 +28,7 @@ HTTP/Timer/ServiceBus Triggers → Service Layer → Storage Layer → Microsoft
 ## 🚀 Quick Start
 
 ### Prerequisites
-- .NET 8.0 SDK
+- .NET 9.0 SDK
 - Azure Functions Core Tools 4.x
 - Docker (for storage emulator)
 
@@ -37,13 +37,13 @@ HTTP/Timer/ServiceBus Triggers → Service Layer → Storage Layer → Microsoft
 1. **Clone and build**:
    ```bash
    git clone <repository-url>
-   cd MicrosoftUpdateFunctions
+   cd UpdateEngine
    dotnet build
    ```
 
 2. **Start with AppHost** (recommended):
    ```bash
-   cd ../MicrosoftUpdateFunctions.AppHost
+   cd ../AppHost
    dotnet run
    ```
 
@@ -184,7 +184,7 @@ The same service logic works across:
 ## 📁 Project Structure
 
 ```
-MicrosoftUpdateFunctions/
+UpdateEngine/
 ├── src/
 │   ├── Functions/           # Azure Functions (thin wrappers)
 │   ├── Services/           # Business logic services
@@ -207,11 +207,11 @@ MicrosoftUpdateFunctions/
 ### Local Development
 ```bash
 # Using AppHost (recommended)
-cd MicrosoftUpdateFunctions.AppHost
+cd AppHost
 dotnet run
 
 # Direct Functions
-cd MicrosoftUpdateFunctions/src  
+cd UpdateEngine/src  
 func start
 ```
 
@@ -225,7 +225,7 @@ The service layer architecture supports multiple deployment options:
 
 - **Service Layer Guide**: `/src/Services/README.md`
 - **Triggers Guide**: `/src/TRIGGERS_GUIDE.md`
-- **Testing Guide**: `/tests/TESTING_GUIDE.md`
+- **Testing Guide**: `/test/TESTING_GUIDE.md`
 - **API Documentation**: `/docs/api/`
 
 ## 🔄 Migration Notes
