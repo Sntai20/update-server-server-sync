@@ -1,5 +1,4 @@
-﻿using Aspire.Hosting;
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
@@ -14,37 +13,37 @@ var storage = builder
     .RunAsEmulator(configure =>
     {
         configure.WithApiVersionCheck(false);
-        
+
         // Add persistent data volume for Azurite
-     configure.WithDataVolume("azurite-data");
-        
+        configure.WithDataVolume("azurite-data");
+
         // Fix the ports so UseDevelopmentStorage=true works
-    configure.WithEndpoint("blob", endpoint =>
-            {
-      endpoint.Protocol = ProtocolType.Tcp;
-       endpoint.Port = 10000;
-  });
-  configure.WithEndpoint("queue", endpoint =>
-     {
-         endpoint.Protocol = ProtocolType.Tcp;
-         endpoint.Port = 10001;
-  });
-     configure.WithEndpoint("table", endpoint =>
- {
-     endpoint.Protocol = ProtocolType.Tcp;
-     endpoint.Port = 10002;
- });
+        configure.WithEndpoint("blob", endpoint =>
+        {
+            endpoint.Protocol = ProtocolType.Tcp;
+            endpoint.Port = 10000;
+        });
+        configure.WithEndpoint("queue", endpoint =>
+        {
+            endpoint.Protocol = ProtocolType.Tcp;
+            endpoint.Port = 10001;
+        });
+        configure.WithEndpoint("table", endpoint =>
+        {
+            endpoint.Protocol = ProtocolType.Tcp;
+            endpoint.Port = 10002;
+        });
     });
 
 // Add Azure Service Bus for queue-triggered functions
 var serviceBus = builder
     .AddAzureServiceBus("ServiceBusConnection")
-  .RunAsEmulator();
+    .RunAsEmulator();
 
-// Add queues for the sync operations
-var contentSyncQueue = serviceBus.AddQueue("content-sync-requests");
-var prioritySyncQueue = serviceBus.AddQueue("priority-sync-requests");
-var standardSyncQueue = serviceBus.AddQueue("standard-sync-requests");
+// Add queues for the sync operations using the new API
+var contentSyncQueue = serviceBus.AddServiceBusQueue("content-sync-requests");
+var prioritySyncQueue = serviceBus.AddServiceBusQueue("priority-sync-requests");
+var standardSyncQueue = serviceBus.AddServiceBusQueue("standard-sync-requests");
 
 // Read configuration from structured settings
 var storageConfig = builder.Configuration.GetSection("Storage");
@@ -114,7 +113,7 @@ if (useAzureStorage)
     var storageConnectionString = "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;QueueEndpoint=http://127.0.0.1:10001/devstoreaccount1;TableEndpoint=http://127.0.0.1:10002/devstoreaccount1;";
 
     updateFunctions
-   .WithEnvironment("ConnectionStrings__MetadataStorageConnection", storageConnectionString)
+        .WithEnvironment("ConnectionStrings__MetadataStorageConnection", storageConnectionString)
         .WithEnvironment("ConnectionStrings__ContentStorageConnection", storageConnectionString);
 }
 
@@ -151,8 +150,8 @@ if (!useAzureStorage && builder.Environment.IsDevelopment())
     builder.Services.AddHealthChecks()
         .AddCheck("metadata-store", () =>
             Directory.Exists(metadataStorePath)
-           ? HealthCheckResult.Healthy("Metadata store directory exists")
- : HealthCheckResult.Unhealthy("Metadata store path not found"));
+                ? HealthCheckResult.Healthy("Metadata store directory exists")
+                : HealthCheckResult.Unhealthy("Metadata store path not found"));
 }
 
 var app = builder.Build();
