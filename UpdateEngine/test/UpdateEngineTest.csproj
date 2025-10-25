@@ -26,10 +26,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../../AppHost/AppHost.csproj" />
+    <ProjectReference Include="../../AppHost/src/AppHost.csproj" />
     <ProjectReference Include="../src/UpdateEngine.csproj" />
-    <ProjectReference Include="../../src/microsoft-update-partition/microsoft-update-partition.csproj" />
-    <ProjectReference Include="../../src/microsoft-update-webservices/microsoft-update-webservices.csproj" />
+    <ProjectReference Include="../../microsoft-update-partition/src/microsoft-update-partition.csproj" />
+    <ProjectReference Include="../../microsoft-update-webservices/src/microsoft-update-webservices.csproj" />
   </ItemGroup>
 
 </Project>
