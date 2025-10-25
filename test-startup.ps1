@@ -1,6 +1,6 @@
 #!/usr/bin/env pwsh
 
-# Quick startup test for MicrosoftUpdateFunctions
+# Quick startup test for UpdateEngine
 
 param(
     [int]$TimeoutSeconds = 30,
@@ -8,19 +8,19 @@ param(
     [string]$Configuration = "Debug"
 )
 
-Write-Host "=== Testing MicrosoftUpdateFunctions Startup ===" -ForegroundColor Green
+Write-Host "=== Testing UpdateEngine Startup ===" -ForegroundColor Green
 
 $ErrorActionPreference = "Continue"
 
 if ($UseAppHost) {
     Write-Host "Testing with AppHost..." -ForegroundColor Yellow
-    $workingDir = "MicrosoftUpdateFunctions.AppHost"
+    $workingDir = "AppHost"
     $startCommand = "dotnet"
     $startArgs = @("run", "--configuration", $Configuration)
     $port = 7071
 } else {
     Write-Host "Testing with Azure Functions CLI..." -ForegroundColor Yellow
-    $workingDir = "MicrosoftUpdateFunctions/src"
+    $workingDir = "UpdateEngine/src"
     $startCommand = "func"
     $startArgs = @("start", "--port", "7071")
     $port = 7071

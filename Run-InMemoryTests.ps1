@@ -5,7 +5,7 @@ Write-Host "=== Running In-Memory Integration Tests ===" -ForegroundColor Cyan
 Write-Host "These tests don't require Azurite or persistent storage`n" -ForegroundColor Yellow
 
 # Navigate to test project
-$testProject = "MicrosoftUpdateFunctions\tests\MicrosoftUpdateFunctions.Tests\MicrosoftUpdateFunctions.Tests.csproj"
+$testProject = "UpdateEngine\tests\UpdateEngineTest.csproj"
 
 if (!(Test-Path $testProject)) {
     Write-Host "? Test project not found: $testProject" -ForegroundColor Red

@@ -1,7 +1,7 @@
 #!/usr/bin/env pwsh
 
 # Build Validation Script
-# Ensures the MicrosoftUpdateFunctions project builds correctly and tests pass
+# Ensures the UpdateEngine project builds correctly and tests pass
 
 param(
     [switch]$SkipTests,
@@ -24,8 +24,8 @@ if ($Clean) {
     Write-Host "`n1. Cleaning solution..." -ForegroundColor Yellow
     try {
         dotnet clean build/microsoft-update.sln
-        dotnet clean MicrosoftUpdateFunctions/src/MicrosoftUpdateFunctions.csproj
-        dotnet clean MicrosoftUpdateFunctions.AppHost/MicrosoftUpdateFunctions.AppHost.csproj
+        dotnet clean UpdateEngine/src/UpdateEngine.csproj
+        dotnet clean AppHost/AppHost.csproj
         Write-Host "✓ Solution cleaned successfully" -ForegroundColor Green
     } catch {
         Write-Host "✗ Error during clean: $($_.Exception.Message)" -ForegroundColor Red
@@ -41,16 +41,16 @@ try {
     Write-Host "✓ Main solution packages restored" -ForegroundColor Green
     
     # Restore Functions project
-    dotnet restore MicrosoftUpdateFunctions/src/MicrosoftUpdateFunctions.csproj
+    dotnet restore UpdateEngine/src/UpdateEngine.csproj
     Write-Host "✓ Functions project packages restored" -ForegroundColor Green
     
     # Restore AppHost project  
-    dotnet restore MicrosoftUpdateFunctions.AppHost/MicrosoftUpdateFunctions.AppHost.csproj
+    dotnet restore AppHost/AppHost.csproj
     Write-Host "✓ AppHost project packages restored" -ForegroundColor Green
     
     # Restore test project
-    if (Test-Path "MicrosoftUpdateFunctions/tests/MicrosoftUpdateFunctions.Tests/MicrosoftUpdateFunctions.Tests.csproj") {
-        dotnet restore MicrosoftUpdateFunctions/tests/MicrosoftUpdateFunctions.Tests/MicrosoftUpdateFunctions.Tests.csproj
+    if (Test-Path "UpdateEngine/tests/UpdateEngineTest/UpdateEngineTest.csproj") {
+        dotnet restore UpdateEngine/tests/UpdateEngineTest/UpdateEngineTest.csproj
         Write-Host "✓ Test project packages restored" -ForegroundColor Green
     }
 } catch {
@@ -71,7 +71,7 @@ try {
 # Step 4: Build Functions project
 Write-Host "`n4. Building Functions project..." -ForegroundColor Yellow
 try {
-    dotnet build MicrosoftUpdateFunctions/src/MicrosoftUpdateFunctions.csproj --configuration Debug --no-restore
+    dotnet build UpdateEngine/src/UpdateEngine.csproj --configuration Debug --no-restore
     Write-Host "✓ Functions project built successfully" -ForegroundColor Green
 } catch {
     Write-Host "✗ Error building Functions project: $($_.Exception.Message)" -ForegroundColor Red
@@ -82,7 +82,7 @@ try {
 # Step 5: Build AppHost project
 Write-Host "`n5. Building AppHost project..." -ForegroundColor Yellow
 try {
-    dotnet build MicrosoftUpdateFunctions.AppHost/MicrosoftUpdateFunctions.AppHost.csproj --configuration Debug --no-restore
+    dotnet build AppHost/AppHost.csproj --configuration Debug --no-restore
     Write-Host "✓ AppHost project built successfully" -ForegroundColor Green
 } catch {
     Write-Host "✗ Error building AppHost project: $($_.Exception.Message)" -ForegroundColor Red
@@ -93,14 +93,14 @@ try {
 if (-not $SkipTests) {
     Write-Host "`n6. Running unit tests..." -ForegroundColor Yellow
     
-    if (Test-Path "MicrosoftUpdateFunctions/tests/MicrosoftUpdateFunctions.Tests/MicrosoftUpdateFunctions.Tests.csproj") {
+    if (Test-Path "UpdateEngine/tests/UpdateEngineTest/UpdateEngineTest.csproj") {
         try {
             # Build test project first
-            dotnet build MicrosoftUpdateFunctions/tests/MicrosoftUpdateFunctions.Tests/MicrosoftUpdateFunctions.Tests.csproj --configuration Debug --no-restore
+            dotnet build UpdateEngine/tests/UpdateEngineTest/UpdateEngineTest.csproj --configuration Debug --no-restore
             Write-Host "✓ Test project built successfully" -ForegroundColor Green
             
             # Run unit tests (excluding integration tests)
-            dotnet test MicrosoftUpdateFunctions/tests/MicrosoftUpdateFunctions.Tests/MicrosoftUpdateFunctions.Tests.csproj --configuration Debug --no-build --filter "Category!=Integration" --logger "console;verbosity=normal"
+            dotnet test UpdateEngine/tests/UpdateEngineTest/UpdateEngineTest.csproj --configuration Debug --no-build --filter "Category!=Integration" --logger "console;verbosity=normal"
             Write-Host "✓ Unit tests passed" -ForegroundColor Green
         } catch {
             Write-Host "✗ Unit tests failed: $($_.Exception.Message)" -ForegroundColor Red
@@ -117,8 +117,8 @@ if (-not $SkipTests) {
 Write-Host "`n7. Validating configuration files..." -ForegroundColor Yellow
 
 $configFiles = @(
-    "MicrosoftUpdateFunctions/src/host.json",
-    "MicrosoftUpdateFunctions/src/local.settings.json"
+    "UpdateEngine/src/host.json",
+    "UpdateEngine/src/local.settings.json"
 )
 
 foreach ($configFile in $configFiles) {
@@ -140,7 +140,7 @@ Write-Host "`n8. Testing Functions startup..." -ForegroundColor Yellow
 
 try {
     # Test that the Functions project can start (very briefly)
-    $functionsDir = "MicrosoftUpdateFunctions/src"
+    $functionsDir = "UpdateEngine/src"
     $currentDir = Get-Location
     
     Set-Location $functionsDir
@@ -199,8 +199,8 @@ if (-not $SkipTests) {
 }
 
 Write-Host "`nNext steps:" -ForegroundColor Cyan
-Write-Host "1. Run the AppHost: cd MicrosoftUpdateFunctions.AppHost && dotnet run" -ForegroundColor White
-Write-Host "2. Or run Functions directly: cd MicrosoftUpdateFunctions/src && func start" -ForegroundColor White
+Write-Host "1. Run the AppHost: cd AppHost && dotnet run" -ForegroundColor White
+Write-Host "2. Or run Functions directly: cd UpdateEngine/src && func start" -ForegroundColor White
 Write-Host "3. Test endpoints: curl http://localhost:7071/api/HealthCheck" -ForegroundColor White
 Write-Host "4. Run integration tests: dotnet test --filter 'Category=Integration'" -ForegroundColor White
 
