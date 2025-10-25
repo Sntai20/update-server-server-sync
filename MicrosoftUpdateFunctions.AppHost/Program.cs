@@ -8,24 +8,28 @@ using System.Text.Json;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-// Add Azure Storage Emulator as a containerized resource with FIXED ports
+// Add Azure Storage Emulator as a containerized resource with FIXED ports AND PERSISTENT STORAGE
 var storage = builder
     .AddAzureStorage("Storage")
     .RunAsEmulator(configure =>
     {
         configure.WithApiVersionCheck(false);
+        
+        // Add persistent data volume for Azurite
+     configure.WithDataVolume("azurite-data");
+        
         // Fix the ports so UseDevelopmentStorage=true works
-        configure.WithEndpoint("blob", endpoint =>
+    configure.WithEndpoint("blob", endpoint =>
             {
-                endpoint.Protocol = ProtocolType.Tcp;
-                endpoint.Port = 10000;
-            });
-        configure.WithEndpoint("queue", endpoint =>
+      endpoint.Protocol = ProtocolType.Tcp;
+       endpoint.Port = 10000;
+  });
+  configure.WithEndpoint("queue", endpoint =>
      {
          endpoint.Protocol = ProtocolType.Tcp;
          endpoint.Port = 10001;
-     });
-        configure.WithEndpoint("table", endpoint =>
+  });
+     configure.WithEndpoint("table", endpoint =>
  {
      endpoint.Protocol = ProtocolType.Tcp;
      endpoint.Port = 10002;
