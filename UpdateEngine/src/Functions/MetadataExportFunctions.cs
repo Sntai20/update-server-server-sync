@@ -275,30 +275,13 @@ public class MetadataExportFunctions
     {
         try
         {
-            switch (type.ToLowerInvariant())
-            {
-                case "local":
-                    if (createIfNotExists && !Directory.Exists(path))
-                    {
-                        Directory.CreateDirectory(path);
-                    }
-                    return Microsoft.PackageGraph.Storage.Local.PackageStore.Open(path);
-
-                case "azure":
-                    if (string.IsNullOrEmpty(connectionString))
-                    {
-                        this.logger.LogError("Connection string required for Azure metadata stores");
-                        return null;
-                    }
-
-                    // Azure store implementation would go here
-                    this.logger.LogError("Azure metadata store not yet implemented in this function");
-                    return null;
-
-                default:
-                    this.logger.LogError($"Metadata store type '{type}' not supported");
-                    return null;
-            }
+            return StorageFactory.CreateMetadataStore(
+                path,
+                type,
+                connectionString,
+                containerName: null,
+                createIfNotExists,
+                this.logger);
         }
         catch (Exception ex)
         {
