@@ -23,10 +23,10 @@
     <PackageReference Include="Azure.Storage.Blobs" Version="12.26.0" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="../../src/microsoft-update-partition/microsoft-update-partition.csproj" />
-    <ProjectReference Include="../../src/microsoft-update-webservices/microsoft-update-webservices.csproj" />
-    <ProjectReference Include="../../src/microsoft-update-endpoints/microsoft-update-endpoints.csproj" />
-    <ProjectReference Include="../../src/microsoft-update-upstream-package-source/microsoft-update-upstream-source.csproj" />
+    <ProjectReference Include="../../microsoft-update-partition/src/microsoft-update-partition.csproj" />
+    <ProjectReference Include="../../microsoft-update-webservices/src/microsoft-update-webservices.csproj" />
+    <ProjectReference Include="../../microsoft-update-endpoints/src/microsoft-update-endpoints.csproj" />
+    <ProjectReference Include="../../microsoft-update-upstream-source\src\microsoft-update-upstream-source.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Update="host.json">
