@@ -25,7 +25,7 @@ public class AspireTestFixture : IAsyncLifetime
             // Start Azure Functions using func CLI
             var currentDir = Directory.GetCurrentDirectory();
             // Navigate from test bin directory to the azure-functions folder
-            var funcPath = Path.Combine(currentDir, "../../../../../azure-functions");
+            var funcPath = Path.Combine(currentDir, "../../../../../UpdateEngine/src");
             var fullFuncPath = Path.GetFullPath(funcPath);
             
             if (!Directory.Exists(fullFuncPath))
