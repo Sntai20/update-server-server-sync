@@ -54,19 +54,19 @@ Shows all environment variables (masked for security)
 ### Step 1: Start the Application
 ```bash
 cd D:\repos\update-server-server-sync-fork
-dotnet run --project MicrosoftUpdateFunctions.AppHost
+dotnet run --project AppHost
 ```
 
 ### Step 2: Watch the Startup Logs
 Look for these messages in the Functions output:
 ```
-info: MicrosoftUpdateFunctions.Services.ServiceCollectionExtensions[0]
+info: UpdateEngine.Services.ServiceCollectionExtensions[0]
       Initializing metadata store - UseAzure: True, HasConnection: True
-info: MicrosoftUpdateFunctions.Services.ServiceCollectionExtensions[0]
+info: UpdateEngine.Services.ServiceCollectionExtensions[0]
       Using Azure Blob Storage for metadata store
-info: MicrosoftUpdateFunctions.Services.ServiceCollectionExtensions[0]
+info: UpdateEngine.Services.ServiceCollectionExtensions[0]
       Created Azure Blob container: metadata
-info: MicrosoftUpdateFunctions.Services.ServiceCollectionExtensions[0]
+info: UpdateEngine.Services.ServiceCollectionExtensions[0]
       Successfully connected to Azure Storage account: devstoreaccount1
 ```
 
@@ -136,7 +136,7 @@ Azure Blob container already exists: content
 ### Scenario 3: Connection Failure
 **Expected Logs:**
 ```
-error: MicrosoftUpdateFunctions.Services.ServiceCollectionExtensions[0]
+error: UpdateEngine.Services.ServiceCollectionExtensions[0]
        Failed to initialize Azure Blob Storage for metadata store
  System.Net.Http.HttpRequestException: No connection could be made...
 ```

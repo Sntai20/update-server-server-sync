@@ -30,14 +30,14 @@ After the fix, you need to restart the Azure Functions host:
 # Stop the current process (Ctrl+C)
 # Then restart:
 cd D:\repos\update-server-server-sync-fork
-dotnet run --project MicrosoftUpdateFunctions.AppHost
+dotnet run --project AppHost
 ```
 
 **Option B: If running Functions directly**
 ```powershell
 # Stop the current process (Ctrl+C)
 # Then restart:
-cd D:\repos\update-server-server-sync-fork\MicrosoftUpdateFunctions\src
+cd D:\repos\update-server-server-sync-fork\UpdateEngine\src
 func start
 ```
 

@@ -46,7 +46,7 @@ Use the root-level configuration scripts with the updated AppHost:
 ### Manual Startup
 
 ```bash
-cd MicrosoftUpdateFunctions.AppHost
+cd AppHost
 dotnet run
 ```
 
@@ -163,7 +163,7 @@ If you're migrating from the previous AppHost configuration:
 Run with enhanced logging:
 
 ```bash
-cd MicrosoftUpdateFunctions.AppHost
+cd AppHost
 dotnet run --environment Development --verbosity detailed
 ```
 
@@ -198,10 +198,10 @@ The AppHost supports comprehensive testing:
 
 ```bash
 # Run service layer unit tests
-dotnet test ../MicrosoftUpdateFunctions/tests/MicrosoftUpdateFunctions.Tests --filter "Category!=Integration"
+dotnet test ../UpdateEngine/tests/UpdateEngine.Tests --filter "Category!=Integration"
 
 # Run integration tests against AppHost
-dotnet test ../MicrosoftUpdateFunctions/tests/MicrosoftUpdateFunctions.Tests --filter "Category=Integration"
+dotnet test ../UpdateEngine/tests/UpdateEngine.Tests --filter "Category=Integration"
 ```
 
 ## Performance Monitoring

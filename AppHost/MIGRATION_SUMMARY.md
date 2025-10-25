@@ -40,12 +40,12 @@ Successfully migrated from legacy `Microsoft.Azure.Storage.Blob` (v11.x) to mode
 - `src/microsoft-update-partition/Storage/AzureBlob/MetadataStore.cs` - Metadata operations
 
 #### Azure Functions
-- `MicrosoftUpdateFunctions/src/Services/ServiceCollectionExtensions.cs` - DI registration
-- `MicrosoftUpdateFunctions/src/Program.cs` - Function host configuration
+- `UpdateEngine/src/Services/ServiceCollectionExtensions.cs` - DI registration
+- `UpdateEngine/src/Program.cs` - Function host configuration
 
 #### Project Files
 - `src/microsoft-update-partition/microsoft-update-partition.csproj`
-- `MicrosoftUpdateFunctions/src/MicrosoftUpdateFunctions.csproj`
+- `UpdateEngine/src/UpdateEngine.csproj`
 
 ## Code Cleanup & Improvements
 

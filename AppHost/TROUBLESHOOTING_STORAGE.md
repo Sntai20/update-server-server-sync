@@ -71,9 +71,9 @@ curl http://localhost:7071/api/TestAzureStorage
 Look for container creation messages in the Azure Functions output:
 
 ```
-info: MicrosoftUpdateFunctions.Services.ServiceCollectionExtensions[0]
+info: UpdateEngine.Services.ServiceCollectionExtensions[0]
       Created Azure Blob container: metadata
-info: MicrosoftUpdateFunctions.Services.ServiceCollectionExtensions[0]
+info: UpdateEngine.Services.ServiceCollectionExtensions[0]
       Created Azure Blob container: content
 ```
 
