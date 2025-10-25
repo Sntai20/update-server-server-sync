@@ -12,6 +12,7 @@ using Microsoft.UpdateServices.WebServices.ServerSync;
 using System.Net;
 using System.Text.Json;
 using System.ComponentModel.DataAnnotations;
+using UpdateEngine.Services;
 
 /// <summary>
 /// Azure Functions for metadata export and copy operations.
@@ -26,79 +27,6 @@ public class MetadataExportFunctions
     {
         this.logger = logger;
         this.metadataStore = metadataStore;
-    }
-
-    /// <summary>
-    /// Export filtered metadata to a file.
-    /// Equivalent to: upsync export
-    /// </summary>
-    [Function("ExportMetadata")]
-    public async Task<HttpResponseData> ExportMetadata(
-        [HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequestData req)
-    {
-        this.logger.LogInformation("ExportMetadata function called");
-
-        if (this.metadataStore == null)
-        {
-            this.logger.LogError("No metadata store configured");
-            var errorResponse = req.CreateResponse(HttpStatusCode.InternalServerError);
-            await errorResponse.WriteStringAsync("Metadata store not configured");
-            return errorResponse;
-        }
-
-        try
-        {
-            var requestBody = await new StreamReader(req.Body).ReadToEndAsync();
-            var exportRequest = JsonSerializer.Deserialize<MetadataExportRequest>(requestBody);
-
-            if (exportRequest == null)
-            {
-                var badRequest = req.CreateResponse(HttpStatusCode.BadRequest);
-                await badRequest.WriteStringAsync("Invalid request body");
-                return badRequest;
-            }
-
-            // Build filter from request
-            var filter = this.BuildFilterFromRequest(exportRequest);
-            if (filter == null)
-            {
-                var badRequest = req.CreateResponse(HttpStatusCode.BadRequest);
-                await badRequest.WriteStringAsync("Invalid filter parameters");
-                return badRequest;
-            }
-
-            // Parse server configuration
-            ServerSyncConfigData? serverConfig = null;
-            if (!string.IsNullOrEmpty(exportRequest.ServerConfigJson))
-            {
-                try
-                {
-                    serverConfig = JsonSerializer.Deserialize<ServerSyncConfigData>(exportRequest.ServerConfigJson);
-                }
-                catch (Exception ex)
-                {
-                    this.logger.LogError(ex, "Failed to parse server configuration JSON");
-                    var badRequest = req.CreateResponse(HttpStatusCode.BadRequest);
-                    await badRequest.WriteStringAsync("Invalid server configuration JSON");
-                    return badRequest;
-                }
-            }
-
-            // Perform export
-            var exportResult = await this.PerformExportOperation(filter, serverConfig, exportRequest.Format);
-
-            var response = req.CreateResponse(HttpStatusCode.OK);
-            response.Headers.Add("Content-Type", "application/json");
-            await response.WriteStringAsync(JsonSerializer.Serialize(exportResult, new JsonSerializerOptions { WriteIndented = true }));
-            return response;
-        }
-        catch (Exception ex)
-        {
-            this.logger.LogError(ex, "Error during metadata export");
-            var errorResponse = req.CreateResponse(HttpStatusCode.InternalServerError);
-            await errorResponse.WriteStringAsync($"Error: {ex.Message}");
-            return errorResponse;
-        }
     }
 
     /// <summary>
@@ -178,6 +106,80 @@ public class MetadataExportFunctions
         catch (Exception ex)
         {
             this.logger.LogError(ex, "Error during metadata copy");
+            var errorResponse = req.CreateResponse(HttpStatusCode.InternalServerError);
+            await errorResponse.WriteStringAsync($"Error: {ex.Message}");
+            return errorResponse;
+        }
+    }
+
+    /// <summary>
+    /// Export filtered metadata to a file using comprehensive filtering.
+    /// Equivalent to: upsync export
+    /// Provides direct metadata store access with full filter support.
+    /// </summary>
+    [Function("ExportMetadataAdvanced")]
+    public async Task<HttpResponseData> ExportMetadataAdvanced(
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "ExportMetadata/Advanced")] HttpRequestData req)
+    {
+        this.logger.LogInformation("ExportMetadataAdvanced function called");
+
+        if (this.metadataStore == null)
+        {
+            this.logger.LogError("No metadata store configured");
+            var errorResponse = req.CreateResponse(HttpStatusCode.InternalServerError);
+            await errorResponse.WriteStringAsync("Metadata store not configured");
+            return errorResponse;
+        }
+
+        try
+        {
+            var requestBody = await new StreamReader(req.Body).ReadToEndAsync();
+            var exportRequest = JsonSerializer.Deserialize<MetadataExportRequest>(requestBody);
+
+            if (exportRequest == null)
+            {
+                var badRequest = req.CreateResponse(HttpStatusCode.BadRequest);
+                await badRequest.WriteStringAsync("Invalid request body");
+                return badRequest;
+            }
+
+            // Build filter from request
+            var filter = this.BuildFilterFromRequest(exportRequest);
+            if (filter == null)
+            {
+                var badRequest = req.CreateResponse(HttpStatusCode.BadRequest);
+                await badRequest.WriteStringAsync("Invalid filter parameters");
+                return badRequest;
+            }
+
+            // Parse server configuration
+            ServerSyncConfigData? serverConfig = null;
+            if (!string.IsNullOrEmpty(exportRequest.ServerConfigJson))
+            {
+                try
+                {
+                    serverConfig = JsonSerializer.Deserialize<ServerSyncConfigData>(exportRequest.ServerConfigJson);
+                }
+                catch (Exception ex)
+                {
+                    this.logger.LogError(ex, "Failed to parse server configuration JSON");
+                    var badRequest = req.CreateResponse(HttpStatusCode.BadRequest);
+                    await badRequest.WriteStringAsync("Invalid server configuration JSON");
+                    return badRequest;
+                }
+            }
+
+            // Perform export
+            var exportResult = await this.PerformExportOperation(filter, serverConfig, exportRequest.Format);
+
+            var response = req.CreateResponse(HttpStatusCode.OK);
+            response.Headers.Add("Content-Type", "application/json");
+            await response.WriteStringAsync(JsonSerializer.Serialize(exportResult, new JsonSerializerOptions { WriteIndented = true }));
+            return response;
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Error during metadata export");
             var errorResponse = req.CreateResponse(HttpStatusCode.InternalServerError);
             await errorResponse.WriteStringAsync($"Error: {ex.Message}");
             return errorResponse;
@@ -358,22 +360,6 @@ public class MetadataExportFunctions
             destinationStore.PackagesAddProgress -= progressTracker.OnAddProgress;
         }
     }
-}
-
-/// <summary>
-/// Interface for filter request objects
-/// </summary>
-public interface IMetadataFilterRequest
-{
-    IEnumerable<string>? ProductsFilter { get; }
-    IEnumerable<string>? ClassificationsFilter { get; }
-    IEnumerable<string>? IdFilter { get; }
-    string? TitleFilter { get; }
-    string? HardwareIdFilter { get; }
-    string? ComputerHardwareIdFilter { get; }
-    IEnumerable<string>? KbArticleFilter { get; }
-    bool SkipSuperseded { get; }
-    int FirstX { get; }
 }
 
 /// <summary>
