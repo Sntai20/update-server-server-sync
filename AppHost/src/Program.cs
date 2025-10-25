@@ -3,7 +3,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
-using System.Net.Sockets;
 using System.Text.Json;
 
 var builder = DistributedApplication.CreateBuilder(args);
@@ -11,30 +10,12 @@ var builder = DistributedApplication.CreateBuilder(args);
 // Add Azure Storage Emulator as a containerized resource with FIXED ports AND PERSISTENT STORAGE
 var storage = builder
     .AddAzureStorage("Storage")
-    .RunAsEmulator(configure =>
-    {
-        configure.WithApiVersionCheck(false);
-
-        // Add persistent data volume for Azurite
-        configure.WithDataVolume("azurite-data");
-
-        // Fix the ports so UseDevelopmentStorage=true works
-        configure.WithEndpoint("blob", endpoint =>
-        {
-            endpoint.Protocol = ProtocolType.Tcp;
-            endpoint.Port = 10000;
-        });
-        configure.WithEndpoint("queue", endpoint =>
-        {
-            endpoint.Protocol = ProtocolType.Tcp;
-            endpoint.Port = 10001;
-        });
-        configure.WithEndpoint("table", endpoint =>
-        {
-            endpoint.Protocol = ProtocolType.Tcp;
-            endpoint.Port = 10002;
-        });
-    });
+    .RunAsEmulator(emulator => emulator
+        .WithDataVolume("azurite-data")
+        .WithBlobPort(10000)
+        .WithQueuePort(10001)
+        .WithTablePort(10002)
+        .WithArgs("--skipApiVersionCheck"));
 
 // Add Azure Service Bus for queue-triggered functions
 var serviceBus = builder
