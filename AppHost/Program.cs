@@ -97,9 +97,9 @@ var serviceConfiguration = new
 };
 
 // Configure Azure Functions with proper connection strings
-var updateFunctions = builder.AddAzureFunctionsProject<Projects.UpdateEngine>("update-functions")
+var updateFunctions = builder.AddAzureFunctionsProject<Projects.UpdateEngine>("UpdateEngine")
     .WithExternalHttpEndpoints()
-    .WithHostStorage(storage)  // Functions runtime storage
+    .WithHostStorage(storage)
     .WithReference(serviceBus)
     .WithReference(contentSyncQueue)
     .WithReference(prioritySyncQueue)
