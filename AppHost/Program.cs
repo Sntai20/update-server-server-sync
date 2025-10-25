@@ -103,7 +103,8 @@ var updateFunctions = builder.AddAzureFunctionsProject<Projects.UpdateEngine>("u
     .WithReference(serviceBus)
     .WithReference(contentSyncQueue)
     .WithReference(prioritySyncQueue)
-    .WithReference(standardSyncQueue);
+    .WithReference(standardSyncQueue)
+    .WaitFor(serviceBus);
 
 // Pass storage connection strings when using Azure Storage
 if (useAzureStorage)
