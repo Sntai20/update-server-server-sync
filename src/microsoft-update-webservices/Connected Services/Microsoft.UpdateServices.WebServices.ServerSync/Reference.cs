@@ -2426,7 +2426,7 @@ namespace Microsoft.UpdateServices.WebServices.ServerSync
     public interface IServerSyncWebService
     {
         // GetAuthConfig must be serialized with DataContract because it's an empty message and XmlSerializer does not generate an empty body
-        [DataContractFormat]
+        [System.ServiceModel.OperationContractAttribute(Action="http://www.microsoft.com/SoftwareDistribution/GetAuthConfig", ReplyAction="*")]
         System.Threading.Tasks.Task<Microsoft.UpdateServices.WebServices.ServerSync.GetAuthConfigResponse> GetAuthConfigAsync(Microsoft.UpdateServices.WebServices.ServerSync.GetAuthConfigRequest request);
         
         [System.ServiceModel.OperationContractAttribute(Action="http://www.microsoft.com/SoftwareDistribution/GetCookie", ReplyAction="http://www.microsoft.com/SoftwareDistribution/IServerSyncWebService/GetCookieResp" +
@@ -3211,3 +3211,5 @@ namespace Microsoft.UpdateServices.WebServices.ServerSync
     }
 #pragma warning restore 1591
 }
+
+

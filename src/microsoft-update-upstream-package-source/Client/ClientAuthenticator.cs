@@ -204,11 +204,11 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate.Source
             // Issue the request. All accounts are allowed, so we just generate a random account guid and name
             var cookieRequest = new GetAuthorizationCookieRequest
             {
-                GetAuthorizationCookie = new GetAuthorizationCookieRequestBody
-                {
-                    accountGuid = AccountName,
-                    accountName = AccountGuid.ToString()
-                }
+     GetAuthorizationCookie = new GetAuthorizationCookieRequestBody
+          {
+  accountGuid = AccountGuid.ToString(),
+    accountName = AccountName
+     }
             };
 
             var getAuthCookieResponse = await authenticationService.GetAuthorizationCookieAsync(cookieRequest);
