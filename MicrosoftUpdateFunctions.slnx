@@ -5,7 +5,7 @@
     <Project Path="src/microsoft-update-upstream-package-source/microsoft-update-upstream-source.csproj" />
     <Project Path="src/microsoft-update-webservices/microsoft-update-webservices.csproj" />
   </Folder>
-  <Project Path="MicrosoftUpdateFunctions.AppHost/MicrosoftUpdateFunctions.AppHost.csproj" />
-  <Project Path="MicrosoftUpdateFunctions/src/MicrosoftUpdateFunctions.csproj" />
-  <Project Path="MicrosoftUpdateFunctions/tests/MicrosoftUpdateFunctions.Tests/MicrosoftUpdateFunctions.Tests.csproj" />
+  <Project Path="AppHost/AppHost.csproj" />
+  <Project Path="UpdateEngine/src/UpdateEngine.csproj" />
+  <Project Path="UpdateEngine/tests/UpdateEngineTest.csproj" />
 </Solution>
