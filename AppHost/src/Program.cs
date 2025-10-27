@@ -62,7 +62,8 @@ var updateFunctions = builder.AddAzureFunctionsProject<Projects.UpdateEngine>("U
 ConfigurationHelper.ConfigureUpdateFunctions(
     updateFunctions,
     serviceConfiguration,
-    builder.Configuration.GetSection("Storage"));
+    builder.Configuration.GetSection("Storage"),
+    builder.Configuration.GetSection("AzureWebJobs"));
 
 var app = builder.Build();
 

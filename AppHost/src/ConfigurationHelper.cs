@@ -83,6 +83,7 @@ public static class ConfigurationHelper
     /// <param name="functions">The Azure Functions project resource builder to configure.</param>
     /// <param name="serviceConfiguration">The service configuration containing runtime settings.</param>
     /// <param name="storageConfig">The storage configuration section (currently unused but kept for compatibility).</param>
+    /// <param name="azureWebJobsConfig">The Azure WebJobs configuration section.</param>
     /// <remarks>
     /// Sets up environment variables for:
     /// <list type="bullet">
@@ -94,7 +95,8 @@ public static class ConfigurationHelper
     public static void ConfigureUpdateFunctions(
         IResourceBuilder<AzureFunctionsProjectResource> functions,
         ServiceConfiguration serviceConfiguration,
-        IConfiguration storageConfig)
+        IConfigurationSection storageConfig,
+        IConfigurationSection azureWebJobsConfig)
     {
         var storageConf = serviceConfiguration.StorageConfiguration;
 
@@ -114,6 +116,13 @@ public static class ConfigurationHelper
             .WithEnvironment("ContentStorePath", storageConf.ContentStorePath)
             .WithEnvironment("ContentHttpRoot", serviceConfiguration.ContentUrl)
             .WithEnvironment("ServiceConfigurationJson", System.Text.Json.JsonSerializer.Serialize(serviceConfiguration));
+
+        // Pass Azure Functions disable configuration
+        foreach (var job in azureWebJobsConfig.GetChildren())
+        {
+            var disabledValue = job.GetValue<bool>("Disabled");
+            functions.WithEnvironment($"AzureWebJobs.{job.Key}.Disabled", disabledValue.ToString().ToLower());
+        }
     }
 
     /// <summary>
