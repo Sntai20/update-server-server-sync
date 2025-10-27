@@ -1,4 +1,4 @@
-namespace AppHost;
+﻿namespace AppHost;
 
 using Microsoft.Extensions.Configuration;
 using Aspire.Hosting.ApplicationModel;
@@ -93,20 +93,12 @@ public static class ConfigurationHelper
     /// </list>
     /// </remarks>
     public static void ConfigureUpdateFunctions(
-        IResourceBuilder<AzureFunctionsProjectResource> functions,
-        ServiceConfiguration serviceConfiguration,
-        IConfigurationSection storageConfig,
-        IConfigurationSection azureWebJobsConfig)
+    IResourceBuilder<AzureFunctionsProjectResource> functions,
+    ServiceConfiguration serviceConfiguration,
+    IConfigurationSection storageConfig,
+    IConfigurationSection azureWebJobsConfig)
     {
         var storageConf = serviceConfiguration.StorageConfiguration;
-
-        if (storageConf.UseAzureStorage)
-        {
-            var connectionString = AzuriteDefaults.GetConnectionString();
-            functions
-                .WithEnvironment("ConnectionStrings__MetadataStorageConnection", connectionString)
-                .WithEnvironment("ConnectionStrings__ContentStorageConnection", connectionString);
-        }
 
         functions
             .WithEnvironment("UseAzureStorage", storageConf.UseAzureStorage.ToString())

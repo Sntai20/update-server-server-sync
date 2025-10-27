@@ -1,162 +1,146 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
 namespace UpdateEngineTest.Infrastructure;
 
-using System.Diagnostics;
-using System.Net.Http;
+using Aspire.Hosting;
+using Aspire.Hosting.Testing;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 /// <summary>
-/// Advanced Aspire test fixture that manages Azure Functions with proper lifecycle management
-/// This provides comprehensive testing environment for distributed application scenarios
+/// Advanced Aspire test fixture using Aspire.Hosting.Testing with IntegrationTest configuration.
+/// Implements proper health checking with exponential backoff retry logic.
 /// </summary>
 public class AspireAppHostTestFixture : IAsyncLifetime
 {
-    private Process? funcProcess;
-    private Process? appHostProcess;
-    private HttpClient? httpClient;
+    private DistributedApplication? _app;
+    private HttpClient? _httpClient;
 
-    public HttpClient HttpClient => this.httpClient ?? throw new InvalidOperationException("Test fixture not initialized");
-    public string BaseAddress { get; private set; } = string.Empty;
+    public HttpClient HttpClient => this._httpClient ?? throw new InvalidOperationException("Test fixture not initialized");
 
     public async Task InitializeAsync()
     {
-        try
+        var appHost = await DistributedApplicationTestingBuilder.CreateAsync<Projects.AppHost>();
+
+        // Add IntegrationTest configuration
+        appHost.Configuration.AddJsonFile(
+            path: "appsettings.IntegrationTest.json",
+            optional: false,
+            reloadOnChange: false);
+
+        // Configure HTTP client with longer timeout for actual test usage
+        appHost.Services.ConfigureHttpClientDefaults(clientBuilder =>
         {
-            // Option 1: Try to start with AppHost if available
-            await TryStartWithAppHost();
-            
-            // Option 2: Fallback to direct function startup
-            if (this.httpClient == null)
+            clientBuilder.ConfigureHttpClient(client =>
             {
-                await StartAzureFunctionsDirect();
+                client.Timeout = TimeSpan.FromMinutes(2);
+            });
+            clientBuilder.AddStandardResilienceHandler();
+        });
+
+        this._app = await appHost.BuildAsync();
+        await this._app.StartAsync();
+
+        // Aspire creates an HttpClient that knows the correct address
+        this._httpClient = this._app.CreateHttpClient("UpdateEngine");
+
+        Console.WriteLine($"UpdateEngine HttpClient created successfully");
+        Console.WriteLine($"Base address: {this._httpClient.BaseAddress}");
+
+        // Wait for Functions to be fully initialized with health checks
+        await this.WaitForFunctionsHealthyAsync();
+    }
+
+    /// <summary>
+    /// Waits for Azure Functions to be healthy by polling a simple endpoint with exponential backoff.
+    /// Uses a dedicated HttpClient without Polly resilience policies to avoid timeout conflicts.
+    /// </summary>
+    private async Task WaitForFunctionsHealthyAsync()
+    {
+        const int maxAttempts = 20; // 20 attempts with exponential backoff = ~3 minutes max
+        const int initialDelayMs = 5000; // Start with 5 seconds (give Functions time to start)
+        const int retryDelayMs = 3000; // 3 seconds between attempts
+        const int requestTimeoutSeconds = 5; // 5 second timeout per health check request
+
+        Console.WriteLine("Waiting for Azure Functions to become healthy...");
+        Console.WriteLine($"Initial delay: {initialDelayMs}ms to allow Functions runtime to start...");
+
+        // Give Functions time to start the worker process and discover functions
+        await Task.Delay(initialDelayMs);
+
+        // Create a simple HttpClient without Polly resilience policies for health checks
+        using var healthCheckClient = new HttpClient
+        {
+            BaseAddress = this._httpClient!.BaseAddress,
+            Timeout = TimeSpan.FromSeconds(requestTimeoutSeconds)
+        };
+
+        for (int attempt = 1; attempt <= maxAttempts; attempt++)
+        {
+            try
+            {
+                Console.WriteLine($"Health check attempt {attempt}/{maxAttempts}...");
+
+                // Try to hit a simple GET endpoint (GetStoreStatus is a good health check)
+                var response = await healthCheckClient.GetAsync("/api/GetStoreStatus");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"✓ Azure Functions is healthy after {attempt} attempt(s)");
+                    Console.WriteLine($"  Response: {content.Substring(0, Math.Min(100, content.Length))}...");
+
+                    // Give it one more second to stabilize
+                    await Task.Delay(1000);
+                    return;
+                }
+
+                Console.WriteLine($"  Status: {(int)response.StatusCode} {response.StatusCode}");
+            }
+            catch (HttpRequestException ex)
+            {
+                Console.WriteLine($"  Connection failed: {ex.Message}");
+            }
+            catch (TaskCanceledException)
+            {
+                Console.WriteLine($"  Request timed out after {requestTimeoutSeconds} seconds");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"  Unexpected error: {ex.GetType().Name}: {ex.Message}");
             }
 
-            // Health check to ensure functions are responding
-            await WaitForServicesReady();
+            if (attempt < maxAttempts)
+            {
+                Console.WriteLine($"  Waiting {retryDelayMs}ms before retry...");
+                await Task.Delay(retryDelayMs);
+            }
         }
-        catch (Exception ex)
-        {
-            throw new InvalidOperationException(
-                "Failed to initialize Aspire AppHost test environment. " +
-                "Ensure Azure Functions Core Tools are installed and AppHost builds successfully.", ex);
-        }
+
+        throw new TimeoutException(
+            $"Azure Functions failed to become healthy after {maxAttempts} attempts over {(initialDelayMs + (maxAttempts * (requestTimeoutSeconds * 1000 + retryDelayMs))) / 1000} seconds. " +
+            "Possible issues:\n" +
+            "  1. Azurite may not have started in time\n" +
+            "  2. Functions worker process may have crashed during storage initialization\n" +
+            "  3. Functions may not have finished discovering endpoints\n" +
+            "Check the test output logs for Azure Functions startup errors.");
     }
 
     public async Task DisposeAsync()
     {
-        this.httpClient?.Dispose();
-        
-        if (this.funcProcess != null && !this.funcProcess.HasExited)
+        this._httpClient?.Dispose();
+
+        if (this._app != null)
         {
-            this.funcProcess.Kill();
-            await this.funcProcess.WaitForExitAsync();
-            this.funcProcess.Dispose();
+            await this._app.StopAsync();
+            await this._app.DisposeAsync();
         }
-        
-        if (this.appHostProcess != null && !this.appHostProcess.HasExited)
-        {
-            this.appHostProcess.Kill();
-            await this.appHostProcess.WaitForExitAsync();
-            this.appHostProcess.Dispose();
-        }
-    }
-
-    public async Task<string> GetFunctionUrl(string functionName)
-    {
-        return $"{BaseAddress}{functionName}";
-    }
-
-    private async Task TryStartWithAppHost()
-    {
-        try
-        {
-            var appHostPath = Path.GetFullPath("../../../../../tests/AppHost");
-            if (Directory.Exists(appHostPath))
-            {
-                var startInfo = new ProcessStartInfo
-                {
-                    FileName = "dotnet",
-                    Arguments = "run",
-                    WorkingDirectory = appHostPath,
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    CreateNoWindow = true
-                };
-
-                this.appHostProcess = Process.Start(startInfo);
-                await Task.Delay(15000); // Give AppHost time to start
-
-                // Create HTTP client for the distributed app
-                this.httpClient = new HttpClient();
-                BaseAddress = "http://localhost:7071/api/";
-                this.httpClient.BaseAddress = new Uri(BaseAddress);
-                this.httpClient.Timeout = TimeSpan.FromMinutes(2);
-            }
-        }
-        catch
-        {
-            // AppHost startup failed, will try direct approach
-            this.appHostProcess?.Dispose();
-            this.appHostProcess = null;
-        }
-    }
-
-    private async Task StartAzureFunctionsDirect()
-    {
-        var funcPath = Path.GetFullPath("../../../../../azure-functions");
-        
-        var startInfo = new ProcessStartInfo
-        {
-            FileName = "func",
-            Arguments = "start --port 7071",
-            WorkingDirectory = funcPath,
-            UseShellExecute = false,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            CreateNoWindow = true
-        };
-
-        this.funcProcess = Process.Start(startInfo);
-        await Task.Delay(10000); // Give Functions time to start
-
-        this.httpClient = new HttpClient();
-        BaseAddress = "http://localhost:7071/api/";
-        this.httpClient.BaseAddress = new Uri(BaseAddress);
-        this.httpClient.Timeout = TimeSpan.FromMinutes(2);
-    }
-
-    private async Task WaitForServicesReady()
-    {
-        const int maxRetries = 30;
-        const int delayMs = 2000;
-
-        for (int i = 0; i < maxRetries; i++)
-        {
-            try
-            {
-                var response = await this.httpClient!.GetAsync("ClientWebService/ClientWebService.asmx");
-                if (response.StatusCode == System.Net.HttpStatusCode.MethodNotAllowed || 
-                    response.StatusCode == System.Net.HttpStatusCode.OK)
-                {
-                    return; // Service is ready
-                }
-            }
-            catch
-            {
-                // Service not ready yet
-            }
-
-            await Task.Delay(delayMs);
-        }
-
-        throw new TimeoutException("Services did not become ready within the expected time");
     }
 }
 
-[CollectionDefinition("AspireAppHostIntegration")]
-public class AspireAppHostIntegrationCollection : ICollectionFixture<AspireAppHostTestFixture>
+[CollectionDefinition("AspireAppHost")]
+public class AspireAppHostCollection : ICollectionFixture<AspireAppHostTestFixture>
 {
 }

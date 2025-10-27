@@ -1,4 +1,6 @@
 ﻿using AppHost;
+using Aspire.Hosting;
+using Microsoft.Extensions.Configuration;
 
 /// <summary>
 /// Entry point for the .NET Aspire application host that orchestrates the distributed
@@ -15,23 +17,10 @@ var builder = DistributedApplication.CreateBuilder(args);
 var storage = builder
     .AddAzureStorage("Storage")
     .RunAsEmulator(emulator => emulator
-        .WithBlobPort(AzuriteDefaults.BlobPort)
-        .WithQueuePort(AzuriteDefaults.QueuePort)
-        .WithTablePort(AzuriteDefaults.TablePort)
         .WithArgs("--skipApiVersionCheck"));
 
-/// <summary>
-/// Configures Azure Service Bus emulator with message queues for sync operations.
-/// Includes content sync, priority sync, and standard sync queues for managing
-/// update synchronization workflows and message-based communication between components.
-/// </summary>
-var serviceBus = builder
-    .AddAzureServiceBus("ServiceBusConnection")
-    .RunAsEmulator();
-
-var contentSyncQueue = serviceBus.AddServiceBusQueue("content-sync-requests");
-var prioritySyncQueue = serviceBus.AddServiceBusQueue("priority-sync-requests");
-var standardSyncQueue = serviceBus.AddServiceBusQueue("standard-sync-requests");
+// Check if Service Bus should be enabled (disable for minimal testing)
+var enableServiceBus = builder.Configuration.GetValue<bool>("Features:EnableScheduledSync", false);
 
 /// <summary>
 /// Builds and validates service configuration from application settings, including storage paths,
@@ -42,18 +31,38 @@ var serviceConfiguration = ConfigurationHelper.BuildServiceConfiguration(builder
 ConfigurationHelper.ValidateAndSetupStorage(builder, serviceConfiguration);
 
 /// <summary>
-/// Configures the UpdateEngine Azure Functions project with all required dependencies:
-/// storage emulator, service bus, message queues, and service configuration.
-/// Enables external HTTP endpoints for SOAP web services and health monitoring.
+/// Configures the UpdateEngine Azure Functions project with dependencies.
+/// Service Bus and queues are conditionally included based on configuration.
+/// Waits for storage to be ready to prevent worker process crashes during startup.
 /// </summary>
 var updateFunctions = builder.AddAzureFunctionsProject<Projects.UpdateEngine>("UpdateEngine")
     .WithExternalHttpEndpoints()
     .WithHostStorage(storage)
-    .WithReference(serviceBus)
-    .WithReference(contentSyncQueue)
-    .WithReference(prioritySyncQueue)
-    .WithReference(standardSyncQueue)
-    .WaitFor(serviceBus);
+    .WaitFor(storage);
+
+// Conditionally add Service Bus if enabled
+if (enableServiceBus)
+{
+    /// <summary>
+    /// Configures Azure Service Bus emulator with message queues for sync operations.
+    /// Includes content sync, priority sync, and standard sync queues for managing
+    /// update synchronization workflows and message-based communication between components.
+    /// </summary>
+    var serviceBus = builder
+        .AddAzureServiceBus("ServiceBusConnection")
+        .RunAsEmulator();
+
+    var contentSyncQueue = serviceBus.AddServiceBusQueue("content-sync-requests");
+    var prioritySyncQueue = serviceBus.AddServiceBusQueue("priority-sync-requests");
+    var standardSyncQueue = serviceBus.AddServiceBusQueue("standard-sync-requests");
+
+    updateFunctions
+        .WithReference(serviceBus)
+        .WithReference(contentSyncQueue)
+        .WithReference(prioritySyncQueue)
+        .WithReference(standardSyncQueue)
+        .WaitFor(serviceBus);
+}
 
 /// <summary>
 /// Applies service configuration and storage settings to the Azure Functions environment,

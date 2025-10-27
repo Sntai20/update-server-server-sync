@@ -33,7 +33,11 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IMetadataStore>(provider =>
         {
             var logger = provider.GetRequiredService<ILogger<IMetadataStore>>();
-            var connectionString = configuration.GetConnectionString("MetadataStorageConnection");
+            
+            // Try multiple connection string names - AzureWebJobsStorage is provided by WithHostStorage()
+            var connectionString = configuration.GetConnectionString("MetadataStorageConnection")
+                ?? configuration["AzureWebJobsStorage"];  // Fallback to the Functions host storage
+            
             var useAzureStorage = bool.Parse(configuration["UseAzureStorage"] ?? "false");
             var storePath = configuration["MetadataStorePath"] ?? "./store";
             var containerName = configuration["MetadataContainerName"] ?? "metadata";
@@ -54,7 +58,11 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IContentStore?>(provider =>
         {
             var logger = provider.GetRequiredService<ILogger<IContentStore>>();
-            var connectionString = configuration.GetConnectionString("ContentStorageConnection");
+            
+            // Try multiple connection string names - AzureWebJobsStorage is provided by WithHostStorage()
+            var connectionString = configuration.GetConnectionString("ContentStorageConnection")
+                ?? configuration["AzureWebJobsStorage"];  // Fallback to the Functions host storage
+            
             var useAzureStorage = bool.Parse(configuration["UseAzureStorage"] ?? "false");
             var storePath = configuration["ContentStorePath"];
             var containerName = configuration["ContentContainerName"] ?? "content";
