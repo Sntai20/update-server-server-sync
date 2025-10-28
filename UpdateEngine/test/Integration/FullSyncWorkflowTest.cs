@@ -1,4 +1,6 @@
-﻿using System.Net;
+﻿namespace UpdateEngineTest.Integration;
+
+using System.Net;
 using System.Text;
 using System.Text.Json;
 using UpdateEngineTest.Infrastructure;
