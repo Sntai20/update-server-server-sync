@@ -7,9 +7,11 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 using UpdateEngine.Services;
+using UpdateEngine.Models;
 using System.Net;
 using System.Text.Json;
 using Microsoft.PackageGraph.Storage;
+using Microsoft.Extensions.Options;
 
 /// <summary>
 /// Azure Functions for automated synchronization operations with multiple trigger types.
@@ -22,17 +24,20 @@ public class AutomatedSyncFunctions
     private readonly ISyncService syncService;
     private readonly IHealthService healthService;
     private readonly IContentStore? contentStore;
+    private readonly ServiceConfiguration serviceConfiguration;
 
     public AutomatedSyncFunctions(
         ILogger<AutomatedSyncFunctions> logger,
         ISyncService syncService,
         IHealthService healthService,
-        IContentStore? contentStore)
+        IContentStore? contentStore,
+        IOptions<ServiceConfiguration> serviceConfiguration)
     {
         this.logger = logger;
         this.syncService = syncService;
         this.healthService = healthService;
         this.contentStore = contentStore;
+        this.serviceConfiguration = serviceConfiguration.Value;
     }
 
     /// <summary>
@@ -40,7 +45,7 @@ public class AutomatedSyncFunctions
     /// Ensures the system is healthy and logs any issues.
     /// </summary>
     [Function("HourlyHealthCheck")]
-    public async Task HourlyHealthCheck([TimerTrigger("0 0 * * * *")] TimerInfo timer)
+    public async Task HourlyHealthCheck([TimerTrigger("%HourlyHealthCheckSchedule%")] TimerInfo timer)
     {
         this.logger.LogInformation("Starting hourly health check at {Time}", DateTime.UtcNow);
 
@@ -78,7 +83,7 @@ public class AutomatedSyncFunctions
     /// Focuses on security and critical updates for faster processing.
     /// </summary>
     [Function("DailyCriticalSync")]
-    public async Task DailyCriticalSync([TimerTrigger("0 30 1 * * *")] TimerInfo timer)
+    public async Task DailyCriticalSync([TimerTrigger("%DailyCriticalSyncSchedule%")] TimerInfo timer)
     {
         this.logger.LogInformation("Starting daily critical sync at {Time}", DateTime.UtcNow);
 
@@ -109,7 +114,7 @@ public class AutomatedSyncFunctions
     /// Performs full metadata and content synchronization.
     /// </summary>
     [Function("WeeklyComprehensiveSync")]
-    public async Task WeeklyComprehensiveSync([TimerTrigger("0 0 2 * * 0")] TimerInfo timer)
+    public async Task WeeklyComprehensiveSync([TimerTrigger("%WeeklyComprehensiveSyncSchedule%")] TimerInfo timer)
     {
         this.logger.LogInformation("Starting weekly comprehensive sync at {Time}", DateTime.UtcNow);
 
@@ -154,7 +159,7 @@ public class AutomatedSyncFunctions
     /// Performs cleanup, optimization, and deep health checks.
     /// </summary>
     [Function("MonthlyMaintenance")]
-    public async Task MonthlyMaintenance([TimerTrigger("0 0 3 1 * *")] TimerInfo timer)
+    public async Task MonthlyMaintenance([TimerTrigger("%MonthlyMaintenanceSchedule%")] TimerInfo timer)
     {
         this.logger.LogInformation("Starting monthly maintenance at {Time}", DateTime.UtcNow);
 

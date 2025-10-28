@@ -31,6 +31,7 @@ public static class ConfigurationHelper
         var serviceConfig = configuration.GetSection("Service");
         var syncConfig = configuration.GetSection("Sync");
         var featuresConfig = configuration.GetSection("Features");
+        var functionSchedulesConfig = configuration.GetSection("FunctionSchedules");
 
         var useAzureStorage = storageConfig.GetValue<bool>("UseAzureStorage");
         var metadataStorePath = storageConfig["MetadataStorePath"] ?? "./store";
@@ -73,6 +74,19 @@ public static class ConfigurationHelper
                 EnableHealthMonitoring = featuresConfig.GetValue<bool>("EnableHealthMonitoring", true),
                 EnableMetadataExport = featuresConfig.GetValue<bool>("EnableMetadataExport", true),
                 EnableDriverMatching = featuresConfig.GetValue<bool>("EnableDriverMatching", true)
+            },
+
+            FunctionSchedules = new FunctionSchedules
+            {
+                HourlyHealthCheckSchedule = functionSchedulesConfig["HourlyHealthCheckSchedule"] ?? "01:00:00",
+                DailyCriticalSyncSchedule = functionSchedulesConfig["DailyCriticalSyncSchedule"] ?? "1.00:00:00",
+                WeeklyComprehensiveSyncSchedule = functionSchedulesConfig["WeeklyComprehensiveSyncSchedule"] ?? "7.00:00:00",
+                MonthlyMaintenanceSchedule = functionSchedulesConfig["MonthlyMaintenanceSchedule"] ?? "30.00:00:00",
+                ScheduledHealthCheckSchedule = functionSchedulesConfig["ScheduledHealthCheckSchedule"] ?? "01:00:00",
+                WeeklyMaintenanceSchedule = functionSchedulesConfig["WeeklyMaintenanceSchedule"] ?? "7.00:00:00",
+                ScheduledMetadataSyncSchedule = functionSchedulesConfig["ScheduledMetadataSyncSchedule"] ?? "1.00:00:00",
+                CriticalUpdatesSyncSchedule = functionSchedulesConfig["CriticalUpdatesSyncSchedule"] ?? "04:00:00",
+                ScheduledContentSyncSchedule = functionSchedulesConfig["ScheduledContentSyncSchedule"] ?? "7.00:00:00"
             }
         };
     }
@@ -108,6 +122,19 @@ public static class ConfigurationHelper
             .WithEnvironment("ContentStorePath", storageConf.ContentStorePath)
             .WithEnvironment("ContentHttpRoot", serviceConfiguration.ContentUrl)
             .WithEnvironment("ServiceConfigurationJson", System.Text.Json.JsonSerializer.Serialize(serviceConfiguration));
+
+        // Pass function schedules as environment variables for timer triggers
+        var schedules = serviceConfiguration.FunctionSchedules;
+        functions
+            .WithEnvironment("HourlyHealthCheckSchedule", schedules.HourlyHealthCheckSchedule)
+            .WithEnvironment("DailyCriticalSyncSchedule", schedules.DailyCriticalSyncSchedule)
+            .WithEnvironment("WeeklyComprehensiveSyncSchedule", schedules.WeeklyComprehensiveSyncSchedule)
+            .WithEnvironment("MonthlyMaintenanceSchedule", schedules.MonthlyMaintenanceSchedule)
+            .WithEnvironment("ScheduledHealthCheckSchedule", schedules.ScheduledHealthCheckSchedule)
+            .WithEnvironment("WeeklyMaintenanceSchedule", schedules.WeeklyMaintenanceSchedule)
+            .WithEnvironment("ScheduledMetadataSyncSchedule", schedules.ScheduledMetadataSyncSchedule)
+            .WithEnvironment("CriticalUpdatesSyncSchedule", schedules.CriticalUpdatesSyncSchedule)
+            .WithEnvironment("ScheduledContentSyncSchedule", schedules.ScheduledContentSyncSchedule);
 
         // Pass Azure Functions disable configuration
         foreach (var job in azureWebJobsConfig.GetChildren())

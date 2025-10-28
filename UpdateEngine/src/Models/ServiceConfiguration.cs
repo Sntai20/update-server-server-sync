@@ -21,6 +21,17 @@ public class SyncConfig
     public int ContentSyncIntervalHours { get; set; }
     public int MaintenanceIntervalHours { get; set; }
     public int HealthCheckIntervalMinutes { get; set; }
+
+    // TimeSpan-based schedules for Azure Functions
+    public TimeSpan HourlyHealthCheckSchedule { get; set; } = TimeSpan.FromHours(1);
+    public TimeSpan DailyCriticalSyncSchedule { get; set; } = TimeSpan.FromHours(24);
+    public TimeSpan WeeklyComprehensiveSyncSchedule { get; set; } = TimeSpan.FromDays(7);
+    public TimeSpan MonthlyMaintenanceSchedule { get; set; } = TimeSpan.FromDays(30);
+    public TimeSpan ScheduledHealthCheckSchedule { get; set; } = TimeSpan.FromHours(1);
+    public TimeSpan WeeklyMaintenanceSchedule { get; set; } = TimeSpan.FromDays(7);
+    public TimeSpan ScheduledMetadataSyncSchedule { get; set; } = TimeSpan.FromHours(24);
+    public TimeSpan CriticalUpdatesSyncSchedule { get; set; } = TimeSpan.FromHours(4);
+    public TimeSpan ScheduledContentSyncSchedule { get; set; } = TimeSpan.FromDays(7);
 }
 
 public class StorageConfig

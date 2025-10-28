@@ -7,8 +7,10 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 using UpdateEngine.Services;
+using UpdateEngine.Models;
 using System.Net;
 using System.Text.Json;
+using Microsoft.Extensions.Options;
 
 /// <summary>
 /// Unified Azure Functions for metadata synchronization operations.
@@ -18,17 +20,20 @@ using System.Text.Json;
 public class MetadataSyncFunctions
 {
     private readonly ILogger<MetadataSyncFunctions> logger;
-  private readonly ISyncService syncService;
+    private readonly ISyncService syncService;
     private readonly IHealthService healthService;
+    private readonly ServiceConfiguration serviceConfiguration;
 
-  public MetadataSyncFunctions(
+    public MetadataSyncFunctions(
         ILogger<MetadataSyncFunctions> logger,
         ISyncService syncService,
-        IHealthService healthService)
+        IHealthService healthService,
+        IOptions<ServiceConfiguration> serviceConfiguration)
     {
- this.logger = logger;
+        this.logger = logger;
         this.syncService = syncService;
         this.healthService = healthService;
+        this.serviceConfiguration = serviceConfiguration.Value;
     }
 
     /// <summary>
@@ -94,7 +99,7 @@ public class MetadataSyncFunctions
     /// Performs comprehensive sync for regular maintenance.
     /// </summary>
     [Function("ScheduledMetadataSync")]
-    public async Task ScheduledMetadataSync([TimerTrigger("0 0 2 * * *")] TimerInfo timer)
+    public async Task ScheduledMetadataSync([TimerTrigger("%ScheduledMetadataSyncSchedule%")] TimerInfo timer)
     {
         this.logger.LogInformation("Starting scheduled comprehensive metadata sync at {Time}", DateTime.UtcNow);
 
@@ -123,11 +128,11 @@ public class MetadataSyncFunctions
     }
 
     /// <summary>
-  /// Critical updates synchronization - every 4 hours.
+    /// Critical updates synchronization - every 4 hours.
     /// Focuses on security and critical updates for faster sync.
     /// </summary>
     [Function("CriticalUpdatesSync")]
-    public async Task CriticalUpdatesSync([TimerTrigger("0 0 */4 * * *")] TimerInfo timer)
+    public async Task CriticalUpdatesSync([TimerTrigger("%CriticalUpdatesSyncSchedule%")] TimerInfo timer)
     {
         this.logger.LogInformation("Starting critical updates sync at {Time}", DateTime.UtcNow);
 

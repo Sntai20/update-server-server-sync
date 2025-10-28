@@ -9,6 +9,7 @@ public record ServiceConfiguration
     public required SyncConfiguration SyncConfiguration { get; init; }
     public required StorageConfiguration StorageConfiguration { get; init; }
     public required FeatureFlags FeatureFlags { get; init; }
+    public required FunctionSchedules FunctionSchedules { get; init; }
 }
 
 public record SyncConfiguration
@@ -39,4 +40,17 @@ public record FeatureFlags
     public bool EnableHealthMonitoring { get; init; }
     public bool EnableMetadataExport { get; init; }
     public bool EnableDriverMatching { get; init; }
+}
+
+public record FunctionSchedules
+{
+    public required string HourlyHealthCheckSchedule { get; init; }
+    public required string DailyCriticalSyncSchedule { get; init; }
+    public required string WeeklyComprehensiveSyncSchedule { get; init; }
+    public required string MonthlyMaintenanceSchedule { get; init; }
+    public required string ScheduledHealthCheckSchedule { get; init; }
+    public required string WeeklyMaintenanceSchedule { get; init; }
+    public required string ScheduledMetadataSyncSchedule { get; init; }
+    public required string CriticalUpdatesSyncSchedule { get; init; }
+    public required string ScheduledContentSyncSchedule { get; init; }
 }

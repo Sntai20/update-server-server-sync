@@ -9,9 +9,11 @@ using Microsoft.Extensions.Logging;
 using Microsoft.PackageGraph.Storage;
 using Microsoft.PackageGraph.ObjectModel;
 using UpdateEngine.Services;
+using UpdateEngine.Models;
 using System.Net;
 using System.Text.Json;
 using System.ComponentModel.DataAnnotations;
+using Microsoft.Extensions.Options;
 
 /// <summary>
 /// Azure Functions for content synchronization operations.
@@ -22,15 +24,18 @@ public class ContentSyncFunctions
     private readonly ILogger<ContentSyncFunctions> logger;
     private readonly ISyncService syncService;
     private readonly IContentStore? contentStore;
+    private readonly ServiceConfiguration serviceConfiguration;
 
     public ContentSyncFunctions(
         ILogger<ContentSyncFunctions> logger,
         ISyncService syncService,
-        IContentStore? contentStore)
+        IContentStore? contentStore,
+        IOptions<ServiceConfiguration> serviceConfiguration)
     {
         this.logger = logger;
         this.syncService = syncService;
         this.contentStore = contentStore;
+        this.serviceConfiguration = serviceConfiguration.Value;
     }
 
     /// <summary>
@@ -85,7 +90,7 @@ public class ContentSyncFunctions
     /// Runs every Sunday at 3 AM UTC to sync content for recent updates.
     /// </summary>
     [Function("ScheduledContentSync")]
-    public async Task ScheduledContentSync([TimerTrigger("0 0 3 * * 0")] TimerInfo timer)
+    public async Task ScheduledContentSync([TimerTrigger("%ScheduledContentSyncSchedule%")] TimerInfo timer)
     {
         this.logger.LogInformation("Starting scheduled content sync at {Time}", DateTime.UtcNow);
 

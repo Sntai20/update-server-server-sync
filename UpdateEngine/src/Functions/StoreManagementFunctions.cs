@@ -7,8 +7,10 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 using UpdateEngine.Services;
+using UpdateEngine.Models;
 using System.Net;
 using System.Text.Json;
+using Microsoft.Extensions.Options;
 
 /// <summary>
 /// Azure Functions for metadata store management operations.
@@ -19,15 +21,18 @@ public class StoreManagementFunctions
     private readonly ILogger<StoreManagementFunctions> logger;
     private readonly ISyncService syncService;
     private readonly IHealthService healthService;
+    private readonly ServiceConfiguration serviceConfiguration;
 
     public StoreManagementFunctions(
         ILogger<StoreManagementFunctions> logger,
         ISyncService syncService,
-        IHealthService healthService)
+        IHealthService healthService,
+        IOptions<ServiceConfiguration> serviceConfiguration)
     {
         this.logger = logger;
         this.syncService = syncService;
         this.healthService = healthService;
+        this.serviceConfiguration = serviceConfiguration.Value;
     }
 
     /// <summary>
@@ -125,7 +130,7 @@ public class StoreManagementFunctions
     /// Logs health status and triggers alerts if needed.
     /// </summary>
     [Function("ScheduledHealthCheck")]
-    public async Task ScheduledHealthCheck([TimerTrigger("0 0 * * * *")] TimerInfo timer)
+    public async Task ScheduledHealthCheck([TimerTrigger("%ScheduledHealthCheckSchedule%")] TimerInfo timer)
     {
         this.logger.LogInformation("Running scheduled health check at {Time}", DateTime.UtcNow);
 
@@ -163,7 +168,7 @@ public class StoreManagementFunctions
     /// Performs cleanup and optimization tasks.
     /// </summary>
     [Function("WeeklyMaintenance")]
-    public async Task WeeklyMaintenance([TimerTrigger("0 0 1 * * 0")] TimerInfo timer)
+    public async Task WeeklyMaintenance([TimerTrigger("%WeeklyMaintenanceSchedule%")] TimerInfo timer)
     {
         this.logger.LogInformation("Starting weekly maintenance tasks at {Time}", DateTime.UtcNow);
 
