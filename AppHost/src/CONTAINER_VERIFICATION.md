@@ -17,7 +17,8 @@ Returns comprehensive storage configuration and status:
 ```json
 {
   "Configuration": {
-    "UseAzureStorage": true,
+    "UseAzureStorageForMetadata": true,
+    "UseAzureStorageForContent": true,
     "MetadataStorePath": "./store",
     "MetadataContainerName": "metadata",
   "HasMetadataConnection": true

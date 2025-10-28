@@ -25,7 +25,8 @@ Verify your `appsettings.Development.json` has the correct settings:
 ```json
 {
   "Storage": {
- "UseAzureStorage": true,  // Must be true to use Azure Storage
+ "UseAzureStorageForMetadata": true,
+  "UseAzureStorageForContent": true,  // Must be true to use Azure Storage
     "MetadataContainerName": "metadata",
     "ContentContainerName": "content"
   }
@@ -126,7 +127,8 @@ az storage container create --name content
 ### 7. Common Issues and Solutions
 
 #### Issue: "UseAzureStorage" is false
-**Solution:** Set `"UseAzureStorage": true` in `appsettings.Development.json`
+**Solution:** Set `"UseAzureStorageForMetadata": true,
+        "UseAzureStorageForContent": true` in `appsettings.Development.json`
 
 #### Issue: Azurite not accessible
 **Symptoms:** Connection refused errors on ports 10000-10002

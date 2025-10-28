@@ -68,7 +68,8 @@ Successfully migrated from legacy `Microsoft.Azure.Storage.Blob` (v11.x) to mode
 ```json
 {
   "Storage": {
-    "UseAzureStorage": false,
+    "UseAzureStorageForMetadata": false,
+     "UseAzureStorageForContent": false,
     "MetadataStorePath": "./store",
     "ContentStorePath": "./content",
     "MetadataContainerName": "metadata",

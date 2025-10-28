@@ -63,12 +63,12 @@ dotnet build
 
 ### Storage Configuration
 
-| Task | Command |
-|------|---------|
-| **Configure Storage** | `./scripts/setup/Configure-Storage.ps1` |
-| **Use Local Storage** | Edit `appsettings.json`: `"UseAzureStorage": false` |
-| **Use Azurite** | Edit `appsettings.json`: `"UseAzureStorage": true` |
-| **Verify Containers** | See [Container Verification](./docs/troubleshooting/CONTAINER_VERIFICATION.md) |
+| Task                | Command                                                                 |
+|---------------------|-------------------------------------------------------------------------|
+| **Configure Storage**   | `./scripts/setup/Configure-Storage.ps1`                                 |
+| **Use Local Storage**   | Edit `appsettings.json`: `"UseAzureStorageForMetadata": false, "UseAzureStorageForContent": false` |
+| **Use Azurite**         | Edit `appsettings.json`: `"UseAzureStorageForMetadata": true, "UseAzureStorageForContent": true`  |
+| **Verify Containers**   | See [Container Verification](./docs/troubleshooting/CONTAINER_VERIFICATION.md) |
 
 ### Maintenance
 
