@@ -23,13 +23,13 @@ public static class StorageFactory
         string? connectionString,
         string? containerName,
         bool createIfNotExists,
-  ILogger logger)
+        ILogger logger)
     {
         logger.LogInformation(
-      "Creating metadata store - Type: {Type}, Path: {Path}, CreateIfNotExists: {Create}",
-       storeType,
-  storePath,
-    createIfNotExists);
+            "Creating metadata store - Type: {Type}, Path: {Path}, CreateIfNotExists: {Create}",
+            storeType,
+            storePath,
+            createIfNotExists);
 
         switch (storeType.ToLowerInvariant())
         {
@@ -50,12 +50,12 @@ public static class StorageFactory
     /// Opens or creates a content store based on configuration.
     /// </summary>
     public static IContentStore? CreateContentStore(
-  string? storePath,
-     string storeType,
+        string? storePath,
+        string storeType,
         string? connectionString,
- string? containerName,
+        string? containerName,
         bool createIfNotExists,
-   ILogger logger)
+        ILogger logger)
     {
         if (string.IsNullOrEmpty(storePath))
         {
@@ -150,10 +150,10 @@ public static class StorageFactory
     /// Validates storage configuration without creating stores.
     /// </summary>
     public static StorageValidationResult ValidateConfiguration(
-  string storePath,
+        string storePath,
         string storeType,
-  string? connectionString,
-ILogger logger)
+        string? connectionString,
+        ILogger logger)
     {
         var result = new StorageValidationResult();
 
@@ -206,7 +206,7 @@ ILogger logger)
         string? connectionString,
         string containerName,
         bool createIfNotExists,
-   ILogger logger)
+        ILogger logger)
     {
         if (string.IsNullOrEmpty(connectionString))
         {
@@ -232,8 +232,8 @@ ILogger logger)
             }
 
             logger.LogInformation(
-   "Successfully connected to Azure Storage account: {AccountName}",
-             blobServiceClient.AccountName);
+                "Successfully connected to Azure Storage account: {AccountName}",
+                blobServiceClient.AccountName);
 
             return Microsoft.PackageGraph.Storage.Azure.PackageStore.OpenOrCreate(blobServiceClient, containerName);
         }
@@ -268,7 +268,7 @@ ILogger logger)
         string? connectionString,
         string containerName,
         bool createIfNotExists,
-    ILogger logger)
+        ILogger logger)
     {
         if (string.IsNullOrEmpty(connectionString))
         {
@@ -294,8 +294,8 @@ ILogger logger)
             }
 
             logger.LogInformation(
-                      "Successfully connected to Azure Storage account: {AccountName}",
-                  blobServiceClient.AccountName);
+                "Successfully connected to Azure Storage account: {AccountName}",
+                blobServiceClient.AccountName);
 
             return BlobContentStore.OpenOrCreate(blobServiceClient, containerName);
         }
@@ -308,7 +308,7 @@ ILogger logger)
 
     private static IContentStore CreateLocalContentStore(
         string storePath,
-   bool createIfNotExists,
+        bool createIfNotExists,
         ILogger logger)
     {
         if (createIfNotExists && !Directory.Exists(storePath))

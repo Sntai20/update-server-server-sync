@@ -31,7 +31,8 @@ static void ConfigureLogging(HostBuilderContext context)
     var tempLogger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger("Startup");
 
     tempLogger.LogInformation("=== Storage Configuration ===");
-    tempLogger.LogInformation("UseAzureStorage: {UseAzureStorage}", context.Configuration["UseAzureStorage"]);
+    tempLogger.LogInformation("UseAzureStorageForMetadata: {UseAzureStorageForMetadata}", context.Configuration["UseAzureStorageForMetadata"]);
+    tempLogger.LogInformation("UseAzureStorageForContent: {UseAzureStorageForContent}", context.Configuration["UseAzureStorageForContent"]);
     tempLogger.LogInformation("MetadataStorePath: {MetadataStorePath}", context.Configuration["MetadataStorePath"]);
     tempLogger.LogInformation("ContentStorePath: {ContentStorePath}", context.Configuration["ContentStorePath"]);
     tempLogger.LogInformation("MetadataContainerName: {ContainerName}", context.Configuration["MetadataContainerName"]);
@@ -48,15 +49,16 @@ static void ConfigureLogging(HostBuilderContext context)
 
 static void ConfigureDirectories(HostBuilderContext context)
 {
-    var useAzureStorage = bool.Parse(context.Configuration["UseAzureStorage"] ?? "false");
-    if (useAzureStorage)
+    var useAzureStorageForMetadata = bool.Parse(context.Configuration["UseAzureStorageForMetadata"] ?? "false");
+    var useAzureStorageForContent = bool.Parse(context.Configuration["UseAzureStorageForContent"] ?? "false");
+    if (useAzureStorageForMetadata || useAzureStorageForContent)
     {
         return; // Storage validation happens during DI registration
     }
 
     var tempLogger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger("Startup");
-    var metadataPath = context.Configuration["MetadataStorePath"] ?? "./store";
-    var contentPath = context.Configuration["ContentStorePath"];
+    var metadataPath = context.Configuration["MetadataStorePath"] ?? "./localMetadataStore";
+    var contentPath = context.Configuration["ContentStorePath"] ?? "./localContentStore";
 
     // Validate directories can be created using StorageFactory
     try

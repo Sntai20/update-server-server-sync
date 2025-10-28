@@ -52,7 +52,8 @@ public class DiagnosticFunctions
                 ContentStore = StorageFactory.GetStoreInfo(this.contentStore, this.logger),
                 Configuration = new
                 {
-                    StorageType = Environment.GetEnvironmentVariable("UseAzureStorage"),
+                    MetadataStorageType = Environment.GetEnvironmentVariable("UseAzureStorageForMetadata"),
+                    ContentStorageType = Environment.GetEnvironmentVariable("UseAzureStorageForContent"),
                     MetadataPath = Environment.GetEnvironmentVariable("MetadataStorePath"),
                     ContentPath = Environment.GetEnvironmentVariable("ContentStorePath"),
                     MetadataContainer = Environment.GetEnvironmentVariable("MetadataContainerName"),

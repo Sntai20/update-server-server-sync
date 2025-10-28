@@ -38,10 +38,10 @@ public static class ServiceCollectionExtensions
             var connectionString = configuration.GetConnectionString("MetadataStorageConnection")
                 ?? configuration["AzureWebJobsStorage"];  // Fallback to the Functions host storage
             
-            var useAzureStorage = bool.Parse(configuration["UseAzureStorage"] ?? "false");
+            var useAzureStorageForMetadata = bool.Parse(configuration["UseAzureStorageForMetadata"] ?? "false");
             var storePath = configuration["MetadataStorePath"] ?? "./store";
             var containerName = configuration["MetadataContainerName"] ?? "metadata";
-            var storeType = useAzureStorage ? "azure" : "local";
+            var storeType = useAzureStorageForMetadata ? "azure" : "local";
 
             return StorageFactory.CreateMetadataStore(
                 storePath,
@@ -63,10 +63,10 @@ public static class ServiceCollectionExtensions
             var connectionString = configuration.GetConnectionString("ContentStorageConnection")
                 ?? configuration["AzureWebJobsStorage"];  // Fallback to the Functions host storage
             
-            var useAzureStorage = bool.Parse(configuration["UseAzureStorage"] ?? "false");
+            var useAzureStorageForContent = bool.Parse(configuration["UseAzureStorageForContent"] ?? "false");
             var storePath = configuration["ContentStorePath"];
             var containerName = configuration["ContentContainerName"] ?? "content";
-            var storeType = useAzureStorage ? "azure" : "local";
+            var storeType = useAzureStorageForContent ? "azureblob" : "local";
 
             return StorageFactory.CreateContentStore(
                 storePath,

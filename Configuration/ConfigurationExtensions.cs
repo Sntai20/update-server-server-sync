@@ -116,12 +116,14 @@ public static class ConfigurationExtensions
     /// Converts a mutable StorageConfigMutable class to an immutable StorageConfiguration record.
     /// </summary>
     /// <param name="config">The mutable storage configuration.</param>
-    /// <param name="useAzureStorage">Whether Azure Storage is being used.</param>
+    /// <param name="useAzureStorageForMetadata">Whether Azure Storage is being used.</param>
+    /// <param name="useAzureStorageForContent">Whether Azure Storage is being used.</param>
     /// <param name="metadataContainerName">The metadata container name for Azure Storage.</param>
     /// <param name="contentContainerName">The content container name for Azure Storage.</param>
     /// <returns>An immutable storage configuration with the same values.</returns>
     public static StorageConfiguration ToImmutable(this StorageConfigMutable config, 
-        bool useAzureStorage = false, 
+        bool useAzureStorageForMetadata = false,
+        bool useAzureStorageForContent = false,
         string metadataContainerName = "metadata", 
         string contentContainerName = "content")
     {
@@ -131,7 +133,8 @@ public static class ConfigurationExtensions
             ContentStorePath = config.ContentStorePath,
             EnableContentStorage = config.EnableContentStorage,
             ReindexOnStartup = config.ReindexOnStartup,
-            UseAzureStorage = useAzureStorage,
+            UseAzureStorageForMetadata = useAzureStorageForMetadata,
+            UseAzureStorageForContent = useAzureStorageForContent,
             MetadataContainerName = metadataContainerName,
             ContentContainerName = contentContainerName
         };
@@ -158,13 +161,15 @@ public static class ConfigurationExtensions
     /// Converts a mutable FeatureConfigMutable class to an immutable FeatureFlags record.
     /// </summary>
     /// <param name="config">The mutable feature configuration.</param>
-    /// <param name="useAzureStorage">Whether Azure Storage is being used.</param>
+    /// <param name="useAzureStorageForMetadata">Whether Azure Storage is being used.</param>
+    /// <param name="useAzureStorageForContent">Whether Azure Storage is being used.</param>
     /// <returns>An immutable feature flags with the same values.</returns>
-    public static FeatureFlags ToImmutable(this FeatureConfigMutable config, bool useAzureStorage = false)
+    public static FeatureFlags ToImmutable(this FeatureConfigMutable config, bool useAzureStorageForMetadata = false, bool useAzureStorageForContent = false)
     {
         return new FeatureFlags
         {
-            UseAzureStorage = useAzureStorage,
+            UseAzureStorageForMetadata = useAzureStorageForMetadata,
+            UseAzureStorageForContent = useAzureStorageForContent,
             EnableScheduledSync = config.EnableScheduledSync,
             EnableContentSync = config.EnableContentSync,
             EnableHealthMonitoring = config.EnableHealthMonitoring,
@@ -228,7 +233,8 @@ public static class ConfigurationBuilderExtensions
         var featuresConfig = configuration.GetSection("Features");
         var functionSchedulesConfig = configuration.GetSection("FunctionSchedules");
 
-        var useAzureStorage = storageConfig.GetValue<bool>("UseAzureStorage");
+        var useAzureStorageForMetadata = storageConfig.GetValue<bool>("UseAzureStorageForMetadata");
+        var useAzureStorageForContent = storageConfig.GetValue<bool>("UseAzureStorageForContent");
         var metadataStorePath = storageConfig["MetadataStorePath"] ?? "./store";
         var contentStorePath = storageConfig["ContentStorePath"] ?? "./content";
         var serviceUrl = serviceConfig["ServiceUrl"] ?? "http://localhost:7071";
@@ -256,14 +262,16 @@ public static class ConfigurationBuilderExtensions
                 ContentStorePath = contentStorePath,
                 EnableContentStorage = !string.IsNullOrEmpty(contentStorePath),
                 ReindexOnStartup = featuresConfig.GetValue<bool>("ReindexOnStartup", false),
-                UseAzureStorage = useAzureStorage,
+                UseAzureStorageForMetadata = useAzureStorageForMetadata,
+                UseAzureStorageForContent = useAzureStorageForContent,
                 MetadataContainerName = storageConfig["MetadataContainerName"] ?? "metadata",
                 ContentContainerName = storageConfig["ContentContainerName"] ?? "content"
             },
 
             FeatureFlags = new FeatureFlags
             {
-                UseAzureStorage = useAzureStorage,
+                UseAzureStorageForMetadata = useAzureStorageForMetadata,
+                UseAzureStorageForContent = useAzureStorageForContent,
                 EnableScheduledSync = featuresConfig.GetValue<bool>("EnableScheduledSync", true),
                 EnableContentSync = featuresConfig.GetValue<bool>("EnableContentSync", true),
                 EnableHealthMonitoring = featuresConfig.GetValue<bool>("EnableHealthMonitoring", true),

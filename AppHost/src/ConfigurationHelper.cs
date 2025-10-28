@@ -55,7 +55,8 @@ public static class ConfigurationHelper
         var storageConf = serviceConfiguration.StorageConfiguration;
 
         functions
-            .WithEnvironment("UseAzureStorage", storageConf.UseAzureStorage.ToString())
+            .WithEnvironment("UseAzureStorageForMetadata", storageConf.UseAzureStorageForMetadata.ToString())
+            .WithEnvironment("UseAzureStorageForContent", storageConf.UseAzureStorageForContent.ToString())
             .WithEnvironment("MetadataContainerName", storageConf.MetadataContainerName)
             .WithEnvironment("ContentContainerName", storageConf.ContentContainerName)
             .WithEnvironment("MetadataStorePath", storageConf.MetadataStorePath)
@@ -109,7 +110,7 @@ public static class ConfigurationHelper
             throw new InvalidOperationException("MetadataStorePath must be configured");
         }
 
-        if (!storageConf.UseAzureStorage && builder.Environment.IsDevelopment())
+        if ((!storageConf.UseAzureStorageForContent || !storageConf.UseAzureStorageForMetadata) && builder.Environment.IsDevelopment())
         {
             StorageSetupHelper.EnsureLocalDirectories(storageConf.MetadataStorePath, storageConf.ContentStorePath);
 

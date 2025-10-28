@@ -149,8 +149,11 @@ public record StorageConfiguration
     /// <summary>Gets a value indicating whether to reindex on startup.</summary>
     public bool ReindexOnStartup { get; init; }
 
-    /// <summary>Gets a value indicating whether to use Azure Storage.</summary>
-    public bool UseAzureStorage { get; init; }
+    /// <summary>Gets a value indicating whether to use Azure Storage for the metadata store.</summary>
+    public bool UseAzureStorageForMetadata { get; init; }
+
+    /// <summary>Gets a value indicating whether to use Azure Storage for the content store.</summary>
+    public bool UseAzureStorageForContent { get; init; }
 
     /// <summary>Gets the metadata container name for Azure Storage.</summary>
     public required string MetadataContainerName { get; init; }
@@ -182,8 +185,11 @@ public class StorageConfigMutable
 /// </summary>
 public record FeatureFlags
 {
-    /// <summary>Gets a value indicating whether to use Azure Storage.</summary>
-    public bool UseAzureStorage { get; init; }
+    /// <summary>Gets a value indicating whether to use Azure Storage for the metadata store.</summary>
+    public bool UseAzureStorageForMetadata { get; init; }
+
+    /// <summary>Gets a value indicating whether to use Azure Storage for the content store.</summary>
+    public bool UseAzureStorageForContent{ get; init; }
 
     /// <summary>Gets a value indicating whether scheduled sync is enabled.</summary>
     public bool EnableScheduledSync { get; init; }
