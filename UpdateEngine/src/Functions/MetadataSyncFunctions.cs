@@ -7,7 +7,7 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 using UpdateEngine.Services;
-using UpdateEngine.Models;
+using Configuration;
 using System.Net;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
@@ -22,13 +22,13 @@ public class MetadataSyncFunctions
     private readonly ILogger<MetadataSyncFunctions> logger;
     private readonly ISyncService syncService;
     private readonly IHealthService healthService;
-    private readonly ServiceConfiguration serviceConfiguration;
+    private readonly ServiceConfigurationMutable serviceConfiguration;
 
     public MetadataSyncFunctions(
         ILogger<MetadataSyncFunctions> logger,
         ISyncService syncService,
         IHealthService healthService,
-        IOptions<ServiceConfiguration> serviceConfiguration)
+        IOptions<ServiceConfigurationMutable> serviceConfiguration)
     {
         this.logger = logger;
         this.syncService = syncService;

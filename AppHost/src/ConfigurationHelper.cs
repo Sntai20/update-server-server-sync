@@ -5,6 +5,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.DependencyInjection;
+using Configuration;
 
 /// <summary>
 /// Provides helper methods for configuring the Microsoft Update Server-Server Sync application.
@@ -27,68 +28,7 @@ public static class ConfigurationHelper
     /// </remarks>
     public static ServiceConfiguration BuildServiceConfiguration(IConfiguration configuration)
     {
-        var storageConfig = configuration.GetSection("Storage");
-        var serviceConfig = configuration.GetSection("Service");
-        var syncConfig = configuration.GetSection("Sync");
-        var featuresConfig = configuration.GetSection("Features");
-        var functionSchedulesConfig = configuration.GetSection("FunctionSchedules");
-
-        var useAzureStorage = storageConfig.GetValue<bool>("UseAzureStorage");
-        var metadataStorePath = storageConfig["MetadataStorePath"] ?? "./store";
-        var contentStorePath = storageConfig["ContentStorePath"] ?? "./content";
-        var serviceUrl = serviceConfig["ServiceUrl"] ?? "http://localhost:7071";
-
-        return new ServiceConfiguration
-        {
-            ServiceUrl = serviceUrl,
-            ContentUrl = $"{serviceUrl}/api/content",
-            MaxUpdateCount = serviceConfig.GetValue<int>("MaxUpdateCount", 1000),
-            SupportedCategories = serviceConfig.GetSection("SupportedCategories").Get<string[]>()
-                ?? new[] { "Security Updates", "Critical Updates", "Feature Packs", "Updates", "Drivers" },
-
-            SyncConfiguration = new SyncConfiguration
-            {
-                CriticalUpdatesIntervalHours = syncConfig.GetValue<int>("CriticalUpdatesIntervalHours", 4),
-                ComprehensiveUpdatesIntervalHours = syncConfig.GetValue<int>("ComprehensiveUpdatesIntervalHours", 24),
-                ContentSyncIntervalHours = syncConfig.GetValue<int>("ContentSyncIntervalHours", 168),
-                MaintenanceIntervalHours = syncConfig.GetValue<int>("MaintenanceIntervalHours", 168),
-                HealthCheckIntervalMinutes = syncConfig.GetValue<int>("HealthCheckIntervalMinutes", 60)
-            },
-
-            StorageConfiguration = new StorageConfiguration
-            {
-                MetadataStorePath = metadataStorePath,
-                ContentStorePath = contentStorePath,
-                EnableContentStorage = !string.IsNullOrEmpty(contentStorePath),
-                ReindexOnStartup = featuresConfig.GetValue<bool>("ReindexOnStartup", false),
-                UseAzureStorage = useAzureStorage,
-                MetadataContainerName = storageConfig["MetadataContainerName"] ?? "metadata",
-                ContentContainerName = storageConfig["ContentContainerName"] ?? "content"
-            },
-
-            FeatureFlags = new FeatureFlags
-            {
-                UseAzureStorage = useAzureStorage,
-                EnableScheduledSync = featuresConfig.GetValue<bool>("EnableScheduledSync", true),
-                EnableContentSync = featuresConfig.GetValue<bool>("EnableContentSync", true),
-                EnableHealthMonitoring = featuresConfig.GetValue<bool>("EnableHealthMonitoring", true),
-                EnableMetadataExport = featuresConfig.GetValue<bool>("EnableMetadataExport", true),
-                EnableDriverMatching = featuresConfig.GetValue<bool>("EnableDriverMatching", true)
-            },
-
-            FunctionSchedules = new FunctionSchedules
-            {
-                HourlyHealthCheckSchedule = functionSchedulesConfig["HourlyHealthCheckSchedule"] ?? "01:00:00",
-                DailyCriticalSyncSchedule = functionSchedulesConfig["DailyCriticalSyncSchedule"] ?? "1.00:00:00",
-                WeeklyComprehensiveSyncSchedule = functionSchedulesConfig["WeeklyComprehensiveSyncSchedule"] ?? "7.00:00:00",
-                MonthlyMaintenanceSchedule = functionSchedulesConfig["MonthlyMaintenanceSchedule"] ?? "30.00:00:00",
-                ScheduledHealthCheckSchedule = functionSchedulesConfig["ScheduledHealthCheckSchedule"] ?? "01:00:00",
-                WeeklyMaintenanceSchedule = functionSchedulesConfig["WeeklyMaintenanceSchedule"] ?? "7.00:00:00",
-                ScheduledMetadataSyncSchedule = functionSchedulesConfig["ScheduledMetadataSyncSchedule"] ?? "1.00:00:00",
-                CriticalUpdatesSyncSchedule = functionSchedulesConfig["CriticalUpdatesSyncSchedule"] ?? "04:00:00",
-                ScheduledContentSyncSchedule = functionSchedulesConfig["ScheduledContentSyncSchedule"] ?? "7.00:00:00"
-            }
-        };
+        return configuration.BuildServiceConfiguration();
     }
 
     /// <summary>

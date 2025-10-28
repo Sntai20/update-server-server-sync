@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.PackageGraph.Storage;
 using Microsoft.PackageGraph.Storage.Local;
 using UpdateEngine.Services;
-using UpdateEngine.Models;
+using Configuration;
 using Xunit;
 
 /// <summary>
@@ -54,12 +54,35 @@ var store = PackageStore.OpenOrCreate(this.tempStorePath);
         services.AddSingleton<IContentStore?>(sp => (IContentStore?)null);
 
         // Add service configuration
- services.AddSingleton(new ServiceConfiguration
+        services.AddSingleton(new ServiceConfigurationMutable
         {
-    ServiceUrl = "http://localhost:7071",
-   ContentUrl = "http://localhost:7071/api/content",
-         MaxUpdateCount = 1000,
-   SupportedCategories = new[] { "Security Updates", "Critical Updates" }
+            ServiceUrl = "http://localhost:7071",
+            ContentUrl = "http://localhost:7071/api/content",
+            MaxUpdateCount = 1000,
+            SupportedCategories = new[] { "Security Updates", "Critical Updates" },
+            SyncConfiguration = new SyncConfigMutable
+            {
+                CriticalUpdatesIntervalHours = 24,
+                ComprehensiveUpdatesIntervalHours = 168,
+                ContentSyncIntervalHours = 1,
+                MaintenanceIntervalHours = 720,
+                HealthCheckIntervalMinutes = 60
+            },
+            StorageConfiguration = new StorageConfigMutable
+            {
+                MetadataStorePath = "./store",
+                ContentStorePath = "./content",
+                EnableContentStorage = false,
+                ReindexOnStartup = false
+            },
+            FeatureFlags = new FeatureConfigMutable
+            {
+                EnableScheduledSync = true,
+                EnableContentSync = false,
+                EnableHealthMonitoring = true,
+                EnableMetadataExport = false,
+                EnableDriverMatching = false
+            }
         });
 
         // Add application services

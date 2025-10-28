@@ -7,7 +7,7 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 using UpdateEngine.Services;
-using UpdateEngine.Models;
+using Configuration;
 using System.Net;
 using System.Text.Json;
 using Microsoft.PackageGraph.Storage;
@@ -24,14 +24,14 @@ public class AutomatedSyncFunctions
     private readonly ISyncService syncService;
     private readonly IHealthService healthService;
     private readonly IContentStore? contentStore;
-    private readonly ServiceConfiguration serviceConfiguration;
+    private readonly ServiceConfigurationMutable serviceConfiguration;
 
     public AutomatedSyncFunctions(
         ILogger<AutomatedSyncFunctions> logger,
         ISyncService syncService,
         IHealthService healthService,
         IContentStore? contentStore,
-        IOptions<ServiceConfiguration> serviceConfiguration)
+        IOptions<ServiceConfigurationMutable> serviceConfiguration)
     {
         this.logger = logger;
         this.syncService = syncService;

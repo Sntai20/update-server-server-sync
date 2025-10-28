@@ -6,7 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.PackageGraph.Storage;
-using UpdateEngine.Models;
+using Configuration;
 using UpdateEngine.Services;
 using System.Text.Json;
 
@@ -81,7 +81,7 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
     var configJson = configuration["ServiceConfigurationJson"];
     if (!string.IsNullOrEmpty(configJson))
     {
-        var config = JsonSerializer.Deserialize<ServiceConfiguration>(configJson);
+        var config = JsonSerializer.Deserialize<ServiceConfigurationMutable>(configJson);
         if (config != null)
         {
             services.AddSingleton(config);
@@ -89,7 +89,7 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
     }
 
     // Configure from settings
-    services.Configure<ServiceConfiguration>(configuration.GetSection("ServiceConfiguration"));
+    services.Configure<ServiceConfigurationMutable>(configuration.GetSection("ServiceConfiguration"));
 
     // Register Microsoft Update services
     services.AddMicrosoftUpdateServices(configuration);

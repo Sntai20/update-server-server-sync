@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.PackageGraph.Storage;
 using Microsoft.PackageGraph.ObjectModel;
 using UpdateEngine.Services;
-using UpdateEngine.Models;
+using Configuration;
 using System.Net;
 using System.Text.Json;
 using System.ComponentModel.DataAnnotations;
@@ -24,13 +24,13 @@ public class ContentSyncFunctions
     private readonly ILogger<ContentSyncFunctions> logger;
     private readonly ISyncService syncService;
     private readonly IContentStore? contentStore;
-    private readonly ServiceConfiguration serviceConfiguration;
+    private readonly ServiceConfigurationMutable serviceConfiguration;
 
     public ContentSyncFunctions(
         ILogger<ContentSyncFunctions> logger,
         ISyncService syncService,
         IContentStore? contentStore,
-        IOptions<ServiceConfiguration> serviceConfiguration)
+        IOptions<ServiceConfigurationMutable> serviceConfiguration)
     {
         this.logger = logger;
         this.syncService = syncService;
