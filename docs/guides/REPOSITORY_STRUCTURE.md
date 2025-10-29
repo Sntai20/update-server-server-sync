@@ -30,11 +30,11 @@ update-server-server-sync/
 
 | File | Purpose | Audience | Status |
 |------|---------|----------|--------|
-| [README.md](./README.md) | Main project overview | All | ? Keep |
-| [SECURITY.md](./SECURITY.md) | Security policies | All | ? Keep |
-| [STORAGE_GUIDE.md](./STORAGE_GUIDE.md) | Storage configuration | Developers | ?? Move to docs/guides/ |
-| [WCF_NET9_FIX_GUIDE.md](./WCF_NET9_FIX_GUIDE.md) | .NET 9 WCF fixes | Developers | ?? Move to docs/troubleshooting/ |
-| [INMEMORY_TESTING_GUIDE.md](./INMEMORY_TESTING_GUIDE.md) | In-memory testing | Developers | ?? Move to docs/development/ |
+| [README.md](../../README.md) | Main project overview | All | ✅ Keep |
+| [SECURITY.md](../../SECURITY.md) | Security policies | All | ✅ Keep |
+| [STORAGE_GUIDE.md](./STORAGE_GUIDE.md) | Storage configuration | Developers | ✅ Moved to docs/guides/ |
+| [WCF_NET9_FIX_GUIDE.md](./WCF_NET9_FIX_GUIDE.md) | .NET 9 WCF fixes | Developers | ✅ Moved to docs/guides/ |
+| [INMEMORY_TESTING_GUIDE.md](./INMEMORY_TESTING_GUIDE.md) | In-memory testing | Developers | ✅ Moved to docs/guides/ |
 
 ### .github Directory
 
@@ -48,21 +48,21 @@ update-server-server-sync/
 
 | File | Purpose | Status |
 |------|---------|--------|
-| [UpdateEngine/README.md](./UpdateEngine/README.md) | Functions overview | ? Keep |
-| [UpdateEngine/UpdateEngine - Deduplicate.md](./UpdateEngine/UpdateEngine%20-%20Deduplicate.md) | Deduplication notes | ??? Archive or delete |
-| [UpdateEngine/src/README.md](./UpdateEngine/src/README.md) | Source code overview | ? Keep |
-| [UpdateEngine/src/TRIGGERS_GUIDE.md](./UpdateEngine/src/TRIGGERS_GUIDE.md) | Azure Functions triggers | ? Keep |
-| [UpdateEngine/test/.../TESTING_GUIDE.md](./UpdateEngine/test/UpdateEngineTest/TESTING_GUIDE.md) | Testing strategies | ?? Merge with INMEMORY_TESTING_GUIDE.md |
+| [UpdateEngine/README.md](../../UpdateEngine/README.md) | Functions overview | ✅ Keep |
+| [UpdateEngine/UpdateEngine - Deduplicate.md](../../UpdateEngine/UpdateEngine%20-%20Deduplicate.md) | Deduplication notes | ⚠️ Archive or delete |
+| [UpdateEngine/src/README.md](../../UpdateEngine/src/README.md) | Source code overview | ✅ Keep |
+| [TRIGGERS_GUIDE.md](./TRIGGERS_GUIDE.md) | Azure Functions triggers | ✅ Moved to docs/guides/ |
+| [TESTING_GUIDE.md](./TESTING_GUIDE.md) | Testing strategies | ✅ Moved to docs/guides/ |
 
 ### AppHost
 
 | File | Purpose | Status |
 |------|---------|--------|
-| [AppHost/README.md](./AppHost/README.md) | AppHost overview | ? Keep |
-| [AppHost/MIGRATION_SUMMARY.md](./AppHost/MIGRATION_SUMMARY.md) | Migration notes | ?? Move to docs/guides/ |
-| [AppHost/CONTAINER_VERIFICATION.md](./AppHost/CONTAINER_VERIFICATION.md) | Container testing | ?? Move to docs/troubleshooting/ |
-| [AppHost/SYNC_TROUBLESHOOTING.md](./AppHost/SYNC_TROUBLESHOOTING.md) | Sync issues | ?? Move to docs/troubleshooting/ |
-| [AppHost/TROUBLESHOOTING_STORAGE.md](./AppHost/TROUBLESHOOTING_STORAGE.md) | Storage issues | ?? Move to docs/troubleshooting/ |
+| [AppHost/README.md](../../AppHost/README.md) | AppHost overview | ✅ Keep |
+| [MIGRATION_SUMMARY.md](./MIGRATION_SUMMARY.md) | Migration notes | ✅ Moved to docs/guides/ |
+| [CONTAINER_VERIFICATION.md](./CONTAINER_VERIFICATION.md) | Container testing | ✅ Moved to docs/guides/ |
+| [SYNC_TROUBLESHOOTING.md](./SYNC_TROUBLESHOOTING.md) | Sync issues | ✅ Moved to docs/guides/ |
+| [TROUBLESHOOTING_STORAGE.md](./TROUBLESHOOTING_STORAGE.md) | Storage issues | ✅ Moved to docs/guides/ |
 
 ### src/documentation
 

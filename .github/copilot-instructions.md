@@ -265,9 +265,7 @@ catch (Exception ex)
 
 update-server-server-sync/
 ├── docs/                          # Centralized documentation
-│   ├── guides/                    # How-to guides and configuration
-│   ├── troubleshooting/           # Troubleshooting and debugging
-│   ├── development/               # Development guides
+│   ├── guides/                    # All documentation guides (centralized)
 │   └── api/                       # API documentation
 │
 ├── scripts/                       # Centralized scripts
@@ -312,15 +310,15 @@ update-server-server-sync/
   - `scripts/setup/Configure-Storage.ps1` - Storage setup script
 
 - **Development**
-  - `docs/development/INMEMORY_TESTING_GUIDE.md` - In-memory testing
-  - `UpdateEngine/src/TRIGGERS_GUIDE.md` - Azure Functions triggers
-  - `test/MicrosoftUpdateFunctions.Tests/TESTING_GUIDE.md` - Testing strategies
+  - `docs/guides/INMEMORY_TESTING_GUIDE.md` - In-memory testing
+  - `docs/guides/TRIGGERS_GUIDE.md` - Azure Functions triggers
+  - `docs/guides/TESTING_GUIDE.md` - Testing strategies
 
 - **Troubleshooting**
-  - `docs/troubleshooting/WCF_NET9_FIX_GUIDE.md` - WCF .NET 9 fixes
-  - `docs/troubleshooting/SYNC_TROUBLESHOOTING.md` - Sync issues
-  - `docs/troubleshooting/TROUBLESHOOTING_STORAGE.md` - Storage issues
-  - `docs/troubleshooting/CONTAINER_VERIFICATION.md` - Container testing
+  - `docs/guides/WCF_NET9_FIX_GUIDE.md` - WCF .NET 9 fixes
+  - `docs/guides/SYNC_TROUBLESHOOTING.md` - Sync issues
+  - `docs/guides/TROUBLESHOOTING_STORAGE.md` - Storage issues
+  - `docs/guides/CONTAINER_VERIFICATION.md` - Container testing
 
 - **API Documentation**
   - `docs/api/` - Comprehensive API documentation

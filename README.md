@@ -46,17 +46,17 @@ This repository is organized as follows:
 
 ### Essential Guides
 
-- **[Quick Reference](./QUICK_REFERENCE.md)** - Quick start guide for developers
+- **[Quick Reference](./docs/guides/QUICK_REFERENCE.md)** - Quick start guide for developers
 - **[Storage Configuration](./docs/guides/STORAGE_GUIDE.md)** - Configure Azure Storage or local storage
-- **[Testing Guide](./docs/development/INMEMORY_TESTING_GUIDE.md)** - In-memory testing (no infrastructure required)
+- **[Testing Guide](./docs/guides/INMEMORY_TESTING_GUIDE.md)** - In-memory testing (no infrastructure required)
 - **[Migration Summary](./docs/guides/MIGRATION_SUMMARY.md)** - Azure Storage migration guide
 
 ### Troubleshooting
 
-- **[WCF .NET 9 Fixes](./docs/troubleshooting/WCF_NET9_FIX_GUIDE.md)** - Fix WCF compatibility issues
-- **[Storage Issues](./docs/troubleshooting/TROUBLESHOOTING_STORAGE.md)** - Troubleshoot storage problems
-- **[Sync Issues](./docs/troubleshooting/SYNC_TROUBLESHOOTING.md)** - Troubleshoot synchronization issues
-- **[Container Verification](./docs/troubleshooting/CONTAINER_VERIFICATION.md)** - Verify Azure containers
+- **[WCF .NET 9 Fixes](./docs/guides/WCF_NET9_FIX_GUIDE.md)** - Fix WCF compatibility issues
+- **[Storage Issues](./docs/guides/TROUBLESHOOTING_STORAGE.md)** - Troubleshoot storage problems
+- **[Sync Issues](./docs/guides/SYNC_TROUBLESHOOTING.md)** - Troubleshoot synchronization issues
+- **[Container Verification](./docs/guides/CONTAINER_VERIFICATION.md)** - Verify Azure containers
 
 ### API Documentation
 
@@ -74,7 +74,7 @@ This repository is organized as follows:
 | **Configure Storage** | `./scripts/setup/Configure-Storage.ps1` |
 | **Validate Build** | `./scripts/build/Validate-Build.ps1` |
 
-**📖 For more commands, see [QUICK_REFERENCE.md](./QUICK_REFERENCE.md)**
+**📖 For more commands, see [docs/guides/QUICK_REFERENCE.md](./docs/guides/QUICK_REFERENCE.md)**
 
 ## Reference the library in your project
 
@@ -115,7 +115,7 @@ dotnet test --filter "Category=Integration"
 dotnet test
 ```
 
-**?? For testing strategies, see [docs/development/INMEMORY_TESTING_GUIDE.md](./docs/development/INMEMORY_TESTING_GUIDE.md)**
+**🧪 For testing strategies, see [docs/guides/INMEMORY_TESTING_GUIDE.md](./docs/guides/INMEMORY_TESTING_GUIDE.md)**
 
 # Contributing
 
