@@ -1,0 +1,409 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "functionAppName": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the Function App"
+      }
+    },
+    "appServicePlanName": {
+      "type": "string",
+      "defaultValue": "[concat(parameters('functionAppName'), '-plan')]",
+      "metadata": {
+        "description": "The name of the App Service Plan"
+      }
+    },
+    "storageAccountName": {
+      "type": "string",
+      "defaultValue": "[concat(parameters('functionAppName'), 'storage')]",
+      "metadata": {
+        "description": "The name of the Storage Account"
+      }
+    },
+    "applicationInsightsName": {
+      "type": "string",
+      "defaultValue": "[concat(parameters('functionAppName'), '-insights')]",
+      "metadata": {
+        "description": "The name of the Application Insights instance"
+      }
+    },
+    "logAnalyticsWorkspaceName": {
+      "type": "string",
+      "defaultValue": "[concat(parameters('functionAppName'), '-logs')]",
+      "metadata": {
+        "description": "The name of the Log Analytics Workspace"
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "The Azure region where resources will be deployed"
+      }
+    },
+    "environment": {
+      "type": "string",
+      "defaultValue": "dev",
+      "allowedValues": [
+        "dev",
+        "staging",
+        "prod"
+      ],
+      "metadata": {
+        "description": "Environment name (dev, staging, prod)"
+      }
+    },
+    "maxScaleOut": {
+      "type": "int",
+      "defaultValue": 25,
+      "metadata": {
+        "description": "Maximum number of instances for auto-scaling"
+      }
+    },
+    "enableApplicationInsights": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "Enable Application Insights"
+      }
+    },
+    "storageAccountType": {
+      "type": "string",
+      "defaultValue": "Standard_LRS",
+      "allowedValues": [
+        "Standard_LRS",
+        "Standard_GRS",
+        "Standard_RAGRS",
+        "Premium_LRS"
+      ],
+      "metadata": {
+        "description": "Storage account type"
+      }
+    },
+    "functionWorkerRuntime": {
+      "type": "string",
+      "defaultValue": "dotnet-isolated",
+      "metadata": {
+        "description": "Function App runtime stack"
+      }
+    },
+    "functionsExtensionVersion": {
+      "type": "string",
+      "defaultValue": "~4",
+      "metadata": {
+        "description": "Function App runtime version"
+      }
+    },
+    "netFrameworkVersion": {
+      "type": "string",
+      "defaultValue": "v9.0",
+      "metadata": {
+        "description": ".NET version"
+      }
+    }
+  },
+  "variables": {
+    "functionAppNameUnique": "[concat(parameters('functionAppName'), '-', parameters('environment'), '-', uniqueString(resourceGroup().id))]",
+    "storageAccountNameUnique": "[concat(replace(parameters('storageAccountName'), '-', ''), uniqueString(resourceGroup().id))]",
+    "appInsightsNameUnique": "[concat(parameters('applicationInsightsName'), '-', parameters('environment'))]"
+  },
+  "resources": [
+    {
+      "condition": "[parameters('enableApplicationInsights')]",
+      "type": "Microsoft.OperationalInsights/workspaces",
+      "apiVersion": "2021-12-01-preview",
+      "name": "[concat(parameters('logAnalyticsWorkspaceName'), '-', parameters('environment'))]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "sku": {
+          "name": "PerGB2018"
+        },
+        "retentionInDays": 30,
+        "features": {
+          "searchVersion": 1,
+          "legacy": 0,
+          "enableLogAccessUsingOnlyResourcePermissions": true
+        }
+      }
+    },
+    {
+      "condition": "[parameters('enableApplicationInsights')]",
+      "type": "Microsoft.Insights/components",
+      "apiVersion": "2020-02-02",
+      "name": "[variables('appInsightsNameUnique')]",
+      "location": "[parameters('location')]",
+      "kind": "web",
+      "dependsOn": [
+        "[resourceId('Microsoft.OperationalInsights/workspaces', concat(parameters('logAnalyticsWorkspaceName'), '-', parameters('environment')))]"
+      ],
+      "properties": {
+        "Application_Type": "web",
+        "Request_Source": "rest",
+        "WorkspaceResourceId": "[if(parameters('enableApplicationInsights'), resourceId('Microsoft.OperationalInsights/workspaces', concat(parameters('logAnalyticsWorkspaceName'), '-', parameters('environment'))), null())]"
+      }
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "apiVersion": "2022-09-01",
+      "name": "[variables('storageAccountNameUnique')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "[parameters('storageAccountType')]"
+      },
+      "kind": "StorageV2",
+      "properties": {
+        "supportsHttpsTrafficOnly": true,
+        "encryption": {
+          "services": {
+            "file": {
+              "keyType": "Account",
+              "enabled": true
+            },
+            "blob": {
+              "keyType": "Account",
+              "enabled": true
+            }
+          },
+          "keySource": "Microsoft.Storage"
+        },
+        "accessTier": "Hot",
+        "minimumTlsVersion": "TLS1_2"
+      }
+    },
+    {
+      "type": "Microsoft.Web/serverfarms",
+      "apiVersion": "2022-03-01",
+      "name": "[concat(parameters('appServicePlanName'), '-', parameters('environment'))]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "P3V3",
+        "tier": "Premium",
+        "size": "P3V3",
+        "family": "Pv3",
+        "capacity": 1
+      },
+      "kind": "elastic",
+      "properties": {
+        "perSiteScaling": false,
+        "elasticScaleEnabled": true,
+        "maximumElasticWorkerCount": "[parameters('maxScaleOut')]",
+        "isSpot": false,
+        "reserved": false,
+        "isXenon": false,
+        "hyperV": false,
+        "targetWorkerCount": 0,
+        "targetWorkerSizeId": 0,
+        "zoneRedundant": false
+      }
+    },
+    {
+      "type": "Microsoft.Web/sites",
+      "apiVersion": "2022-03-01",
+      "name": "[variables('functionAppNameUnique')]",
+      "location": "[parameters('location')]",
+      "kind": "functionapp",
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/serverfarms', concat(parameters('appServicePlanName'), '-', parameters('environment')))]",
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountNameUnique'))]",
+        "[resourceId('Microsoft.Insights/components', variables('appInsightsNameUnique'))]"
+      ],
+      "identity": {
+        "type": "SystemAssigned"
+      },
+      "properties": {
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', concat(parameters('appServicePlanName'), '-', parameters('environment')))]",
+        "reserved": false,
+        "isXenon": false,
+        "hyperV": false,
+        "vnetRouteAllEnabled": false,
+        "vnetImagePullEnabled": false,
+        "vnetContentShareEnabled": false,
+        "siteConfig": {
+          "numberOfWorkers": 1,
+          "alwaysOn": true,
+          "http20Enabled": true,
+          "functionAppScaleLimit": "[parameters('maxScaleOut')]",
+          "minimumElasticInstanceCount": 1,
+          "use32BitWorkerProcess": false,
+          "ftpsState": "FtpsOnly",
+          "minTlsVersion": "1.2",
+          "scmMinTlsVersion": "1.2",
+          "netFrameworkVersion": "[parameters('netFrameworkVersion')]",
+          "powerShellVersion": "~7",
+          "appSettings": [
+            {
+              "name": "AzureWebJobsStorage",
+              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageAccountNameUnique'), ';EndpointSuffix=', environment().suffixes.storage, ';AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountNameUnique')), '2022-09-01').keys[0].value)]"
+            },
+            {
+              "name": "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING",
+              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageAccountNameUnique'), ';EndpointSuffix=', environment().suffixes.storage, ';AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountNameUnique')), '2022-09-01').keys[0].value)]"
+            },
+            {
+              "name": "WEBSITE_CONTENTSHARE",
+              "value": "[toLower(variables('functionAppNameUnique'))]"
+            },
+            {
+              "name": "FUNCTIONS_EXTENSION_VERSION",
+              "value": "[parameters('functionsExtensionVersion')]"
+            },
+            {
+              "name": "FUNCTIONS_WORKER_RUNTIME",
+              "value": "[parameters('functionWorkerRuntime')]"
+            },
+            {
+              "name": "WEBSITE_MAX_DYNAMIC_APPLICATION_SCALE_OUT",
+              "value": "[string(parameters('maxScaleOut'))]"
+            },
+            {
+              "name": "WEBSITE_ENABLE_SYNC_UPDATE_SITE",
+              "value": "true"
+            },
+            {
+              "name": "WEBSITE_RUN_FROM_PACKAGE",
+              "value": "1"
+            },
+            {
+              "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
+              "value": "[if(parameters('enableApplicationInsights'), reference(resourceId('Microsoft.Insights/components', variables('appInsightsNameUnique'))).InstrumentationKey, '')]"
+            },
+            {
+              "name": "APPLICATIONINSIGHTS_CONNECTION_STRING",
+              "value": "[if(parameters('enableApplicationInsights'), reference(resourceId('Microsoft.Insights/components', variables('appInsightsNameUnique'))).ConnectionString, '')]"
+            },
+            {
+              "name": "UseAzureStorage",
+              "value": "true"
+            },
+            {
+              "name": "MetadataContainerName",
+              "value": "metadata"
+            },
+            {
+              "name": "ContentContainerName",
+              "value": "content"
+            },
+            {
+              "name": "MetadataStorePath",
+              "value": "./store"
+            },
+            {
+              "name": "ContentStorePath",
+              "value": "./content"
+            },
+            {
+              "name": "DOTNET_SYSTEM_NET_HTTP_USESOCKETSHTTPHANDLER",
+              "value": "0"
+            },
+            {
+              "name": "TimerSchedules:HealthCheck:Interval",
+              "value": "01:00:00"
+            },
+            {
+              "name": "TimerSchedules:HealthCheck:UseTimeSpan",
+              "value": "true"
+            },
+            {
+              "name": "TimerSchedules:ContentSync:Interval",
+              "value": "7.00:00:00"
+            },
+            {
+              "name": "TimerSchedules:ContentSync:UseTimeSpan",
+              "value": "true"
+            },
+            {
+              "name": "TimerSchedules:ComprehensiveSync:Interval",
+              "value": "14.00:00:00"
+            },
+            {
+              "name": "TimerSchedules:ComprehensiveSync:UseTimeSpan",
+              "value": "true"
+            },
+            {
+              "name": "TimerSchedules:Maintenance:Interval",
+              "value": "30.00:00:00"
+            },
+            {
+              "name": "TimerSchedules:Maintenance:UseTimeSpan",
+              "value": "true"
+            },
+            {
+              "name": "ServiceConfigurationJson",
+              "value": "[concat('{\"ServiceUrl\":\"https://', variables('functionAppNameUnique'), '.azurewebsites.net\",\"MaxUpdateCount\":1000,\"EnableContentServing\":true}')]"
+            },
+            {
+              "name": "Environment",
+              "value": "[parameters('environment')]"
+            },
+            {
+              "name": "WEBSITE_HTTPSCALEV2_ENABLED",
+              "value": "1"
+            },
+            {
+              "name": "FUNCTIONS_WORKER_PROCESS_COUNT",
+              "value": "4"
+            },
+            {
+              "name": "WEBSITE_CONTENTOVERVNET",
+              "value": "0"
+            }
+          ]
+        },
+        "httpsOnly": true,
+        "clientAffinityEnabled": false
+      }
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+      "apiVersion": "2022-09-01",
+      "name": "[concat(variables('storageAccountNameUnique'), '/default/metadata')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountNameUnique'))]"
+      ],
+      "properties": {
+        "publicAccess": "None",
+        "metadata": {}
+      }
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+      "apiVersion": "2022-09-01",
+      "name": "[concat(variables('storageAccountNameUnique'), '/default/content')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountNameUnique'))]"
+      ],
+      "properties": {
+        "publicAccess": "None",
+        "metadata": {}
+      }
+    }
+  ],
+  "outputs": {
+    "functionAppName": {
+      "type": "string",
+      "value": "[variables('functionAppNameUnique')]"
+    },
+    "functionAppUrl": {
+      "type": "string",
+      "value": "[concat('https://', reference(resourceId('Microsoft.Web/sites', variables('functionAppNameUnique'))).defaultHostName)]"
+    },
+    "storageAccountName": {
+      "type": "string",
+      "value": "[variables('storageAccountNameUnique')]"
+    },
+    "applicationInsightsName": {
+      "type": "string",
+      "value": "[if(parameters('enableApplicationInsights'), variables('appInsightsNameUnique'), '')]"
+    },
+    "resourceGroupName": {
+      "type": "string",
+      "value": "[resourceGroup().name]"
+    },
+    "principalId": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Web/sites', variables('functionAppNameUnique')), '2022-03-01', 'full').identity.principalId]"
+    }
+  }
+}

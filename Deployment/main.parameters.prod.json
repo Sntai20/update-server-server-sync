@@ -1,0 +1,21 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "functionAppName": {
+      "value": "msupdate-functions"
+    },
+    "environment": {
+      "value": "prod"
+    },
+    "maxScaleOut": {
+      "value": 25
+    },
+    "enableApplicationInsights": {
+      "value": true
+    },
+    "storageAccountType": {
+      "value": "Standard_GRS"
+    }
+  }
+}
