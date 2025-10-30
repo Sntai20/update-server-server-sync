@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using UpdateCli.Services;
+using UpdateCli.Storage;
 using System.Text.Json;
 
 namespace UpdateCli.Commands;
@@ -32,7 +33,7 @@ public abstract class BaseWindowsDownloadHandler
     /// <summary>
     /// Handles bulk download for the specific Windows/Server version.
     /// </summary>
-    public async Task<int> HandleBulkDownloadAsync(string downloadPath, bool securityOnly = false, int maxUpdates = 50, bool skipSync = false)
+    public async Task<int> HandleBulkDownloadAsync(string downloadPath, bool securityOnly = false, int maxUpdates = 50, bool skipSync = false, bool ipakCompatible = false)
     {
         try
         {
@@ -42,10 +43,11 @@ public abstract class BaseWindowsDownloadHandler
             Console.WriteLine($"Security Only: {securityOnly}");
             Console.WriteLine($"Max Updates: {maxUpdates}");
             Console.WriteLine($"Skip Sync: {skipSync}");
+            Console.WriteLine($"IPAK Compatible: {ipakCompatible}");
             Console.WriteLine();
 
             // Step 1: Create directories
-            var (metadataPath, contentPath, logsPath) = await CreateDirectoriesAsync(downloadPath);
+            var (metadataPath, contentPath, logsPath) = await CreateDirectoriesAsync(downloadPath, ipakCompatible);
 
             // Step 2: Check connectivity
             var connected = await this.CheckConnectivityAsync();
@@ -69,7 +71,7 @@ public abstract class BaseWindowsDownloadHandler
             var (metadataSuccess, metadataFailed) = await this.DownloadMetadataAsync(updateIds, metadataPath);
 
             // Step 6: Analyze and download content
-            var (contentSuccess, contentFailed, totalSize) = await this.DownloadContentAsync(metadataSuccess, metadataPath, contentPath);
+            var (contentSuccess, contentFailed, totalSize) = await this.DownloadContentAsync(metadataSuccess, metadataPath, contentPath, ipakCompatible);
 
             // Step 7: Generate report
             var reportData = new DownloadReportData(downloadPath, securityOnly, maxUpdates, skipSync, 
@@ -85,22 +87,52 @@ public abstract class BaseWindowsDownloadHandler
         }
     }
 
-    private static async Task<(string metadata, string content, string logs)> CreateDirectoriesAsync(string downloadPath)
+    private static async Task<(string metadata, string content, string logs)> CreateDirectoriesAsync(string downloadPath, bool ipakCompatible = false)
     {
         Console.WriteLine("📁 Creating download directories...");
-        var metadataPath = Path.Combine(downloadPath, "metadata");
-        var contentPath = Path.Combine(downloadPath, "content");
-        var logsPath = Path.Combine(downloadPath, "logs");
         
-        await Task.Run(() =>
+        if (ipakCompatible)
         {
-            Directory.CreateDirectory(metadataPath);
-            Directory.CreateDirectory(contentPath);
-            Directory.CreateDirectory(logsPath);
-        });
-        
-        Console.WriteLine("✓ Directories created");
-        return (metadataPath, contentPath, logsPath);
+            Console.WriteLine("🏗️ Setting up IPAK-compatible directory structure...");
+            var metadataPath = Path.Combine(downloadPath, "metadata");
+            var logsPath = Path.Combine(downloadPath, "logs");
+            
+            await Task.Run(() =>
+            {
+                Directory.CreateDirectory(metadataPath);
+                Directory.CreateDirectory(logsPath);
+                
+                // IPAK structure will be created by IpakCompatibleContentStore
+                var updateFilesPath = Path.Combine(downloadPath, "UpdateFiles");
+                var customUpdatesPath = Path.Combine(downloadPath, "CustomUpdates");
+                var wuAgentPath = Path.Combine(downloadPath, "WUAgent");
+                var metadataStorePath = Path.Combine(downloadPath, "_metadata");
+                
+                Directory.CreateDirectory(updateFilesPath);
+                Directory.CreateDirectory(customUpdatesPath);
+                Directory.CreateDirectory(wuAgentPath);
+                Directory.CreateDirectory(metadataStorePath);
+            });
+            
+            Console.WriteLine("✓ IPAK-compatible directories created");
+            return (metadataPath, downloadPath, logsPath); // Content path is the base for IPAK
+        }
+        else
+        {
+            var metadataPath = Path.Combine(downloadPath, "metadata");
+            var contentPath = Path.Combine(downloadPath, "content");
+            var logsPath = Path.Combine(downloadPath, "logs");
+            
+            await Task.Run(() =>
+            {
+                Directory.CreateDirectory(metadataPath);
+                Directory.CreateDirectory(contentPath);
+                Directory.CreateDirectory(logsPath);
+            });
+            
+            Console.WriteLine("✓ Standard directories created");
+            return (metadataPath, contentPath, logsPath);
+        }
     }
 
     private async Task<bool> CheckConnectivityAsync()
@@ -211,16 +243,24 @@ public abstract class BaseWindowsDownloadHandler
     }
 
     private async Task<(List<string> success, List<string> failed, long totalSize)> DownloadContentAsync(
-        List<string> metadataSuccess, string metadataPath, string contentPath)
+        List<string> metadataSuccess, string metadataPath, string contentPath, bool ipakCompatible = false)
     {
         Console.WriteLine("🔍 Analyzing metadata for content download...");
-        var contentDownloadCandidates = await this.AnalyzeMetadataForDownloadAsync(metadataSuccess, metadataPath);
+        var contentDownloadCandidates = await AnalyzeMetadataForDownloadAsync(metadataSuccess, metadataPath);
 
         Console.WriteLine($"📋 Selected {contentDownloadCandidates.Count} updates for content download");
 
         var contentSuccess = new List<string>();
         var contentFailed = new List<string>();
         long totalDownloadSize = 0;
+
+        // Initialize IPAK store if needed
+        IpakCompatibleContentStore? ipakStore = null;
+        if (ipakCompatible)
+        {
+            ipakStore = new IpakCompatibleContentStore(contentPath);
+            Console.WriteLine("🏗️ IPAK-compatible content store initialized");
+        }
 
         if (contentDownloadCandidates.Any())
         {
@@ -235,27 +275,76 @@ public abstract class BaseWindowsDownloadHandler
                 
                 try
                 {
-                    var contentFile = Path.Combine(contentPath, updateId);
-                    var progress = new Progress<long>(bytes => 
-                    {
-                        var percent = size > 0 ? (bytes * 100 / size) : 0;
-                        Console.Write($"\r    Progress: {bytes:N0}/{size:N0} bytes ({percent}%)");
-                    });
+                    string targetPath;
                     
-                    var success = await this.updateEngineClient.DownloadUpdateContentWithProgressAsync(updateId, contentFile, progress);
-                    Console.WriteLine(); // New line after progress
-                    
-                    if (success && File.Exists(contentFile))
+                    if (ipakCompatible && ipakStore != null)
                     {
-                        var actualSize = new FileInfo(contentFile).Length;
-                        totalDownloadSize += actualSize;
-                        contentSuccess.Add(updateId);
-                        Console.WriteLine($"    ✓ Downloaded: {actualSize:N0} bytes");
+                        // Download to temporary location first
+                        var tempFile = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+                        
+                        var progress = new Progress<long>(bytes => 
+                        {
+                            var percent = size > 0 ? (bytes * 100 / size) : 0;
+                            Console.Write($"\r    Progress: {bytes:N0}/{size:N0} bytes ({percent}%)");
+                        });
+                        
+                        var success = await this.updateEngineClient.DownloadUpdateContentWithProgressAsync(updateId, tempFile, progress);
+                        Console.WriteLine(); // New line after progress
+                        
+                        if (success && File.Exists(tempFile))
+                        {
+                            // Copy to IPAK-compatible location
+                            targetPath = await ipakStore.CopyToIpakStructureAsync(tempFile, updateId, title);
+                            
+                            // Cleanup temp file
+                            File.Delete(tempFile);
+                            
+                            var actualSize = new FileInfo(targetPath).Length;
+                            totalDownloadSize += actualSize;
+                            contentSuccess.Add(updateId);
+                            
+                            var folderSuffix = IpakCompatibleContentStore.GetFolderSuffix(Path.GetFileName(targetPath));
+                            Console.WriteLine($"    ✓ Downloaded to IPAK structure: UpdateFiles/{folderSuffix}/");
+                            Console.WriteLine($"    📄 File: {Path.GetFileName(targetPath)} ({actualSize:N0} bytes)");
+                        }
+                        else
+                        {
+                            contentFailed.Add(updateId);
+                            Console.WriteLine($"    ✗ Download failed");
+                            
+                            // Cleanup temp file on failure
+                            if (File.Exists(tempFile))
+                            {
+                                File.Delete(tempFile);
+                            }
+                        }
                     }
                     else
                     {
-                        contentFailed.Add(updateId);
-                        Console.WriteLine($"    ✗ Download failed");
+                        // Standard download
+                        targetPath = Path.Combine(contentPath, updateId);
+                        
+                        var progress = new Progress<long>(bytes => 
+                        {
+                            var percent = size > 0 ? (bytes * 100 / size) : 0;
+                            Console.Write($"\r    Progress: {bytes:N0}/{size:N0} bytes ({percent}%)");
+                        });
+                        
+                        var success = await this.updateEngineClient.DownloadUpdateContentWithProgressAsync(updateId, targetPath, progress);
+                        Console.WriteLine(); // New line after progress
+                        
+                        if (success && File.Exists(targetPath))
+                        {
+                            var actualSize = new FileInfo(targetPath).Length;
+                            totalDownloadSize += actualSize;
+                            contentSuccess.Add(updateId);
+                            Console.WriteLine($"    ✓ Downloaded: {actualSize:N0} bytes");
+                        }
+                        else
+                        {
+                            contentFailed.Add(updateId);
+                            Console.WriteLine($"    ✗ Download failed");
+                        }
                     }
                 }
                 catch (Exception ex)
@@ -270,7 +359,7 @@ public abstract class BaseWindowsDownloadHandler
         return (contentSuccess, contentFailed, totalDownloadSize);
     }
 
-    private async Task<List<(string UpdateId, string Title, long Size)>> AnalyzeMetadataForDownloadAsync(
+    private static async Task<List<(string UpdateId, string Title, long Size)>> AnalyzeMetadataForDownloadAsync(
         List<string> metadataSuccess, string metadataPath)
     {
         var contentDownloadCandidates = new List<(string UpdateId, string Title, long Size)>();

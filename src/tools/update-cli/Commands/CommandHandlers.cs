@@ -305,25 +305,25 @@ public class CommandHandlers
     /// <summary>
     /// Handles the Windows Server 2022 bulk download command.
     /// </summary>
-    public async Task<int> HandleDownloadServer2022Async(string downloadPath, bool securityOnly = false, int maxUpdates = 50, bool skipSync = false)
+    public async Task<int> HandleDownloadServer2022Async(string downloadPath, bool securityOnly = false, int maxUpdates = 50, bool skipSync = false, bool ipakCompatible = false)
     {
-        return await this.server2022Handler.HandleBulkDownloadAsync(downloadPath, securityOnly, maxUpdates, skipSync);
+        return await this.server2022Handler.HandleBulkDownloadAsync(downloadPath, securityOnly, maxUpdates, skipSync, ipakCompatible);
     }
 
     /// <summary>
     /// Handles the Windows Server 2025 bulk download command.
     /// </summary>
-    public async Task<int> HandleDownloadServer2025Async(string downloadPath, bool securityOnly = false, int maxUpdates = 50, bool skipSync = false)
+    public async Task<int> HandleDownloadServer2025Async(string downloadPath, bool securityOnly = false, int maxUpdates = 50, bool skipSync = false, bool ipakCompatible = false)
     {
-        return await this.server2025Handler.HandleBulkDownloadAsync(downloadPath, securityOnly, maxUpdates, skipSync);
+        return await this.server2025Handler.HandleBulkDownloadAsync(downloadPath, securityOnly, maxUpdates, skipSync, ipakCompatible);
     }
 
     /// <summary>
     /// Handles the Windows 11 bulk download command.
     /// </summary>
-    public async Task<int> HandleDownloadWindows11Async(string downloadPath, bool securityOnly = false, int maxUpdates = 50, bool skipSync = false)
+    public async Task<int> HandleDownloadWindows11Async(string downloadPath, bool securityOnly = false, int maxUpdates = 50, bool skipSync = false, bool ipakCompatible = false)
     {
-        return await this.windows11Handler.HandleBulkDownloadAsync(downloadPath, securityOnly, maxUpdates, skipSync);
+        return await this.windows11Handler.HandleBulkDownloadAsync(downloadPath, securityOnly, maxUpdates, skipSync, ipakCompatible);
     }
 
 }

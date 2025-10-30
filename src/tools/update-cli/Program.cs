@@ -206,18 +206,21 @@ public static class Program
         var securityOnlyOption = new Option<bool>("--security-only", "Download only security updates (default: false)");
         var maxUpdatesOption = new Option<int>("--max-updates", () => 50, "Maximum number of updates to process");
         var skipSyncOption = new Option<bool>("--skip-sync", "Skip metadata synchronization");
+        var ipakCompatibleOption = new Option<bool>("--ipak-compatible", "Store updates in IPAK-compatible folder structure");
 
         server2022Command.AddArgument(downloadPathArgument);
         server2022Command.AddOption(securityOnlyOption);
         server2022Command.AddOption(maxUpdatesOption);
         server2022Command.AddOption(skipSyncOption);
+        server2022Command.AddOption(ipakCompatibleOption);
 
         server2022Command.SetHandler(
             handlers.HandleDownloadServer2022Async,
             downloadPathArgument,
             securityOnlyOption,
             maxUpdatesOption,
-            skipSyncOption
+            skipSyncOption,
+            ipakCompatibleOption
         );
 
         return server2022Command;
@@ -231,18 +234,21 @@ public static class Program
         var securityOnlyOption = new Option<bool>("--security-only", "Download only security updates (default: false)");
         var maxUpdatesOption = new Option<int>("--max-updates", () => 50, "Maximum number of updates to process");
         var skipSyncOption = new Option<bool>("--skip-sync", "Skip metadata synchronization");
+        var ipakCompatibleOption = new Option<bool>("--ipak-compatible", "Store updates in IPAK-compatible folder structure");
 
         server2025Command.AddArgument(downloadPathArgument);
         server2025Command.AddOption(securityOnlyOption);
         server2025Command.AddOption(maxUpdatesOption);
         server2025Command.AddOption(skipSyncOption);
+        server2025Command.AddOption(ipakCompatibleOption);
 
         server2025Command.SetHandler(
             handlers.HandleDownloadServer2025Async,
             downloadPathArgument,
             securityOnlyOption,
             maxUpdatesOption,
-            skipSyncOption
+            skipSyncOption,
+            ipakCompatibleOption
         );
 
         return server2025Command;
@@ -256,18 +262,21 @@ public static class Program
         var securityOnlyOption = new Option<bool>("--security-only", "Download only security updates (default: false)");
         var maxUpdatesOption = new Option<int>("--max-updates", () => 50, "Maximum number of updates to process");
         var skipSyncOption = new Option<bool>("--skip-sync", "Skip metadata synchronization");
+        var ipakCompatibleOption = new Option<bool>("--ipak-compatible", "Store updates in IPAK-compatible folder structure");
 
         windows11Command.AddArgument(downloadPathArgument);
         windows11Command.AddOption(securityOnlyOption);
         windows11Command.AddOption(maxUpdatesOption);
         windows11Command.AddOption(skipSyncOption);
+        windows11Command.AddOption(ipakCompatibleOption);
 
         windows11Command.SetHandler(
             handlers.HandleDownloadWindows11Async,
             downloadPathArgument,
             securityOnlyOption,
             maxUpdatesOption,
-            skipSyncOption
+            skipSyncOption,
+            ipakCompatibleOption
         );
 
         return windows11Command;
