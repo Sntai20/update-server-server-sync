@@ -20,6 +20,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "UpdateEngine", "UpdateEngin
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Microsoft.UpdateServices", "Microsoft.UpdateServices", "{E9DF2FC4-FBD1-586B-9B60-9BCCC8C18F0D}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "update-cli", "src\tools\update-cli\update-cli.csproj", "{C8D5E234-1A2B-4567-8901-234567890ABC}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Configuration", "Configuration\Configuration.csproj", "{4DC63F6D-F224-25D5-BB69-94B9DD95C085}"
 EndProject
 Global
@@ -56,6 +58,10 @@ Global
 		{F97BC4F3-3555-A688-A95D-A7F7A8837D32}.Debug|x64.Build.0 = Debug|x64
 		{F97BC4F3-3555-A688-A95D-A7F7A8837D32}.Release|x64.ActiveCfg = Release|x64
 		{F97BC4F3-3555-A688-A95D-A7F7A8837D32}.Release|x64.Build.0 = Release|x64
+		{C8D5E234-1A2B-4567-8901-234567890ABC}.Debug|x64.ActiveCfg = Debug|x64
+		{C8D5E234-1A2B-4567-8901-234567890ABC}.Debug|x64.Build.0 = Debug|x64
+		{C8D5E234-1A2B-4567-8901-234567890ABC}.Release|x64.ActiveCfg = Release|x64
+		{C8D5E234-1A2B-4567-8901-234567890ABC}.Release|x64.Build.0 = Release|x64
 		{4DC63F6D-F224-25D5-BB69-94B9DD95C085}.Debug|x64.ActiveCfg = Debug|x64
 		{4DC63F6D-F224-25D5-BB69-94B9DD95C085}.Debug|x64.Build.0 = Debug|x64
 		{4DC63F6D-F224-25D5-BB69-94B9DD95C085}.Release|x64.ActiveCfg = Release|x64
