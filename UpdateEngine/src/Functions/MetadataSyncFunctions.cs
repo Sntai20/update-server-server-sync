@@ -97,8 +97,8 @@ public class MetadataSyncFunctions
     /// Scheduled metadata synchronization - daily at 2 AM UTC.
     /// Performs comprehensive sync for regular maintenance.
     /// </summary>
-    [Function("ScheduledMetadataSync")]
-    public async Task ScheduledMetadataSync([TimerTrigger("%ScheduledMetadataSyncSchedule%")] TimerInfo timer)
+    [Function("SyncMetadataComprehensive")]
+    public async Task SyncMetadataComprehensive([TimerTrigger("%SyncMetadataComprehensiveSchedule%")] TimerInfo timer)
     {
         this.logger.LogInformation("Starting scheduled comprehensive metadata sync at {Time}", DateTime.UtcNow);
 

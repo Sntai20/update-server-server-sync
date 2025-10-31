@@ -73,7 +73,7 @@ public static class ConfigurationExtensions
             MonthlyMaintenanceSchedule = ParseTimeSpan(functionSchedules.MonthlyMaintenanceSchedule, TimeSpan.FromDays(30)),
             ScheduledHealthCheckSchedule = ParseTimeSpan(functionSchedules.ScheduledHealthCheckSchedule, TimeSpan.FromHours(1)),
             WeeklyMaintenanceSchedule = ParseTimeSpan(functionSchedules.WeeklyMaintenanceSchedule, TimeSpan.FromDays(7)),
-            ScheduledMetadataSyncSchedule = ParseTimeSpan(functionSchedules.ScheduledMetadataSyncSchedule, TimeSpan.FromHours(24)),
+            SyncMetadataComprehensiveSchedule = ParseTimeSpan(functionSchedules.SyncMetadataComprehensiveSchedule, TimeSpan.FromHours(24)),
             SyncMetadataCriticalSchedule = ParseTimeSpan(functionSchedules.SyncMetadataCriticalSchedule, TimeSpan.FromHours(4)),
             SyncContentSchedule = ParseTimeSpan(functionSchedules.SyncContentSchedule, TimeSpan.FromDays(7))
         };
@@ -193,7 +193,7 @@ public static class ConfigurationExtensions
             MonthlyMaintenanceSchedule = config.MonthlyMaintenanceSchedule.ToString(@"d\.hh\:mm\:ss"),
             ScheduledHealthCheckSchedule = config.ScheduledHealthCheckSchedule.ToString(@"hh\:mm\:ss"),
             WeeklyMaintenanceSchedule = config.WeeklyMaintenanceSchedule.ToString(@"d\.hh\:mm\:ss"),
-            ScheduledMetadataSyncSchedule = config.ScheduledMetadataSyncSchedule.ToString(@"d\.hh\:mm\:ss"),
+            SyncMetadataComprehensiveSchedule = config.SyncMetadataComprehensiveSchedule.ToString(@"d\.hh\:mm\:ss"),
             SyncMetadataCriticalSchedule = config.SyncMetadataCriticalSchedule.ToString(@"hh\:mm\:ss"),
             SyncContentSchedule = config.SyncContentSchedule.ToString(@"d\.hh\:mm\:ss")
         };
@@ -287,7 +287,7 @@ public static class ConfigurationBuilderExtensions
                 MonthlyMaintenanceSchedule = functionSchedulesConfig["MonthlyMaintenanceSchedule"] ?? "30.00:00:00",
                 ScheduledHealthCheckSchedule = functionSchedulesConfig["ScheduledHealthCheckSchedule"] ?? "01:00:00",
                 WeeklyMaintenanceSchedule = functionSchedulesConfig["WeeklyMaintenanceSchedule"] ?? "7.00:00:00",
-                ScheduledMetadataSyncSchedule = functionSchedulesConfig["ScheduledMetadataSyncSchedule"] ?? "1.00:00:00",
+                SyncMetadataComprehensiveSchedule = functionSchedulesConfig["SyncMetadataComprehensiveSchedule"] ?? "1.00:00:00",
                 SyncMetadataCriticalSchedule = functionSchedulesConfig["SyncMetadataCriticalSchedule"] ?? "04:00:00",
                 SyncContentSchedule = functionSchedulesConfig["SyncContentSchedule"] ?? "7.00:00:00"
             }

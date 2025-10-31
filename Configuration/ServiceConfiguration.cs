@@ -123,7 +123,7 @@ public class SyncConfigMutable
     public TimeSpan WeeklyMaintenanceSchedule { get; set; } = TimeSpan.FromDays(7);
 
     /// <summary>Gets or sets the schedule for scheduled metadata sync operations.</summary>
-    public TimeSpan ScheduledMetadataSyncSchedule { get; set; } = TimeSpan.FromHours(24);
+    public TimeSpan SyncMetadataComprehensiveSchedule { get; set; } = TimeSpan.FromHours(24);
 
     /// <summary>Gets or sets the schedule for critical updates sync operations.</summary>
     public TimeSpan SyncMetadataCriticalSchedule { get; set; } = TimeSpan.FromHours(4);
@@ -253,7 +253,7 @@ public record FunctionSchedules
     public required string WeeklyMaintenanceSchedule { get; init; }
 
     /// <summary>Gets the schedule for scheduled metadata sync function.</summary>
-    public required string ScheduledMetadataSyncSchedule { get; init; }
+    public required string SyncMetadataComprehensiveSchedule { get; init; }
 
     /// <summary>Gets the schedule for critical updates sync function.</summary>
     public required string SyncMetadataCriticalSchedule { get; init; }
