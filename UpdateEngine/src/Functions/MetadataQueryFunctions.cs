@@ -116,8 +116,8 @@ public class MetadataQueryFunctions
     /// Get available product and classification filters.
     /// GET /api/AvailableFilters
     /// </summary>
-    [Function("GetAvailableFilters")]
-    public async Task<HttpResponseData> GetAvailableFilters(
+    [Function("QueryAvailableFilters")]
+    public async Task<HttpResponseData> QueryAvailableFilters(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get")] HttpRequestData req)
     {
         try
