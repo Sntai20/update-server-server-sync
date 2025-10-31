@@ -127,24 +127,25 @@ public class MetadataSyncFunctions
     }
 
     /// <summary>
-    /// Critical updates synchronization - every 4 hours.
-    /// Focuses on security and critical updates for faster sync.
+    /// Critical metadata synchronization - every 4 hours.
+    /// Syncs metadata for security and critical updates only (no content files).
+    /// For content download, use the SyncContent endpoint separately.
     /// </summary>
-    [Function("CriticalUpdatesSync")]
-    public async Task CriticalUpdatesSync([TimerTrigger("%CriticalUpdatesSyncSchedule%")] TimerInfo timer)
+    [Function("CriticalMetadataSync")]
+    public async Task CriticalMetadataSync([TimerTrigger("%CriticalMetadataSyncSchedule%")] TimerInfo timer)
     {
-        this.logger.LogInformation("Starting critical updates sync at {Time}", DateTime.UtcNow);
+        this.logger.LogInformation("Starting critical metadata sync at {Time}", DateTime.UtcNow);
 
         try
         {
             var filter = this.syncService.CreateCriticalUpdatesFilter();
             await this.syncService.SyncUpdatesAsync(filter);
 
-            this.logger.LogInformation("Critical updates sync completed successfully");
+            this.logger.LogInformation("Critical metadata sync completed successfully");
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, "Error during critical updates sync");
+            this.logger.LogError(ex, "Error during critical metadata sync");
             throw;
         }
     }

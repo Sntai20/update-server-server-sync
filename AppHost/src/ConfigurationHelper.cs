@@ -74,7 +74,7 @@ public static class ConfigurationHelper
             .WithEnvironment("ScheduledHealthCheckSchedule", schedules.ScheduledHealthCheckSchedule)
             .WithEnvironment("WeeklyMaintenanceSchedule", schedules.WeeklyMaintenanceSchedule)
             .WithEnvironment("ScheduledMetadataSyncSchedule", schedules.ScheduledMetadataSyncSchedule)
-            .WithEnvironment("CriticalUpdatesSyncSchedule", schedules.CriticalUpdatesSyncSchedule)
+            .WithEnvironment("CriticalMetadataSyncSchedule", schedules.CriticalMetadataSyncSchedule)
             .WithEnvironment("ScheduledContentSyncSchedule", schedules.ScheduledContentSyncSchedule);
 
         // Pass Azure Functions disable configuration

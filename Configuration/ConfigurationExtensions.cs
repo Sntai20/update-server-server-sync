@@ -74,7 +74,7 @@ public static class ConfigurationExtensions
             ScheduledHealthCheckSchedule = ParseTimeSpan(functionSchedules.ScheduledHealthCheckSchedule, TimeSpan.FromHours(1)),
             WeeklyMaintenanceSchedule = ParseTimeSpan(functionSchedules.WeeklyMaintenanceSchedule, TimeSpan.FromDays(7)),
             ScheduledMetadataSyncSchedule = ParseTimeSpan(functionSchedules.ScheduledMetadataSyncSchedule, TimeSpan.FromHours(24)),
-            CriticalUpdatesSyncSchedule = ParseTimeSpan(functionSchedules.CriticalUpdatesSyncSchedule, TimeSpan.FromHours(4)),
+            CriticalMetadataSyncSchedule = ParseTimeSpan(functionSchedules.CriticalMetadataSyncSchedule, TimeSpan.FromHours(4)),
             ScheduledContentSyncSchedule = ParseTimeSpan(functionSchedules.ScheduledContentSyncSchedule, TimeSpan.FromDays(7))
         };
     }
@@ -194,7 +194,7 @@ public static class ConfigurationExtensions
             ScheduledHealthCheckSchedule = config.ScheduledHealthCheckSchedule.ToString(@"hh\:mm\:ss"),
             WeeklyMaintenanceSchedule = config.WeeklyMaintenanceSchedule.ToString(@"d\.hh\:mm\:ss"),
             ScheduledMetadataSyncSchedule = config.ScheduledMetadataSyncSchedule.ToString(@"d\.hh\:mm\:ss"),
-            CriticalUpdatesSyncSchedule = config.CriticalUpdatesSyncSchedule.ToString(@"hh\:mm\:ss"),
+            CriticalMetadataSyncSchedule = config.CriticalMetadataSyncSchedule.ToString(@"hh\:mm\:ss"),
             ScheduledContentSyncSchedule = config.ScheduledContentSyncSchedule.ToString(@"d\.hh\:mm\:ss")
         };
     }
@@ -288,7 +288,7 @@ public static class ConfigurationBuilderExtensions
                 ScheduledHealthCheckSchedule = functionSchedulesConfig["ScheduledHealthCheckSchedule"] ?? "01:00:00",
                 WeeklyMaintenanceSchedule = functionSchedulesConfig["WeeklyMaintenanceSchedule"] ?? "7.00:00:00",
                 ScheduledMetadataSyncSchedule = functionSchedulesConfig["ScheduledMetadataSyncSchedule"] ?? "1.00:00:00",
-                CriticalUpdatesSyncSchedule = functionSchedulesConfig["CriticalUpdatesSyncSchedule"] ?? "04:00:00",
+                CriticalMetadataSyncSchedule = functionSchedulesConfig["CriticalMetadataSyncSchedule"] ?? "04:00:00",
                 ScheduledContentSyncSchedule = functionSchedulesConfig["ScheduledContentSyncSchedule"] ?? "7.00:00:00"
             }
         };
