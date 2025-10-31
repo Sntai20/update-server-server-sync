@@ -126,7 +126,7 @@ public class SyncConfigMutable
     public TimeSpan ScheduledMetadataSyncSchedule { get; set; } = TimeSpan.FromHours(24);
 
     /// <summary>Gets or sets the schedule for critical updates sync operations.</summary>
-    public TimeSpan CriticalMetadataSyncSchedule { get; set; } = TimeSpan.FromHours(4);
+    public TimeSpan SyncMetadataCriticalSchedule { get; set; } = TimeSpan.FromHours(4);
 
     /// <summary>Gets or sets the schedule for scheduled content sync operations.</summary>
     public TimeSpan SyncContentSchedule { get; set; } = TimeSpan.FromDays(7);
@@ -256,7 +256,7 @@ public record FunctionSchedules
     public required string ScheduledMetadataSyncSchedule { get; init; }
 
     /// <summary>Gets the schedule for critical updates sync function.</summary>
-    public required string CriticalMetadataSyncSchedule { get; init; }
+    public required string SyncMetadataCriticalSchedule { get; init; }
 
     /// <summary>Gets the schedule for scheduled content sync function.</summary>
     public required string SyncContentSchedule { get; init; }

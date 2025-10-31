@@ -131,8 +131,8 @@ public class MetadataSyncFunctions
     /// Syncs metadata for security and critical updates only (no content files).
     /// For content download, use the SyncContent endpoint separately.
     /// </summary>
-    [Function("CriticalMetadataSync")]
-    public async Task CriticalMetadataSync([TimerTrigger("%CriticalMetadataSyncSchedule%")] TimerInfo timer)
+    [Function("SyncMetadataCritical")]
+    public async Task SyncMetadataCritical([TimerTrigger("%SyncMetadataCriticalSchedule%")] TimerInfo timer)
     {
         this.logger.LogInformation("Starting critical metadata sync at {Time}", DateTime.UtcNow);
 
