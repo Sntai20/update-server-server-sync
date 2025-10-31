@@ -204,7 +204,7 @@ public class MetadataSyncIntegrationTests
     }
 
     [Fact]
-    public async Task GetStoreStatus_ShouldReturnStatusInformation()
+    public async Task QueryMetadataStoreStatus_ShouldReturnStatusInformation()
     {
         // Arrange
         var statusUrl = await this.fixture.GetFunctionUrl("metadata/store-status?storePath=./test-store");
@@ -227,7 +227,7 @@ public class MetadataSyncIntegrationTests
     }
 
     [Fact]
-    public async Task GetStoreStatus_ShouldReturnJson_WithValidStore()
+    public async Task QueryMetadataStoreStatus_ShouldReturnJson_WithValidStore()
     {
         // Arrange
         var statusUrl = await this.fixture.GetFunctionUrl("metadata/store-status");

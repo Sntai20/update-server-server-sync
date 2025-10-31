@@ -83,8 +83,8 @@ public class AspireAppHostTestFixture : IAsyncLifetime
             {
                 Console.WriteLine($"Health check attempt {attempt}/{maxAttempts}...");
 
-                // Try to hit a simple GET endpoint (GetStoreStatus is a good health check)
-                var response = await healthCheckClient.GetAsync("/api/GetStoreStatus");
+                // Try to hit a simple GET endpoint (QueryMetadataStoreStatus is a good health check)
+                var response = await healthCheckClient.GetAsync("/api/QueryMetadataStoreStatus");
 
                 if (response.IsSuccessStatusCode)
                 {

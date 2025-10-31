@@ -199,7 +199,7 @@ src/tools/update-cli/
 
 The CLI tool communicates with UpdateEngine via HTTP API endpoints:
 
-- **Health**: `GET /api/GetStoreStatus`
+- **Health**: `GET /api/QueryMetadataStoreStatus`
 - **Configuration**: `GET /api/GetServerConfiguration`
 - **Statistics**: `GET /api/GetStoreStatistics`
 - **Sync Operations**: `POST /api/SyncMetadata`, `POST /api/SyncContent`

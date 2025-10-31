@@ -28,7 +28,7 @@ public class UpdateEngineClient
     /// <returns>Health status information.</returns>
     public async Task<string> GetHealthStatusAsync()
     {
-        var response = await this.httpClient.GetAsync("/api/GetStoreStatus");
+        var response = await this.httpClient.GetAsync("/api/QueryMetadataStoreStatus");
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadAsStringAsync();
     }

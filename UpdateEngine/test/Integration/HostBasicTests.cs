@@ -15,10 +15,10 @@ public class AppHostBasicTests
     }
 
     [Fact]
-    public async Task GetStoreStatus_WithAppHost_ReturnsSuccess()
+    public async Task QueryMetadataStoreStatus_WithAppHost_ReturnsSuccess()
     {
         // Act - HttpClient already knows the correct base URL
-        var response = await this._fixture.HttpClient.GetAsync("/api/GetStoreStatus");
+        var response = await this._fixture.HttpClient.GetAsync("/api/QueryMetadataStoreStatus");
 
         // Assert
         Assert.True(response.IsSuccessStatusCode,

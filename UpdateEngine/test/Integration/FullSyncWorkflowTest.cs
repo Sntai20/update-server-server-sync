@@ -50,7 +50,7 @@ public class FullSyncWorkflowTests
         this._output.WriteLine("✓ Metadata synced");
 
         // Step 3: Check store status
-        var storeStatusResponse = await this._fixture.HttpClient.GetAsync("/api/GetStoreStatus");
+        var storeStatusResponse = await this._fixture.HttpClient.GetAsync("/api/QueryMetadataStoreStatus");
         var status = await storeStatusResponse.Content.ReadAsStringAsync();
         this._output.WriteLine($"Store status: {status}");
 

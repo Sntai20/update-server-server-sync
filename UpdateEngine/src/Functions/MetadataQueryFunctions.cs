@@ -59,10 +59,10 @@ public class MetadataQueryFunctions
 
     /// <summary>
     /// Get detailed metadata store status and statistics.
-    /// GET /api/StoreStatus
+    /// GET /api/QueryMetadataStoreStatus
     /// </summary>
-    [Function("GetStoreStatus")]
-    public async Task<HttpResponseData> GetStoreStatus(
+    [Function("QueryMetadataStoreStatus")]
+    public async Task<HttpResponseData> QueryMetadataStoreStatus(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get")] HttpRequestData req)
     {
         try

@@ -32,7 +32,7 @@ The Azure Functions implementation provides the same functionality as the origin
 7. **FetchCategories** (`/api/FetchCategories`) - Sync product categories and classifications
 8. **FetchUpdates** (`/api/FetchUpdates`) - Download update metadata from Microsoft Update
 9. **ReindexStore** (`/api/ReindexStore`) - Rebuild metadata search indices
-10. **GetStoreStatus** (`/api/GetStoreStatus`) - Get metadata store status and statistics
+10. **QueryMetadataStoreStatus** (`/api/QueryMetadataStoreStatus`) - Get metadata store status and statistics
 
 ## Prerequisites
 
@@ -184,10 +184,10 @@ Content-Type: application/json
 }
 ```
 
-### GetStoreStatus
+### QueryMetadataStoreStatus
 
 ```bash
-GET /api/GetStoreStatus
+GET /api/QueryMetadataStoreStatus
 ```
 
 Returns metadata store statistics and health information.

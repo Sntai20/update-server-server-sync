@@ -19,9 +19,9 @@ public class AppHostWorkflowTests
     public async Task MetadataWorkflow_WithAppHost_WorksEndToEnd()
     {
         // 1. Check store status (HttpClient already knows the base URL)
-        var statusResponse = await this._fixture.HttpClient.GetAsync("/api/GetStoreStatus");
+        var statusResponse = await this._fixture.HttpClient.GetAsync("/api/QueryMetadataStoreStatus");
         Assert.True(statusResponse.IsSuccessStatusCode, 
-            $"GetStoreStatus failed: {statusResponse.StatusCode}");
+            $"QueryMetadataStoreStatus failed: {statusResponse.StatusCode}");
 
         // 2. Fetch configuration
         var configRequest = new HttpRequestMessage(HttpMethod.Post, "/api/FetchConfiguration");
