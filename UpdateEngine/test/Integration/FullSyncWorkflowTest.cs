@@ -118,7 +118,7 @@ public class FullSyncWorkflowTests
         this._output.WriteLine($"✓ Content sync result: {contentResult}");
         
         // Step 5: Verify content was downloaded
-        var contentStatusResponse = await this._fixture.HttpClient.GetAsync("/api/GetContentStatus");
+        var contentStatusResponse = await this._fixture.HttpClient.GetAsync("/api/QueryContentStatus");
         var contentStatus = await contentStatusResponse.Content.ReadAsStringAsync();
         this._output.WriteLine($"Content status: {contentStatus}");
     }

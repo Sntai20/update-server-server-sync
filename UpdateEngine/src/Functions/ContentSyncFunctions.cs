@@ -89,8 +89,8 @@ public class ContentSyncFunctions
     /// Scheduled weekly content synchronization.
     /// Runs every Sunday at 3 AM UTC to sync content for recent updates.
     /// </summary>
-    [Function("ScheduledContentSync")]
-    public async Task ScheduledContentSync([TimerTrigger("%ScheduledContentSyncSchedule%")] TimerInfo timer)
+    [Function("SyncContentScheduled")]
+    public async Task SyncContentScheduled([TimerTrigger("%SyncContentSchedule%")] TimerInfo timer)
     {
         this.logger.LogInformation("Starting scheduled content sync at {Time}", DateTime.UtcNow);
 
@@ -123,8 +123,8 @@ public class ContentSyncFunctions
     /// Get content storage status and statistics.
     /// GET /api/ContentStatus
     /// </summary>
-    [Function("GetContentStatus")]
-    public async Task<HttpResponseData> GetContentStatus(
+    [Function("QueryContentStatus")]
+    public async Task<HttpResponseData> QueryContentStatus(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get")] HttpRequestData req)
     {
         try

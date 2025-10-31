@@ -75,7 +75,7 @@ public static class ConfigurationHelper
             .WithEnvironment("WeeklyMaintenanceSchedule", schedules.WeeklyMaintenanceSchedule)
             .WithEnvironment("ScheduledMetadataSyncSchedule", schedules.ScheduledMetadataSyncSchedule)
             .WithEnvironment("CriticalMetadataSyncSchedule", schedules.CriticalMetadataSyncSchedule)
-            .WithEnvironment("ScheduledContentSyncSchedule", schedules.ScheduledContentSyncSchedule);
+            .WithEnvironment("SyncContentSchedule", schedules.SyncContentSchedule);
 
         // Pass Azure Functions disable configuration
         foreach (var job in azureWebJobsConfig.GetChildren())
