@@ -52,15 +52,14 @@ public class MetadataSyncFunctions
             var request = JsonSerializer.Deserialize<Services.SyncMetadataRequest>(requestBody) ?? new Services.SyncMetadataRequest();
 
             // Create filter based on request
-            var filter = string.IsNullOrEmpty(request.FilterType) || request.FilterType.ToLower() == "comprehensive"
-       ? this.syncService.CreateComprehensiveUpdatesFilter()
-         : this.syncService.CreateCriticalUpdatesFilter();
+            var filter = string.IsNullOrEmpty(request.FilterType)
+                         || request.FilterType.ToLower() == "comprehensive" ? this.syncService.CreateComprehensiveUpdatesFilter() : this.syncService.CreateCriticalUpdatesFilter();
 
             if (request.CustomFilters?.ProductFilters?.Any() == true || request.CustomFilters?.ClassificationFilters?.Any() == true)
             {
                 filter = this.syncService.CreateCustomFilter(
-                    request.CustomFilters.ProductFilters,
-                    request.CustomFilters.ClassificationFilters);
+                    productFilters: request.CustomFilters.ProductFilters,
+                    classificationFilters: request.CustomFilters.ClassificationFilters);
             }
 
             // Perform synchronization

@@ -93,18 +93,20 @@ public class SyncService : ISyncService
 
     public UpstreamSourceFilter CreateCriticalUpdatesFilter()
     {
-        var criticalClassifications = new List<Guid>();
-        var products = new List<Guid>();
+        // Windows 11
+        var criticalProductIds = new List<Guid>
+        {
+            Guid.Parse("72e7624a-5b00-45d2-b92f-e561c0a6a160")
+        };
 
-        // Critical Updates
-        if (Guid.TryParse("E6CF1350-C01B-414D-A61F-263D14D133B4", out var criticalGuid))
-            criticalClassifications.Add(criticalGuid);
-        
-        // Security Updates
-        if (Guid.TryParse("0FA1201D-4330-4FA8-8AE9-B877473B6441", out var securityGuid))
-            criticalClassifications.Add(securityGuid);
+        var criticalClassificationIds = new List<Guid>
+        {
+            // Critical Updates, Security Updates
+            Guid.Parse("E6CF1350-C01B-414D-A61F-263D14D133B4"),
+            Guid.Parse("0FA1201D-4330-4FA8-8AE9-B877473B6441")
+        };
 
-        return new UpstreamSourceFilter(products, criticalClassifications);
+        return new UpstreamSourceFilter(criticalProductIds, criticalClassificationIds);
     }
 
     public UpstreamSourceFilter CreateComprehensiveUpdatesFilter()
