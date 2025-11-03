@@ -120,6 +120,10 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
     services.AddScoped<ISyncService, SyncService>();
     services.AddScoped<IQueryService, QueryService>();
     services.AddScoped<IHealthService, HealthService>();
+
+    // Register ML.NET
+    services.AddSingleton<IAnomalyDetectionService, AnomalyDetectionService>();
+    services.AddSingleton<IQueueService, QueueService>();
 }
 
 static async Task InitializeStorageAsync(IHost host)
