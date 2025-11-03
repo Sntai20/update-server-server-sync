@@ -119,14 +119,14 @@ public class UnifiedHealthFunctionsTests
         mockResponse.Setup(r => r.StatusCode).Returns(HttpStatusCode.OK);
         mockRequest.Setup(r => r.CreateResponse(HttpStatusCode.OK)).Returns(mockResponse.Object);
 
-        this.mockSyncService.Setup(x => x.IsReindexingRequired(default)).ReturnsAsync(false);
+        this.mockSyncService.Setup(x => x.IsReindexingRequired()).ReturnsAsync(false);
 
         // Act
         var result = await this.functions.UniversalHealth(mockRequest.Object);
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, result.StatusCode);
-        this.mockSyncService.Verify(x => x.IsReindexingRequired(default), Times.Once);
+        this.mockSyncService.Verify(x => x.IsReindexingRequired(), Times.Once);
     }
 
     [Fact]
@@ -138,14 +138,14 @@ public class UnifiedHealthFunctionsTests
         mockResponse.Setup(r => r.StatusCode).Returns(HttpStatusCode.OK);
         mockRequest.Setup(r => r.CreateResponse(HttpStatusCode.OK)).Returns(mockResponse.Object);
 
-        this.mockSyncService.Setup(x => x.IsReindexingRequired(default)).ReturnsAsync(false);
+        this.mockSyncService.Setup(x => x.IsReindexingRequired()).ReturnsAsync(false);
 
         // Act
         var result = await this.functions.CheckReindexRequired(mockRequest.Object);
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, result.StatusCode);
-        this.mockSyncService.Verify(x => x.IsReindexingRequired(default), Times.Once);
+        this.mockSyncService.Verify(x => x.IsReindexingRequired(), Times.Once);
     }
 
     [Fact]
@@ -229,14 +229,14 @@ public class UnifiedHealthFunctionsTests
         var timer = this.CreateMockTimerInfo();
         var healthStatus = new HealthStatus { IsHealthy = true };
         
-        this.mockSyncService.Setup(x => x.IsReindexingRequired(default)).ReturnsAsync(false);
+        this.mockSyncService.Setup(x => x.IsReindexingRequired()).ReturnsAsync(false);
         this.mockHealthService.Setup(x => x.GetSystemHealthAsync()).ReturnsAsync(healthStatus);
 
         // Act
         await this.functions.WeeklyMaintenance(timer);
 
         // Assert
-        this.mockSyncService.Verify(x => x.IsReindexingRequired(default), Times.Once);
+        this.mockSyncService.Verify(x => x.IsReindexingRequired(), Times.Once);
         this.mockHealthService.Verify(x => x.GetSystemHealthAsync(), Times.Once);
     }
 
@@ -247,7 +247,7 @@ public class UnifiedHealthFunctionsTests
         var timer = this.CreateMockTimerInfo();
         var healthStatus = new HealthStatus { IsHealthy = true };
         
-        this.mockSyncService.Setup(x => x.IsReindexingRequired(default)).ReturnsAsync(true);
+        this.mockSyncService.Setup(x => x.IsReindexingRequired()).ReturnsAsync(true);
         this.mockSyncService.Setup(x => x.ReindexStoreAsync(default)).Returns(Task.CompletedTask);
         this.mockHealthService.Setup(x => x.GetSystemHealthAsync()).ReturnsAsync(healthStatus);
 
@@ -255,7 +255,7 @@ public class UnifiedHealthFunctionsTests
         await this.functions.WeeklyMaintenance(timer);
 
         // Assert
-        this.mockSyncService.Verify(x => x.IsReindexingRequired(default), Times.Once);
+        this.mockSyncService.Verify(x => x.IsReindexingRequired(), Times.Once);
         this.mockSyncService.Verify(x => x.ReindexStoreAsync(default), Times.Once);
         this.mockHealthService.Verify(x => x.GetSystemHealthAsync(), Times.Once);
     }
@@ -266,7 +266,7 @@ public class UnifiedHealthFunctionsTests
         // Arrange
         var timer = this.CreateMockTimerInfo();
         
-        this.mockSyncService.Setup(x => x.IsReindexingRequired(default))
+        this.mockSyncService.Setup(x => x.IsReindexingRequired())
             .ThrowsAsync(new InvalidOperationException("Test exception"));
 
         // Act & Assert
@@ -279,7 +279,7 @@ public class UnifiedHealthFunctionsTests
     {
         // Arrange
         var mockRequest = new Mock<HttpRequestData>(Mock.Of<FunctionContext>());
-        var requestJson = JsonSerializer.Serialize(new StoreManagementRequest { Reindex = true });
+        var requestJson = JsonSerializer.Serialize(new UpdateEngine.Functions.StoreManagementRequest { Reindex = true });
         var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(requestJson));
         mockRequest.Setup(r => r.Body).Returns(stream);
 

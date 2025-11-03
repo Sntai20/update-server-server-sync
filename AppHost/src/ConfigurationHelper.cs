@@ -75,7 +75,11 @@ public static class ConfigurationHelper
             .WithEnvironment("WeeklyMaintenanceSchedule", schedules.WeeklyMaintenanceSchedule)
             .WithEnvironment("SyncMetadataComprehensiveSchedule", schedules.SyncMetadataComprehensiveSchedule)
             .WithEnvironment("SyncMetadataCriticalSchedule", schedules.SyncMetadataCriticalSchedule)
-            .WithEnvironment("SyncContentSchedule", schedules.SyncContentSchedule);
+            .WithEnvironment("SyncContentSchedule", schedules.SyncContentSchedule)
+
+            // Map to the expected timer trigger parameter names
+            .WithEnvironment("SyncComprehensiveSchedule", schedules.SyncMetadataComprehensiveSchedule)
+            .WithEnvironment("SyncCriticalSchedule", schedules.SyncMetadataCriticalSchedule);
 
         // Pass Azure Functions disable configuration
         foreach (var job in azureWebJobsConfig.GetChildren())
