@@ -14,7 +14,8 @@ using Xunit;
 using Xunit.Abstractions;
 
 /// <summary>
-/// Integration tests for SyncContent function.
+/// Integration tests for Content Sync via UniversalSync endpoint.
+/// Updated to use unified sync functions.
 /// </summary>
 [Collection("AspireAppHost")]
 public class SyncContentIntegrationTests
@@ -29,17 +30,24 @@ public class SyncContentIntegrationTests
     }
 
     /// <summary>
-    /// Test: SyncContent endpoint responds with retry logic.
+    /// Test: UniversalSync with content type responds with retry logic.
     /// </summary>
     [Fact]
-    public async Task SyncContent_Endpoint_RespondsToPost()
+    public async Task UniversalSync_ContentType_RespondsToPost()
     {
-        // Arrange
-        var request = new { MaxItems = 1 };
+        // Arrange - Content sync request
+        var request = new 
+        { 
+            SyncType = "content",
+            SyncCategories = false,
+            SyncUpdates = false,
+            SyncContent = true,
+            MaxItems = 1 
+        };
         var json = JsonSerializer.Serialize(request);
         var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-        this._output.WriteLine($"Target: {this._fixture.HttpClient.BaseAddress}api/SyncContent");
+        this._output.WriteLine($"Target: {this._fixture.HttpClient.BaseAddress}api/UniversalSync");
         this._output.WriteLine($"Request: {json}");
 
         // Act with retry logic
@@ -54,7 +62,7 @@ public class SyncContentIntegrationTests
             {
                 this._output.WriteLine($"\nAttempt {i + 1}/{maxRetries}...");
 
-                response = await this._fixture.HttpClient.PostAsync("/api/SyncContent", content);
+                response = await this._fixture.HttpClient.PostAsync("/api/UniversalSync", content);
                 responseBody = await response.Content.ReadAsStringAsync();
 
                 this._output.WriteLine($"Status: {response.StatusCode}");
@@ -101,23 +109,42 @@ public class SyncContentIntegrationTests
         Assert.NotNull(response);
         Assert.NotNull(responseBody);
 
-        // Should not be 404 (endpoint exists)
-        Assert.NotEqual(HttpStatusCode.NotFound, response.StatusCode);
-
-        // Should be either 200 OK or 400 BadRequest
-        Assert.True(
-            response.StatusCode == HttpStatusCode.OK ||
-            response.StatusCode == HttpStatusCode.BadRequest,
-            $"Expected 200 or 400, got {response.StatusCode}");
-
-        if (response.StatusCode == HttpStatusCode.BadRequest)
+        // Content sync might legitimately fail if content store is not configured
+        // Both OK and BadRequest are acceptable responses
+        if (response.StatusCode == HttpStatusCode.BadRequest && 
+            responseBody.Contains("Content store not configured"))
         {
-            Assert.Contains("Content store", responseBody);
-            this._output.WriteLine("\n✅ SUCCESS: SyncContent correctly reports content store not configured");
+            this._output.WriteLine("\n✅ SUCCESS: UniversalSync correctly reports content store not configured");
+            Assert.Contains("Content store not configured", responseBody);
         }
         else
         {
-            this._output.WriteLine("\n✅ SUCCESS: SyncContent accepted the request");
+            this._output.WriteLine("\n✅ SUCCESS: UniversalSync accepted the content sync request");
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         }
+    }
+
+    /// <summary>
+    /// Test: QueryContentStatus endpoint availability.
+    /// </summary>
+    [Fact]
+    public async Task QueryContentStatus_ShouldReturnStatus()
+    {
+        // Act
+        var response = await this._fixture.HttpClient.GetAsync("/api/QueryContentStatus");
+        var responseBody = await response.Content.ReadAsStringAsync();
+
+        this._output.WriteLine($"Status: {response.StatusCode}");
+        this._output.WriteLine($"Response: {responseBody}");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(responseBody);
+        
+        // Should contain configured status
+        var result = JsonSerializer.Deserialize<JsonElement>(responseBody);
+        Assert.True(result.TryGetProperty("configured", out var configured));
+        
+        this._output.WriteLine($"✅ Content store configured: {configured.GetBoolean()}");
     }
 }

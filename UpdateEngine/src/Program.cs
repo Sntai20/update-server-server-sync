@@ -16,6 +16,7 @@ var hostBuilder = new HostBuilder()
     {
         ConfigureLogging(context);
         ConfigureDirectories(context);
+        ConfigureJsonSerialization(services);
         ConfigureServices(services, context.Configuration);
     });
 
@@ -77,13 +78,32 @@ static void ConfigureDirectories(HostBuilderContext context)
     }
 }
 
+static void ConfigureJsonSerialization(IServiceCollection services)
+{
+    // Configure global JSON serialization options for Azure Functions
+    var jsonOptions = new JsonSerializerOptions
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = false, // Set to true for debugging
+        PropertyNameCaseInsensitive = true,
+        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+    };
+
+    // Register as singleton so Functions can inject it
+    services.AddSingleton(jsonOptions);
+}
+
 static void ConfigureServices(IServiceCollection services, IConfiguration configuration)
 {
+    // Get the registered JsonSerializerOptions for deserialization
+    var serviceProvider = services.BuildServiceProvider();
+    var jsonOptions = serviceProvider.GetRequiredService<JsonSerializerOptions>();
+
     // Bind service configuration from JSON
     var configJson = configuration["ServiceConfigurationJson"];
     if (!string.IsNullOrEmpty(configJson))
     {
-        var config = JsonSerializer.Deserialize<ServiceConfigurationMutable>(configJson);
+        var config = JsonSerializer.Deserialize<ServiceConfigurationMutable>(configJson, jsonOptions);
         if (config != null)
         {
             services.AddSingleton(config);

@@ -31,7 +31,7 @@ public class FullSyncWorkflowTests
         var categoriesJson = JsonSerializer.Serialize(categoriesRequest);
         var categoriesContent = new StringContent(categoriesJson, Encoding.UTF8, "application/json");
         
-        var categoriesResponse = await this._fixture.HttpClient.PostAsync("/api/SyncMetadata", categoriesContent);
+        var categoriesResponse = await this._fixture.HttpClient.PostAsync("/api/UniversalSync", categoriesContent);
         Assert.Equal(HttpStatusCode.OK, categoriesResponse.StatusCode);
         this._output.WriteLine("✓ Categories synced");
 
@@ -45,7 +45,7 @@ public class FullSyncWorkflowTests
         var metadataJson = JsonSerializer.Serialize(metadataRequest);
         var metadataContent = new StringContent(metadataJson, Encoding.UTF8, "application/json");
         
-        var metadataResponse = await this._fixture.HttpClient.PostAsync("/api/SyncMetadata", metadataContent);
+        var metadataResponse = await this._fixture.HttpClient.PostAsync("/api/UniversalSync", metadataContent);
         Assert.Equal(HttpStatusCode.OK, metadataResponse.StatusCode);
         this._output.WriteLine("✓ Metadata synced");
 
@@ -74,7 +74,7 @@ public class FullSyncWorkflowTests
         var categoriesJson = JsonSerializer.Serialize(categoriesRequest);
         var categoriesContent = new StringContent(categoriesJson, Encoding.UTF8, "application/json");
         
-        var categoriesResponse = await this._fixture.HttpClient.PostAsync("/api/SyncMetadata", categoriesContent);
+        var categoriesResponse = await this._fixture.HttpClient.PostAsync("/api/UniversalSync", categoriesContent);
         Assert.Equal(HttpStatusCode.OK, categoriesResponse.StatusCode);
         this._output.WriteLine("✓ Categories synced");
 
@@ -88,7 +88,7 @@ public class FullSyncWorkflowTests
         var metadataJson = JsonSerializer.Serialize(metadataRequest);
         var metadataContent = new StringContent(metadataJson, Encoding.UTF8, "application/json");
         
-        var metadataResponse = await this._fixture.HttpClient.PostAsync("/api/SyncMetadata", metadataContent);
+        var metadataResponse = await this._fixture.HttpClient.PostAsync("/api/UniversalSync", metadataContent);
         Assert.Equal(HttpStatusCode.OK, metadataResponse.StatusCode);
         this._output.WriteLine("✓ Metadata synced");
 

@@ -42,6 +42,18 @@ public class SyncResult
     public bool ContentSynced { get; set; }
     public string? ErrorMessage { get; set; }
     public int ItemsProcessed { get; set; }
+    public bool MaintenancePerformed { get; set; }
+    public string? MaintenanceDetails { get; set; }
+}
+
+/// <summary>
+/// Store management request for consolidated operations
+/// </summary>
+public class StoreManagementRequest
+{
+    public bool Reindex { get; set; }
+    public bool ClearCache { get; set; }
+    public bool Cleanup { get; set; }
 }
 
 public class MetadataQueryRequest
@@ -291,4 +303,69 @@ public class MetadataExportResult
     public string Format { get; set; } = string.Empty;
     public DateTime ExportTimestamp { get; set; } = DateTime.UtcNow;
     public string? ErrorMessage { get; set; }
+}
+
+// Add new models for unified sync operations
+
+/// <summary>
+/// Universal sync request model that handles all sync operation types.
+/// Replaces multiple specific request models.
+/// </summary>
+public class UniversalSyncRequest
+{
+    /// <summary>
+    /// Type of sync: "critical", "comprehensive", "content", "full", "emergency", "priority"
+    /// </summary>
+    public string? SyncType { get; set; }
+
+    /// <summary>
+    /// Whether to sync categories (default: true for comprehensive/full)
+    /// </summary>
+    public bool SyncCategories { get; set; } = true;
+
+    /// <summary>
+    /// Whether to sync updates (default: true)
+    /// </summary>
+    public bool SyncUpdates { get; set; } = true;
+
+    /// <summary>
+    /// Whether to sync content (default: false except for content/full)
+    /// </summary>
+    public bool SyncContent { get; set; } = false;
+
+    /// <summary>
+    /// Number of days back to sync content (default: 30)
+    /// </summary>
+    public int? ContentDaysBack { get; set; }
+
+    /// <summary>
+    /// Custom filters for sync operations
+    /// </summary>
+    public CustomSyncFilters? CustomFilters { get; set; }
+
+    /// <summary>
+    /// Emergency sync reason (for emergency type)
+    /// </summary>
+    public string? Reason { get; set; }
+
+    /// <summary>
+    /// Specific update IDs for targeted sync (for emergency type)
+    /// </summary>
+    public IEnumerable<string>? SpecificUpdateIds { get; set; }
+
+    /// <summary>
+    /// Priority level for queue processing (1=critical, 2=high, 3=normal)
+    /// </summary>
+    public int Priority { get; set; } = 3;
+}
+
+/// <summary>
+/// Custom filters for sync operations
+/// </summary>
+public class CustomSyncFilters
+{
+    public IEnumerable<string>? ProductFilters { get; set; }
+    public IEnumerable<string>? ClassificationFilters { get; set; }
+    public DateTime? UpdatedAfter { get; set; }
+    public DateTime? UpdatedBefore { get; set; }
 }

@@ -11,101 +11,84 @@ using UpdateEngine.Functions;
 using UpdateEngine.Services;
 using Configuration;
 using Moq;
+using System.Net;
 using System.Text;
 using System.Text.Json;
 using Xunit;
+using Microsoft.PackageGraph.Storage;
+using Microsoft.PackageGraph.MicrosoftUpdate.Source;
 
+/// <summary>
+/// Tests for unified sync functions - updated to use UnifiedSyncFunctions.
+/// </summary>
 public class MetadataSyncFunctionsTests
 {
-    private readonly Mock<ILogger<MetadataSyncFunctions>> loggerMock;
+    private readonly Mock<ILogger<UnifiedSyncFunctions>> loggerMock;
     private readonly Mock<ISyncService> syncServiceMock;
-    private readonly Mock<IHealthService> healthServiceMock;
-    private readonly Mock<IOptions<ServiceConfigurationMutable>> serviceConfigurationMock;
-    private readonly MetadataSyncFunctions functions;
+    private readonly Mock<IContentStore> contentStoreMock;
+    private readonly JsonSerializerOptions jsonOptions;
+    private readonly UnifiedSyncFunctions functions;
 
     public MetadataSyncFunctionsTests()
     {
-        this.loggerMock = new Mock<ILogger<MetadataSyncFunctions>>();
+        this.loggerMock = new Mock<ILogger<UnifiedSyncFunctions>>();
         this.syncServiceMock = new Mock<ISyncService>();
-        this.healthServiceMock = new Mock<IHealthService>();
-        this.serviceConfigurationMock = new Mock<IOptions<ServiceConfigurationMutable>>();
-        
-        // Setup service configuration mock
-        this.serviceConfigurationMock.Setup(x => x.Value).Returns(new ServiceConfigurationMutable
-        {
-            ServiceUrl = "http://test",
-            ContentUrl = "http://test/content",
-            MaxUpdateCount = 1000,
-            SupportedCategories = new[] { "Test Category" },
-            SyncConfiguration = new SyncConfigMutable(),
-            StorageConfiguration = new StorageConfigMutable(),
-            FeatureFlags = new FeatureConfigMutable()
-        });
-        
-        this.functions = new MetadataSyncFunctions(
-            this.loggerMock.Object,
-            this.syncServiceMock.Object,
-            this.healthServiceMock.Object,
-            this.serviceConfigurationMock.Object);
-    }
-
-    [Fact]
-    public async Task SyncMetadata_WithValidRequest_ShouldReturnSuccess()
-    {
-        // Arrange
-        var request = new UpdateEngine.Services.SyncMetadataRequest
-        {
-            SyncCategories = true,
-            SyncUpdates = true,
-            FilterType = "critical"
+        this.contentStoreMock = new Mock<IContentStore>();
+        this.jsonOptions = new JsonSerializerOptions 
+        { 
+            PropertyNameCaseInsensitive = true,
+            WriteIndented = true 
         };
 
-        var requestBody = JsonSerializer.Serialize(request);
-        var httpRequest = CreateMockHttpRequest(requestBody);
-
-        this.syncServiceMock.Setup(x => x.CreateCriticalUpdatesFilter())
-            .Returns(new Microsoft.PackageGraph.MicrosoftUpdate.Source.UpstreamSourceFilter());
-
-        // Act
-        var response = await this.functions.SyncMetadata(httpRequest);
-
-        // Assert
-        Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
-        this.syncServiceMock.Verify(x => x.SyncCategoriesAsync(It.IsAny<CancellationToken>()), Times.Once);
-        this.syncServiceMock.Verify(x => x.SyncUpdatesAsync(It.IsAny<Microsoft.PackageGraph.MicrosoftUpdate.Source.UpstreamSourceFilter>(), It.IsAny<CancellationToken>()), Times.Once);
+        this.functions = new UnifiedSyncFunctions(
+            this.loggerMock.Object,
+            this.syncServiceMock.Object,
+            this.jsonOptions,
+            this.contentStoreMock.Object);
     }
 
     [Fact]
-    public async Task GetSyncHealth_ShouldCallHealthService()
+    public async Task UniversalSync_WithValidRequest_ShouldReturnSuccess()
     {
         // Arrange
-        var expectedHealth = new HealthStatus { IsHealthy = true };
-        this.healthServiceMock.Setup(x => x.GetSyncHealthAsync())
-            .ReturnsAsync(expectedHealth);
+        var request = new UpdateEngine.Services.UniversalSyncRequest
+        {
+            SyncType = "critical",
+            SyncCategories = false,
+            SyncUpdates = true,
+            SyncContent = false
+        };
 
-        var httpRequest = CreateMockHttpRequest("");
+        var requestJson = JsonSerializer.Serialize(request);
+        var httpRequest = CreateMockHttpRequest(requestJson);
+
+        var mockFilter = new Mock<UpstreamSourceFilter>().Object;
+        this.syncServiceMock.Setup(x => x.CreateCriticalUpdatesFilter()).Returns(mockFilter);
+        this.syncServiceMock.Setup(x => x.SyncUpdatesAsync(It.IsAny<UpstreamSourceFilter>(), default))
+            .Returns(Task.CompletedTask);
 
         // Act
-        var response = await this.functions.GetSyncHealth(httpRequest);
+        var response = await this.functions.UniversalSync(httpRequest);
 
         // Assert
-        Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
-        this.healthServiceMock.Verify(x => x.GetSyncHealthAsync(), Times.Once);
+        Assert.NotNull(response);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        this.syncServiceMock.Verify(x => x.SyncUpdatesAsync(It.IsAny<UpstreamSourceFilter>(), default), Times.Once);
     }
 
-    private static HttpRequestData CreateMockHttpRequest(string body)
+    private HttpRequestData CreateMockHttpRequest(string body)
     {
         var context = new Mock<FunctionContext>();
         var request = new Mock<HttpRequestData>(context.Object);
         
-        request.Setup(r => r.Body).Returns(new MemoryStream(Encoding.UTF8.GetBytes(body)));
-        request.Setup(r => r.CreateResponse()).Returns(() =>
-        {
-            var response = new Mock<HttpResponseData>(context.Object);
-            response.SetupProperty(r => r.StatusCode);
-            return response.Object;
-        });
-
+        var stream = new MemoryStream(Encoding.UTF8.GetBytes(body));
+        request.Setup(r => r.Body).Returns(stream);
+        
+        var mockResponse = new Mock<HttpResponseData>(context.Object);
+        mockResponse.Setup(r => r.StatusCode).Returns(HttpStatusCode.OK);
+        request.Setup(r => r.CreateResponse()).Returns(mockResponse.Object);
+        request.Setup(r => r.CreateResponse(It.IsAny<HttpStatusCode>())).Returns(mockResponse.Object);
+        
         return request.Object;
     }
 }

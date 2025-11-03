@@ -21,37 +21,38 @@ public class InMemoryFunctionsFixture : IAsyncLifetime
     private ServiceProvider? serviceProvider;
     private string? tempStorePath;
 
-  public IServiceProvider Services => this.serviceProvider ?? throw new InvalidOperationException("Fixture not initialized");
+    public IServiceProvider Services => this.serviceProvider ?? throw new InvalidOperationException("Fixture not initialized");
 
     public async Task InitializeAsync()
     {
- // Create a temporary directory for in-memory storage
+        // Create a temporary directory for in-memory storage
         this.tempStorePath = Path.Combine(Path.GetTempPath(), $"msupdate-test-{Guid.NewGuid()}");
-  Directory.CreateDirectory(this.tempStorePath);
+        Directory.CreateDirectory(this.tempStorePath);
 
         // Configure services with in-memory/local storage
         var services = new ServiceCollection();
 
         // Add logging
         services.AddLogging(builder =>
-   {
+        {
             builder.AddConsole();
             builder.SetMinimumLevel(LogLevel.Warning); // Reduce noise in tests
- });
+        });
 
-      // Add in-memory metadata store (uses temporary local directory)
+        // Add in-memory metadata store (uses temporary local directory)
         services.AddSingleton<IMetadataStore>(sp =>
         {
             var logger = sp.GetRequiredService<ILogger<InMemoryFunctionsFixture>>();
             logger.LogInformation("Creating in-memory metadata store at: {Path}", this.tempStorePath);
   
- // OpenOrCreate will initialize a new store if it doesn't exist
-var store = PackageStore.OpenOrCreate(this.tempStorePath);
-      return store;
+            // OpenOrCreate will initialize a new store if it doesn't exist
+            var store = PackageStore.OpenOrCreate(this.tempStorePath);
+            return store;
         });
 
-        // Content store is optional - add only if needed for specific tests
-        services.AddSingleton<IContentStore?>(sp => (IContentStore?)null);
+        // Content store is optional - explicitly register as nullable
+        // Using a factory that returns null to satisfy the nullability constraint
+        services.AddSingleton<IContentStore?>(sp => null as IContentStore);
 
         // Add service configuration
         services.AddSingleton(new ServiceConfigurationMutable
@@ -87,7 +88,7 @@ var store = PackageStore.OpenOrCreate(this.tempStorePath);
 
         // Add application services
         services.AddScoped<ISyncService, SyncService>();
-  services.AddScoped<IQueryService, QueryService>();
+        services.AddScoped<IQueryService, QueryService>();
         services.AddScoped<IHealthService, HealthService>();
 
         this.serviceProvider = services.BuildServiceProvider();
@@ -97,22 +98,22 @@ var store = PackageStore.OpenOrCreate(this.tempStorePath);
 
     public async Task DisposeAsync()
     {
-      if (this.serviceProvider != null)
+        if (this.serviceProvider != null)
         {
-     await this.serviceProvider.DisposeAsync();
+            await this.serviceProvider.DisposeAsync();
         }
 
         // Clean up temporary storage
-   if (!string.IsNullOrEmpty(this.tempStorePath) && Directory.Exists(this.tempStorePath))
+        if (!string.IsNullOrEmpty(this.tempStorePath) && Directory.Exists(this.tempStorePath))
         {
-          try
-         {
-       Directory.Delete(this.tempStorePath, recursive: true);
+            try
+            {
+                Directory.Delete(this.tempStorePath, recursive: true);
             }
-       catch
-    {
- // Best effort cleanup
-     }
+            catch
+            {
+                // Best effort cleanup
+            }
         }
     }
 
@@ -121,7 +122,7 @@ var store = PackageStore.OpenOrCreate(this.tempStorePath);
     /// </summary>
     public T GetService<T>() where T : notnull
     {
-    return this.Services.GetRequiredService<T>();
+        return this.Services.GetRequiredService<T>();
     }
 
     /// <summary>
@@ -145,9 +146,9 @@ var store = PackageStore.OpenOrCreate(this.tempStorePath);
     /// </summary>
     public HttpClient CreateClient()
     {
-     // For true in-memory tests, you'd use WebApplicationFactory<T>
+        // For true in-memory tests, you'd use WebApplicationFactory<T>
         // or mock the HTTP layer. This is a placeholder.
-      return new HttpClient
+        return new HttpClient
         {
             BaseAddress = new Uri("http://localhost:7071/api/")
         };
