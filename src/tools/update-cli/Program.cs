@@ -14,6 +14,7 @@ namespace UpdateCli;
 
 /// <summary>
 /// UpdateEngine CLI tool for querying and managing updates.
+/// Updated to work with unified function endpoints.
 /// </summary>
 public static class Program
 {
@@ -36,12 +37,13 @@ public static class Program
         var commandHandlers = serviceProvider.GetRequiredService<CommandHandlers>();
 
         // Create root command
-        var rootCommand = new RootCommand("UpdateEngine CLI - Query and manage Microsoft Update Server-Server Sync")
+        var rootCommand = new RootCommand("UpdateEngine CLI - Query and manage Microsoft Update Server-Server Sync (Unified API)")
         {
             CreateHealthCommand(commandHandlers),
             CreateConfigCommand(commandHandlers),
             CreateSyncCommand(commandHandlers),
             CreateStatsCommand(commandHandlers),
+            CreateContentStatusCommand(commandHandlers),
             CreateSearchCommand(commandHandlers),
             CreateDetailsCommand(commandHandlers),
             CreateReindexCommand(commandHandlers),
@@ -86,7 +88,14 @@ public static class Program
     private static Command CreateHealthCommand(CommandHandlers handlers)
     {
         var command = new Command("health", "Check UpdateEngine health status");
-        command.SetHandler(handlers.HandleHealthAsync);
+        
+        var scopeOption = new Option<string>(
+            aliases: new[] { "--scope", "-s" },
+            description: "Health check scope: basic, full, sync, or store",
+            getDefaultValue: () => "basic");
+        
+        command.AddOption(scopeOption);
+        command.SetHandler(handlers.HandleHealthAsync, scopeOption);
         return command;
     }
 
@@ -101,14 +110,23 @@ public static class Program
     {
         var command = new Command("sync", "Trigger synchronization operations");
 
-        var metadataCommand = new Command("metadata", "Sync metadata from upstream");
+        var metadataCommand = new Command("metadata", "Sync metadata from upstream (comprehensive)");
         metadataCommand.SetHandler(handlers.HandleSyncMetadataAsync);
 
         var contentCommand = new Command("content", "Sync content from upstream");
-        contentCommand.SetHandler(handlers.HandleSyncContentAsync);
+        var daysBackOption = new Option<int>(
+            aliases: new[] { "--days-back", "-d" },
+            description: "Number of days back to sync content",
+            getDefaultValue: () => 30);
+        contentCommand.AddOption(daysBackOption);
+        contentCommand.SetHandler(handlers.HandleSyncContentAsync, daysBackOption);
+
+        var criticalCommand = new Command("critical", "Sync only critical and security updates");
+        criticalCommand.SetHandler(handlers.HandleSyncCriticalAsync);
 
         command.AddCommand(metadataCommand);
         command.AddCommand(contentCommand);
+        command.AddCommand(criticalCommand);
 
         return command;
     }
@@ -117,6 +135,13 @@ public static class Program
     {
         var command = new Command("stats", "Get store statistics");
         command.SetHandler(handlers.HandleStoreStatisticsAsync);
+        return command;
+    }
+
+    private static Command CreateContentStatusCommand(CommandHandlers handlers)
+    {
+        var command = new Command("content-status", "Get content synchronization status");
+        command.SetHandler(handlers.HandleContentStatusAsync);
         return command;
     }
 
@@ -150,7 +175,7 @@ public static class Program
 
     private static Command CreateReindexCommand(CommandHandlers handlers)
     {
-        var command = new Command("reindex", "Reindex the metadata store");
+        var command = new Command("reindex", "Check and reindex the metadata store if needed");
         command.SetHandler(handlers.HandleReindexAsync);
         return command;
     }

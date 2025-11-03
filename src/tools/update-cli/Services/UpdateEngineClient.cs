@@ -9,10 +9,12 @@ namespace UpdateCli.Services;
 
 /// <summary>
 /// Service for communicating with the UpdateEngine API.
+/// Updated to work with unified function endpoints.
 /// </summary>
 public class UpdateEngineClient
 {
     private readonly HttpClient httpClient;
+    private readonly JsonSerializerOptions jsonOptions;
 
     public UpdateEngineClient(HttpClient httpClient, IOptions<UpdateEngineConfiguration> configuration)
     {
@@ -20,15 +22,23 @@ public class UpdateEngineClient
         var config = configuration.Value;
         this.httpClient.BaseAddress = new Uri(config.BaseUrl);
         this.httpClient.Timeout = config.Timeout;
+        
+        this.jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            WriteIndented = true
+        };
     }
 
     /// <summary>
     /// Gets the health status of the UpdateEngine.
+    /// Uses the unified UniversalHealth endpoint.
     /// </summary>
+    /// <param name="scope">Health check scope: basic, full, sync, or store (default: basic)</param>
     /// <returns>Health status information.</returns>
-    public async Task<string> GetHealthStatusAsync()
+    public async Task<string> GetHealthStatusAsync(string scope = "basic")
     {
-        var response = await this.httpClient.GetAsync("/api/QueryMetadataStoreStatus");
+        var response = await this.httpClient.GetAsync($"/api/UniversalHealth?scope={scope}");
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadAsStringAsync();
     }
@@ -45,23 +55,75 @@ public class UpdateEngineClient
     }
 
     /// <summary>
-    /// Triggers a manual metadata synchronization.
+    /// Triggers a manual metadata synchronization using the unified sync endpoint.
     /// </summary>
     /// <returns>Synchronization result.</returns>
     public async Task<string> SyncMetadataAsync()
     {
-        var response = await this.httpClient.PostAsync("/api/SyncMetadata", null);
+        var request = new
+        {
+            syncType = "comprehensive",
+            syncUpdates = true,
+            syncCategories = true,
+            syncContent = false
+        };
+
+        var content = new StringContent(
+            JsonSerializer.Serialize(request, this.jsonOptions),
+            System.Text.Encoding.UTF8,
+            "application/json");
+
+        var response = await this.httpClient.PostAsync("/api/UniversalSync", content);
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadAsStringAsync();
     }
 
     /// <summary>
-    /// Triggers a manual content synchronization.
+    /// Triggers a manual content synchronization using the unified sync endpoint.
+    /// </summary>
+    /// <param name="daysBack">Number of days back to sync content (default: 30)</param>
+    /// <returns>Synchronization result.</returns>
+    public async Task<string> SyncContentAsync(int daysBack = 30)
+    {
+        var request = new
+        {
+            syncType = "content",
+            syncUpdates = false,
+            syncCategories = false,
+            syncContent = true,
+            contentDaysBack = daysBack
+        };
+
+        var content = new StringContent(
+            JsonSerializer.Serialize(request, this.jsonOptions),
+            System.Text.Encoding.UTF8,
+            "application/json");
+
+        var response = await this.httpClient.PostAsync("/api/UniversalSync", content);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadAsStringAsync();
+    }
+
+    /// <summary>
+    /// Triggers a critical updates sync using the unified sync endpoint.
     /// </summary>
     /// <returns>Synchronization result.</returns>
-    public async Task<string> SyncContentAsync()
+    public async Task<string> SyncCriticalUpdatesAsync()
     {
-        var response = await this.httpClient.PostAsync("/api/SyncContent", null);
+        var request = new
+        {
+            syncType = "critical",
+            syncUpdates = true,
+            syncCategories = false,
+            syncContent = false
+        };
+
+        var content = new StringContent(
+            JsonSerializer.Serialize(request, this.jsonOptions),
+            System.Text.Encoding.UTF8,
+            "application/json");
+
+        var response = await this.httpClient.PostAsync("/api/UniversalSync", content);
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadAsStringAsync();
     }
@@ -72,7 +134,57 @@ public class UpdateEngineClient
     /// <returns>Store statistics.</returns>
     public async Task<string> GetStoreStatisticsAsync()
     {
-        var response = await this.httpClient.GetAsync("/api/GetStoreStatistics");
+        var response = await this.httpClient.GetAsync("/api/GetStoreStatus");
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadAsStringAsync();
+    }
+
+    /// <summary>
+    /// Checks if store reindexing is required.
+    /// Uses the unified CheckReindexRequired endpoint.
+    /// </summary>
+    /// <returns>Reindex status information.</returns>
+    public async Task<bool> IsReindexRequiredAsync()
+    {
+        var response = await this.httpClient.GetAsync("/api/CheckReindexRequired");
+        response.EnsureSuccessStatusCode();
+        var json = await response.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+        return doc.RootElement.GetProperty("reindexRequired").GetBoolean();
+    }
+
+    /// <summary>
+    /// Triggers a reindex of the metadata store.
+    /// Uses the unified StoreManagement endpoint.
+    /// </summary>
+    /// <returns>Reindex result.</returns>
+    public async Task<string> ReindexStoreAsync()
+    {
+        var request = new
+        {
+            reindex = true,
+            clearCache = false,
+            cleanup = false
+        };
+
+        var content = new StringContent(
+            JsonSerializer.Serialize(request, this.jsonOptions),
+            System.Text.Encoding.UTF8,
+            "application/json");
+
+        var response = await this.httpClient.PostAsync("/api/StoreManagement", content);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadAsStringAsync();
+    }
+
+    /// <summary>
+    /// Gets the content sync status.
+    /// Uses the unified QueryContentStatus endpoint.
+    /// </summary>
+    /// <returns>Content sync status.</returns>
+    public async Task<string> GetContentStatusAsync()
+    {
+        var response = await this.httpClient.GetAsync("/api/QueryContentStatus");
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadAsStringAsync();
     }
@@ -109,17 +221,6 @@ public class UpdateEngineClient
     public async Task<string> GetUpdateDetailsAsync(string updateId)
     {
         var response = await this.httpClient.GetAsync($"/api/GetUpdateDetails?updateId={Uri.EscapeDataString(updateId)}");
-        response.EnsureSuccessStatusCode();
-        return await response.Content.ReadAsStringAsync();
-    }
-
-    /// <summary>
-    /// Triggers a reindex of the metadata store.
-    /// </summary>
-    /// <returns>Reindex result.</returns>
-    public async Task<string> ReindexStoreAsync()
-    {
-        var response = await this.httpClient.PostAsync("/api/ReindexStore", null);
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadAsStringAsync();
     }
@@ -217,9 +318,9 @@ public class UpdateEngineClient
         var buffer = new byte[8192];
         int bytesRead;
         
-        while ((bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken)) > 0)
+        while ((bytesRead = await contentStream.ReadAsync(buffer, cancellationToken)) > 0)
         {
-            await fileStream.WriteAsync(buffer, 0, bytesRead, cancellationToken);
+            await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken);
             downloadedBytes += bytesRead;
             progress?.Report(downloadedBytes);
         }

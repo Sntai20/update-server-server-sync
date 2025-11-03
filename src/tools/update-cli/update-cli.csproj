@@ -9,6 +9,7 @@
     <AssemblyName>update-cli</AssemblyName>
     <RootNamespace>UpdateCli</RootNamespace>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <Platforms>x64</Platforms>
   </PropertyGroup>
 
   <ItemGroup>

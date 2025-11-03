@@ -8,6 +8,7 @@ namespace UpdateCli.Commands;
 
 /// <summary>
 /// Command handlers for the UpdateEngine CLI.
+/// Updated to work with unified function endpoints.
 /// </summary>
 public class CommandHandlers
 {
@@ -25,13 +26,14 @@ public class CommandHandlers
     }
 
     /// <summary>
-    /// Handles the health check command.
+    /// Handles the health check command with scope support.
     /// </summary>
-    public async Task<int> HandleHealthAsync()
+    public async Task<int> HandleHealthAsync(string scope = "basic")
     {
         try
         {
-            var status = await this.updateEngineClient.GetHealthStatusAsync();
+            Console.WriteLine($"Checking UpdateEngine health (scope: {scope})...");
+            var status = await this.updateEngineClient.GetHealthStatusAsync(scope);
             Console.WriteLine("UpdateEngine Health Status:");
             Console.WriteLine(status);
             return 0;
@@ -63,13 +65,14 @@ public class CommandHandlers
     }
 
     /// <summary>
-    /// Handles the sync metadata command.
+    /// Handles the sync metadata command using unified endpoint.
     /// </summary>
     public async Task<int> HandleSyncMetadataAsync()
     {
         try
         {
-            Console.WriteLine("Starting metadata synchronization...");
+            Console.WriteLine("Starting comprehensive metadata synchronization...");
+            Console.WriteLine("(Syncing categories and updates)");
             var result = await this.updateEngineClient.SyncMetadataAsync();
             Console.WriteLine("Metadata Sync Result:");
             Console.WriteLine(result);
@@ -83,14 +86,14 @@ public class CommandHandlers
     }
 
     /// <summary>
-    /// Handles the sync content command.
+    /// Handles the sync content command using unified endpoint.
     /// </summary>
-    public async Task<int> HandleSyncContentAsync()
+    public async Task<int> HandleSyncContentAsync(int daysBack = 30)
     {
         try
         {
-            Console.WriteLine("Starting content synchronization...");
-            var result = await this.updateEngineClient.SyncContentAsync();
+            Console.WriteLine($"Starting content synchronization (last {daysBack} days)...");
+            var result = await this.updateEngineClient.SyncContentAsync(daysBack);
             Console.WriteLine("Content Sync Result:");
             Console.WriteLine(result);
             return 0;
@@ -98,6 +101,27 @@ public class CommandHandlers
         catch (Exception ex)
         {
             Console.WriteLine($"Error syncing content: {ex.Message}");
+            return 1;
+        }
+    }
+
+    /// <summary>
+    /// Handles the sync critical updates command.
+    /// </summary>
+    public async Task<int> HandleSyncCriticalAsync()
+    {
+        try
+        {
+            Console.WriteLine("Starting critical updates synchronization...");
+            Console.WriteLine("(Security and critical updates only)");
+            var result = await this.updateEngineClient.SyncCriticalUpdatesAsync();
+            Console.WriteLine("Critical Sync Result:");
+            Console.WriteLine(result);
+            return 0;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error syncing critical updates: {ex.Message}");
             return 1;
         }
     }
@@ -117,6 +141,25 @@ public class CommandHandlers
         catch (Exception ex)
         {
             Console.WriteLine($"Error getting store statistics: {ex.Message}");
+            return 1;
+        }
+    }
+
+    /// <summary>
+    /// Handles the content status command.
+    /// </summary>
+    public async Task<int> HandleContentStatusAsync()
+    {
+        try
+        {
+            var status = await this.updateEngineClient.GetContentStatusAsync();
+            Console.WriteLine("Content Sync Status:");
+            Console.WriteLine(status);
+            return 0;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error getting content status: {ex.Message}");
             return 1;
         }
     }
@@ -162,16 +205,27 @@ public class CommandHandlers
     }
 
     /// <summary>
-    /// Handles the reindex command.
+    /// Handles the reindex command using unified endpoint.
     /// </summary>
     public async Task<int> HandleReindexAsync()
     {
         try
         {
-            Console.WriteLine("Starting store reindex...");
-            var result = await this.updateEngineClient.ReindexStoreAsync();
-            Console.WriteLine("Reindex Result:");
-            Console.WriteLine(result);
+            Console.WriteLine("Checking if reindex is required...");
+            var isRequired = await this.updateEngineClient.IsReindexRequiredAsync();
+            
+            if (isRequired)
+            {
+                Console.WriteLine("Reindex is required. Starting store reindex...");
+                var result = await this.updateEngineClient.ReindexStoreAsync();
+                Console.WriteLine("Reindex Result:");
+                Console.WriteLine(result);
+            }
+            else
+            {
+                Console.WriteLine("Reindex is not required. Store is up to date.");
+            }
+            
             return 0;
         }
         catch (Exception ex)
