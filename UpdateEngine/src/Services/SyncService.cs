@@ -3,6 +3,7 @@
 
 namespace UpdateEngine.Services;
 
+using System.Linq;
 using Microsoft.Extensions.Logging;
 using Microsoft.PackageGraph.Storage;
 using Microsoft.PackageGraph.MicrosoftUpdate.Source;

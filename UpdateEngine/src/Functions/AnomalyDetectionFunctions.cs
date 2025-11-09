@@ -11,6 +11,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using UpdateEngine.Models;
 using UpdateEngine.Services;
+using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
 
 /// <summary>
 /// Azure Functions for ML.NET-based anomaly detection in Windows Update metadata
@@ -21,6 +22,7 @@ public class AnomalyDetectionFunctions
     private readonly ILogger<AnomalyDetectionFunctions> logger;
     private readonly IAnomalyDetectionService anomalyService;
     private readonly IQueueService queueService;
+    private readonly IQueryService queryService;
     private readonly JsonSerializerOptions jsonOptions;
     private readonly bool enabled;
 
@@ -28,12 +30,14 @@ public class AnomalyDetectionFunctions
         ILogger<AnomalyDetectionFunctions> logger,
         IAnomalyDetectionService anomalyService,
         IQueueService queueService,
+        IQueryService queryService,
         JsonSerializerOptions jsonOptions,
         IConfiguration configuration)
     {
         this.logger = logger;
         this.anomalyService = anomalyService;
         this.queueService = queueService;
+        this.queryService = queryService;
         this.jsonOptions = jsonOptions;
         this.enabled = configuration.GetValue<bool>("Features:EnableAnomalyDetection", false);
     }
@@ -102,6 +106,92 @@ public class AnomalyDetectionFunctions
             var errorResponse = req.CreateResponse(HttpStatusCode.InternalServerError);
             await errorResponse.WriteStringAsync($"Internal error: {ex.Message}");
             return errorResponse;
+        }
+    }
+
+    /// <summary>
+    /// Timer-triggered function for anomaly detection demo
+    /// Runs every 5 minutes to demonstrate anomaly detection capabilities
+    /// </summary>
+    [Function("UpdateAnomalyDetectionDemo")]
+    public async Task RunUpdateAnomalyDetectionDemo([TimerTrigger("0 */5 * * * *")] TimerInfo timer)
+    {
+        this.logger.LogInformation("Update anomaly detection demo triggered at {time}", DateTime.Now);
+
+        if (!this.enabled)
+        {
+            this.logger.LogInformation("Anomaly detection is disabled, skipping demo");
+            return;
+        }
+
+        try
+        {
+            // Use existing query service to get recent updates (non-superseded)
+            var queryRequest = new MetadataQueryRequest
+            {
+                IncludeSuperseded = false, // Exclude superseded updates
+                MaxResults = 100 // Limit for demo
+            };
+
+            var queryResult = await this.queryService.QueryMetadataAsync(queryRequest);
+            
+            // Convert PackageInfo to SoftwareUpdate for anomaly detection
+            // Note: This is a simplification - in production, you'd want direct access to SoftwareUpdate objects
+            var updates = new List<SoftwareUpdate>();
+            
+            // For demo purposes, create fake anomalous metadata to demonstrate detection
+            var fakeAnomalousMetadata = new UpdateMetadata
+            {
+                KB_ID = "DemoBad_999",
+                Publisher = "UnknownPublisher",
+                HashMatch = false,
+                IsSigned = false,
+                FileSize = 1234567,
+                DomainReputation = "Suspicious"
+            };
+
+            // Score the fake anomaly first for demo
+            double fakeScore = this.anomalyService.Score(fakeAnomalousMetadata);
+            if (fakeScore > 0.8)
+            {
+                this.logger.LogWarning("ALERT: Anomaly detected for KB_ID={KB_ID} (score={score:F2}) Metadata: {metadata}",
+                    fakeAnomalousMetadata.KB_ID, fakeScore,
+                    JsonSerializer.Serialize(fakeAnomalousMetadata, this.jsonOptions)
+                );
+            }
+
+            // Process real updates from query results
+            foreach (var packageInfo in queryResult.Packages)
+            {
+                // Convert PackageInfo to UpdateMetadata for anomaly detection
+                var metadata = new UpdateMetadata
+                {
+                    KB_ID = packageInfo.KbArticle ?? packageInfo.Title,
+                    Publisher = "Microsoft",
+                    HashMatch = true,
+                    IsSigned = true,
+                    FileSize = packageInfo.Size,
+                    DomainReputation = "Trusted"
+                };
+
+                double score = this.anomalyService.Score(metadata);
+
+                if (score > 0.8)
+                {
+                    this.logger.LogWarning("ALERT: Anomaly detected for update={kbId} (score={score:F2}) Title: {title}",
+                        metadata.KB_ID, score, packageInfo.Title);
+                }
+                else
+                {
+                    this.logger.LogInformation("Update {kbId} scored normal: {score:F2}", metadata.KB_ID, score);
+                }
+            }
+            
+            this.logger.LogInformation("Anomaly detection completed for {count} updates", queryResult.Packages.Count);
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Error during anomaly detection demo");
         }
     }
 }
