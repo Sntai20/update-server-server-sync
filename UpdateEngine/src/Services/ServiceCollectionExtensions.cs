@@ -24,6 +24,7 @@ public static class ServiceCollectionExtensions
         RegisterContentStore(services, configuration);
         RegisterConfigurations(services, configuration);
         RegisterWebServices(services, configuration);
+        RegisterAnomalyDetectionServices(services, configuration);
 
         return services;
     }
@@ -170,5 +171,17 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<SimpleAuthenticationWebService>();
         services.AddScoped<AuthenticationWebService>();
+    }
+
+    private static void RegisterAnomalyDetectionServices(IServiceCollection services, IConfiguration configuration)
+    {
+        // Register sync and query services (needed for anomaly detection data sources)
+        services.AddScoped<ISyncService, SyncService>();
+        services.AddScoped<IQueryService, QueryService>();
+        services.AddScoped<IHealthService, HealthService>();
+
+        // Register anomaly detection and queue services as singletons for performance
+        services.AddSingleton<IAnomalyDetectionService, AnomalyDetectionService>();
+        services.AddSingleton<IQueueService, QueueService>();
     }
 }

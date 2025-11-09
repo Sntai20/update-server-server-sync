@@ -115,15 +115,6 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
 
     // Register Microsoft Update services
     services.AddMicrosoftUpdateServices(configuration);
-
-    // Register application services
-    services.AddScoped<ISyncService, SyncService>();
-    services.AddScoped<IQueryService, QueryService>();
-    services.AddScoped<IHealthService, HealthService>();
-
-    // Register ML.NET
-    services.AddSingleton<IAnomalyDetectionService, AnomalyDetectionService>();
-    services.AddSingleton<IQueueService, QueueService>();
 }
 
 static async Task InitializeStorageAsync(IHost host)
