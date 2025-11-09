@@ -4,6 +4,7 @@
 namespace UpdateEngine.Services;
 
 using UpdateEngine.Models;
+using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
 
 /// <summary>
 /// Service for detecting anomalies in Windows Update metadata using ML.NET
@@ -16,6 +17,20 @@ public interface IAnomalyDetectionService
     /// <param name="metadata">Update metadata to analyze</param>
     /// <returns>Anomaly detection result with score and classification</returns>
     Task<AnomalyDetectionResult> DetectAnomalyAsync(UpdateMetadata metadata);
+    
+    /// <summary>
+    /// Scores update metadata for anomaly likelihood
+    /// </summary>
+    /// <param name="metadata">Update metadata to score</param>
+    /// <returns>Anomaly score (0.0 = normal, 1.0 = highly anomalous)</returns>
+    double Score(UpdateMetadata metadata);
+    
+    /// <summary>
+    /// Scores a SoftwareUpdate for anomaly likelihood
+    /// </summary>
+    /// <param name="softwareUpdate">Software update to score</param>
+    /// <returns>Anomaly score (0.0 = normal, 1.0 = highly anomalous)</returns>
+    double Score(SoftwareUpdate softwareUpdate);
     
     /// <summary>
     /// Trains the anomaly detection model from historical data

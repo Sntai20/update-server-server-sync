@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.ML;
 using Microsoft.ML.Data;
 using UpdateEngine.Models;
+using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
 
 /// <summary>
 /// ML.NET-based anomaly detection for Windows Updates
@@ -88,7 +89,7 @@ public class AnomalyDetectionService : IAnomalyDetectionService
         {
             FileSize = metadata.FileSize,
             IsSigned = metadata.IsSigned ? 1.0f : 0.0f,
-            DomainReputation = metadata.DomainReputation,
+            DomainReputation = ConvertDomainReputationToScore(metadata.DomainReputation),
             HashMatchScore = metadata.HashMatch ? 1.0f : 0.0f,
             UpdateFrequency = metadata.UpdateFrequency
         };
@@ -106,6 +107,87 @@ public class AnomalyDetectionService : IAnomalyDetectionService
                 ? $"Anomaly detected with score {prediction.Score:F3} (threshold: {this.anomalyThreshold:F3})" 
                 : $"Normal update (score: {prediction.Score:F3})"
         });
+    }
+
+    public double Score(UpdateMetadata metadata)
+    {
+        if (!this.enabled || this.model == null)
+        {
+            return 0.0;
+        }
+
+        var input = new UpdateFeatures
+        {
+            FileSize = metadata.FileSize,
+            IsSigned = metadata.IsSigned ? 1.0f : 0.0f,
+            DomainReputation = ConvertDomainReputationToScore(metadata.DomainReputation),
+            HashMatchScore = metadata.HashMatch ? 1.0f : 0.0f,
+            UpdateFrequency = metadata.UpdateFrequency
+        };
+
+        var predictionEngine = this.mlContext.Model.CreatePredictionEngine<UpdateFeatures, AnomalyPrediction>(this.model);
+        var prediction = predictionEngine.Predict(input);
+
+        return prediction.Score;
+    }
+
+    /// <summary>
+    /// Scores a SoftwareUpdate for anomaly likelihood
+    /// </summary>
+    /// <param name="softwareUpdate">Software update to score</param>
+    /// <returns>Anomaly score (0.0 = normal, 1.0 = highly anomalous)</returns>
+    public double Score(SoftwareUpdate softwareUpdate)
+    {
+        var metadata = ConvertToUpdateMetadata(softwareUpdate);
+        return Score(metadata);
+    }
+
+    /// <summary>
+    /// Converts string domain reputation to a numeric score for ML processing
+    /// </summary>
+    private static float ConvertDomainReputationToScore(string domainReputation)
+    {
+        return domainReputation?.ToLowerInvariant() switch
+        {
+            "trusted" => 1.0f,
+            "good" => 0.8f,
+            "neutral" => 0.5f,
+            "suspicious" => 0.2f,
+            "malicious" => 0.0f,
+            _ => 0.5f // Default to neutral for unknown values
+        };
+    }
+
+    /// <summary>
+    /// Converts a SoftwareUpdate to UpdateMetadata for anomaly detection
+    /// </summary>
+    private static UpdateMetadata ConvertToUpdateMetadata(SoftwareUpdate softwareUpdate)
+    {
+        return new UpdateMetadata
+        {
+            KB_ID = !string.IsNullOrEmpty(softwareUpdate.KBArticleId) 
+                ? $"KB{softwareUpdate.KBArticleId}" 
+                : ExtractKBIdFromTitle(softwareUpdate.Title),
+            Publisher = "Microsoft", // All updates in this store are from Microsoft
+            HashMatch = true, // Assume true for existing updates in store
+            IsSigned = true, // Assume true for Microsoft updates
+            FileSize = softwareUpdate.Files?.Sum(f => (long)f.Size) ?? 0,
+            DomainReputation = "Trusted", // Microsoft is trusted
+            UpdateFrequency = 1.0f // Default frequency
+        };
+    }
+
+    /// <summary>
+    /// Extracts KB ID from update title
+    /// </summary>
+    private static string ExtractKBIdFromTitle(string title)
+    {
+        if (string.IsNullOrEmpty(title))
+            return "KB_Unknown";
+            
+        // Look for KB pattern in title (KB followed by numbers)
+        var match = System.Text.RegularExpressions.Regex.Match(title, @"KB\d+", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        return match.Success ? match.Value : $"KB_FromTitle";
     }
 
     public async Task TrainModelAsync(IEnumerable<UpdateMetadata> trainingData)
@@ -128,7 +210,7 @@ public class AnomalyDetectionService : IAnomalyDetectionService
         {
             FileSize = m.FileSize,
             IsSigned = m.IsSigned ? 1.0f : 0.0f,
-            DomainReputation = m.DomainReputation,
+            DomainReputation = ConvertDomainReputationToScore(m.DomainReputation),
             HashMatchScore = m.HashMatch ? 1.0f : 0.0f,
             UpdateFrequency = m.UpdateFrequency
         });
