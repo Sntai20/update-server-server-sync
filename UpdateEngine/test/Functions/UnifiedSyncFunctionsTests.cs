@@ -7,12 +7,14 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.PackageGraph.Storage;
 using Microsoft.PackageGraph.MicrosoftUpdate.Source;
+using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
+using UpdateEngine.Services;
+using UpdateEngine.Models;
 using Moq;
 using System.Net;
 using System.Text;
 using System.Text.Json;
 using UpdateEngine.Functions;
-using UpdateEngine.Services;
 using Xunit;
 using Configuration;
 
@@ -28,22 +30,37 @@ public class UnifiedSyncFunctionsTests
     private readonly Mock<ILogger<UnifiedSyncFunctions>> _mockLogger;
     private readonly Mock<ISyncService> _mockSyncService;
     private readonly Mock<IContentStore> _mockContentStore;
+    private readonly Mock<IAnomalyDetectionService> _mockAnomalyDetectionService;
+    private readonly Mock<IMetadataStore> _mockMetadataStore;
     private readonly Mock<IOptions<ServiceConfigurationMutable>> _mockConfig;
     private readonly UnifiedSyncFunctions _functions;
+    private readonly UnifiedSyncFunctions _functionsWithAnomaly;
 
     public UnifiedSyncFunctionsTests()
     {
         this._mockLogger = new Mock<ILogger<UnifiedSyncFunctions>>();
         this._mockSyncService = new Mock<ISyncService>();
         this._mockContentStore = new Mock<IContentStore>();
+        this._mockAnomalyDetectionService = new Mock<IAnomalyDetectionService>();
+        this._mockMetadataStore = new Mock<IMetadataStore>();
         this._mockConfig = new Mock<IOptions<ServiceConfigurationMutable>>();
         this._mockConfig.Setup(x => x.Value).Returns(new ServiceConfigurationMutable());
 
+        // Functions without anomaly detection (existing tests)
         this._functions = new UnifiedSyncFunctions(
             this._mockLogger.Object,
             this._mockSyncService.Object,
             new JsonSerializerOptions(),
             this._mockContentStore.Object);
+
+        // Functions with anomaly detection (new tests)
+        this._functionsWithAnomaly = new UnifiedSyncFunctions(
+            this._mockLogger.Object,
+            this._mockSyncService.Object,
+            new JsonSerializerOptions(),
+            this._mockContentStore.Object,
+            this._mockAnomalyDetectionService.Object,
+            this._mockMetadataStore.Object);
     }
 
     [Fact]
@@ -396,5 +413,189 @@ public class UnifiedSyncFunctionsTests
             },
             IsPastDue = false
         };
+    }
+
+    #region Anomaly Detection Tests
+
+    [Fact]
+    public async Task SyncCritical_WithAnomalyDetection_ShouldPerformPostSyncAnomalyAnalysis()
+    {
+        // Arrange
+        var timer = CreateMockTimerInfo();
+        var softwareUpdate = CreateMockSoftwareUpdate();
+        
+        this._mockSyncService
+            .Setup(s => s.CreateCriticalUpdatesFilter())
+            .Returns(new Mock<UpstreamSourceFilter>().Object);
+
+        this._mockMetadataStore
+            .Setup(m => m.OfType<SoftwareUpdate>())
+            .Returns(new[] { softwareUpdate }.AsQueryable());
+
+        this._mockAnomalyDetectionService
+            .Setup(a => a.Score(It.IsAny<SoftwareUpdate>()))
+            .Returns(0.9); // High anomaly score
+
+        // Act
+        await this._functionsWithAnomaly.SyncCritical(timer);
+
+        // Assert
+        this._mockSyncService.Verify(s => s.SyncUpdatesAsync(It.IsAny<UpstreamSourceFilter>(), It.IsAny<CancellationToken>()), Times.Once);
+        this._mockAnomalyDetectionService.Verify(a => a.Score(It.IsAny<SoftwareUpdate>()), Times.AtLeastOnce);
+        
+        // Verify logging of anomaly detection
+        this._mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Performing post-sync anomaly detection")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task SyncComprehensive_WithAnomalyDetection_ShouldLogHighRiskAnomalies()
+    {
+        // Arrange
+        var timer = CreateMockTimerInfo();
+        var highRiskUpdate = CreateMockSoftwareUpdate();
+        var normalUpdate = CreateMockSoftwareUpdate();
+        
+        this._mockSyncService.Setup(s => s.IsReindexingRequired()).ReturnsAsync(false);
+        this._mockSyncService.Setup(s => s.CreateComprehensiveUpdatesFilter()).Returns(new Mock<UpstreamSourceFilter>().Object);
+
+        this._mockMetadataStore
+            .Setup(m => m.OfType<SoftwareUpdate>())
+            .Returns(new[] { highRiskUpdate, normalUpdate }.AsQueryable());
+
+        this._mockAnomalyDetectionService
+            .SetupSequence(a => a.Score(It.IsAny<SoftwareUpdate>()))
+            .Returns(0.9) // High risk for first update
+            .Returns(0.3); // Normal for second update
+
+        // Act
+        await this._functionsWithAnomaly.SyncComprehensive(timer);
+
+        // Assert
+        this._mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("POST-SYNC ANOMALY DETECTED")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+
+        this._mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("1 high-risk")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task SyncContent_WithoutAnomalyServices_ShouldStillWork()
+    {
+        // Arrange
+        var timer = CreateMockTimerInfo();
+        
+        // Act
+        await this._functions.SyncContent(timer); // Using functions without anomaly detection
+
+        // Assert
+        this._mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Debug,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Anomaly detection service or metadata store not available")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Never); // Should not log since these services are null
+
+        // Should still perform sync operation
+        this._mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Starting scheduled content sync")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task PostSyncAnomalyDetection_WithNoUpdates_ShouldLogNoUpdatesFound()
+    {
+        // Arrange
+        var timer = CreateMockTimerInfo();
+        
+        this._mockSyncService.Setup(s => s.CreateCriticalUpdatesFilter()).Returns(new Mock<UpstreamSourceFilter>().Object);
+        this._mockMetadataStore
+            .Setup(m => m.OfType<SoftwareUpdate>())
+            .Returns(Array.Empty<SoftwareUpdate>().AsQueryable());
+
+        // Act
+        await this._functionsWithAnomaly.SyncCritical(timer);
+
+        // Assert
+        this._mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("No software updates found in metadata store")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task PostSyncAnomalyDetection_WithExceptionInScoring_ShouldLogWarningAndContinue()
+    {
+        // Arrange
+        var timer = CreateMockTimerInfo();
+        var softwareUpdate = CreateMockSoftwareUpdate();
+        
+        this._mockSyncService.Setup(s => s.CreateCriticalUpdatesFilter()).Returns(new Mock<UpstreamSourceFilter>().Object);
+        this._mockMetadataStore
+            .Setup(m => m.OfType<SoftwareUpdate>())
+            .Returns(new[] { softwareUpdate }.AsQueryable());
+
+        this._mockAnomalyDetectionService
+            .Setup(a => a.Score(It.IsAny<SoftwareUpdate>()))
+            .Throws(new InvalidOperationException("Test scoring error"));
+
+        // Act
+        await this._functionsWithAnomaly.SyncCritical(timer);
+
+        // Assert
+        this._mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Error analyzing update")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+
+        // Should still complete the sync operation without failing
+        this._mockSyncService.Verify(s => s.SyncUpdatesAsync(It.IsAny<UpstreamSourceFilter>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    #endregion
+
+    private SoftwareUpdate CreateMockSoftwareUpdate()
+    {
+        var mockIdentity = new Mock<Microsoft.PackageGraph.MicrosoftUpdate.Metadata.MicrosoftUpdatePackageIdentity>();
+        mockIdentity.Setup(i => i.ID).Returns(Guid.NewGuid());
+        
+        var mockUpdate = new Mock<SoftwareUpdate>();
+        mockUpdate.Setup(u => u.Id).Returns(mockIdentity.Object);
+        mockUpdate.Setup(u => u.Title).Returns("Test Update");
+        
+        return mockUpdate.Object;
     }
 }

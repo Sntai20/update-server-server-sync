@@ -6,8 +6,11 @@ namespace UpdateEngineTest.Functions;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
+using Microsoft.PackageGraph.Storage;
+using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
 using UpdateEngine.Functions;
 using UpdateEngine.Services;
+using UpdateEngine.Models;
 using Moq;
 using System.Net;
 using System.Text.Json;
@@ -19,25 +22,40 @@ public class UnifiedHealthFunctionsTests
     private readonly Mock<ILogger<UnifiedHealthFunctions>> mockLogger;
     private readonly Mock<ISyncService> mockSyncService;
     private readonly Mock<IHealthService> mockHealthService;
+    private readonly Mock<IAnomalyDetectionService> mockAnomalyDetectionService;
+    private readonly Mock<IMetadataStore> mockMetadataStore;
     private readonly JsonSerializerOptions jsonOptions;
     private readonly UnifiedHealthFunctions functions;
+    private readonly UnifiedHealthFunctions functionsWithAnomaly;
 
     public UnifiedHealthFunctionsTests()
     {
         this.mockLogger = new Mock<ILogger<UnifiedHealthFunctions>>();
         this.mockSyncService = new Mock<ISyncService>();
         this.mockHealthService = new Mock<IHealthService>();
+        this.mockAnomalyDetectionService = new Mock<IAnomalyDetectionService>();
+        this.mockMetadataStore = new Mock<IMetadataStore>();
         this.jsonOptions = new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true,
             WriteIndented = true
         };
 
+        // Functions without anomaly detection (existing tests)
         this.functions = new UnifiedHealthFunctions(
             this.mockLogger.Object,
             this.mockHealthService.Object,
             this.mockSyncService.Object,
             this.jsonOptions);
+
+        // Functions with anomaly detection (new tests)
+        this.functionsWithAnomaly = new UnifiedHealthFunctions(
+            this.mockLogger.Object,
+            this.mockHealthService.Object,
+            this.mockSyncService.Object,
+            this.jsonOptions,
+            this.mockAnomalyDetectionService.Object,
+            this.mockMetadataStore.Object);
     }
 
     [Fact]
@@ -309,5 +327,176 @@ public class UnifiedHealthFunctionsTests
             },
             IsPastDue = false
         };
+    }
+
+    #region Anomaly Detection Health Tests
+
+    [Fact]
+    public async Task ScheduledHealthCheck_WithAnomalyDetection_ShouldPerformMetadataHealthCheck()
+    {
+        // Arrange
+        var timer = CreateMockTimerInfo();
+        var healthStatus = new HealthStatus { IsHealthy = true };
+        var softwareUpdate = CreateMockSoftwareUpdate();
+
+        this.mockHealthService.Setup(h => h.GetSystemHealthAsync()).ReturnsAsync(healthStatus);
+        this.mockMetadataStore
+            .Setup(m => m.OfType<SoftwareUpdate>())
+            .Returns(new[] { softwareUpdate }.AsQueryable());
+        this.mockAnomalyDetectionService
+            .Setup(a => a.Score(It.IsAny<SoftwareUpdate>()))
+            .Returns(0.3); // Normal score
+
+        // Act
+        await this.functionsWithAnomaly.ScheduledHealthCheck(timer);
+
+        // Assert
+        this.mockHealthService.Verify(h => h.GetSystemHealthAsync(), Times.Once);
+        this.mockAnomalyDetectionService.Verify(a => a.Score(It.IsAny<SoftwareUpdate>()), Times.Once);
+
+        // Verify metadata health check was performed
+        this.mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Performing metadata health anomaly check")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ScheduledHealthCheck_WithHighRiskAnomalies_ShouldLogWarning()
+    {
+        // Arrange
+        var timer = CreateMockTimerInfo();
+        var healthStatus = new HealthStatus { IsHealthy = true };
+        var riskySoftwareUpdate = CreateMockSoftwareUpdate();
+
+        this.mockHealthService.Setup(h => h.GetSystemHealthAsync()).ReturnsAsync(healthStatus);
+        this.mockMetadataStore
+            .Setup(m => m.OfType<SoftwareUpdate>())
+            .Returns(new[] { riskySoftwareUpdate }.AsQueryable());
+        this.mockAnomalyDetectionService
+            .Setup(a => a.Score(It.IsAny<SoftwareUpdate>()))
+            .Returns(0.9); // High risk score
+
+        // Act
+        await this.functionsWithAnomaly.ScheduledHealthCheck(timer);
+
+        // Assert
+        this.mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("HIGH-RISK metadata anomaly detected")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+
+        this.mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Metadata health alert: 1 high-risk anomalies")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ScheduledHealthCheck_WithoutAnomalyServices_ShouldStillWork()
+    {
+        // Arrange
+        var timer = CreateMockTimerInfo();
+        var healthStatus = new HealthStatus { IsHealthy = true };
+
+        this.mockHealthService.Setup(h => h.GetSystemHealthAsync()).ReturnsAsync(healthStatus);
+
+        // Act
+        await this.functions.ScheduledHealthCheck(timer); // Using functions without anomaly detection
+
+        // Assert
+        this.mockHealthService.Verify(h => h.GetSystemHealthAsync(), Times.Once);
+        
+        // Should log debug message about services not being available
+        this.mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Debug,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Anomaly detection service or metadata store not available")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task MetadataHealthAnomalyCheck_WithNoUpdates_ShouldLogNoUpdatesFound()
+    {
+        // Arrange
+        var timer = CreateMockTimerInfo();
+        var healthStatus = new HealthStatus { IsHealthy = true };
+
+        this.mockHealthService.Setup(h => h.GetSystemHealthAsync()).ReturnsAsync(healthStatus);
+        this.mockMetadataStore
+            .Setup(m => m.OfType<SoftwareUpdate>())
+            .Returns(Array.Empty<SoftwareUpdate>().AsQueryable());
+
+        // Act
+        await this.functionsWithAnomaly.ScheduledHealthCheck(timer);
+
+        // Assert
+        this.mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("No software updates found in metadata store")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task MetadataHealthAnomalyCheck_WithScoringException_ShouldLogWarning()
+    {
+        // Arrange
+        var timer = CreateMockTimerInfo();
+        var healthStatus = new HealthStatus { IsHealthy = true };
+        var softwareUpdate = CreateMockSoftwareUpdate();
+
+        this.mockHealthService.Setup(h => h.GetSystemHealthAsync()).ReturnsAsync(healthStatus);
+        this.mockMetadataStore
+            .Setup(m => m.OfType<SoftwareUpdate>())
+            .Returns(new[] { softwareUpdate }.AsQueryable());
+        this.mockAnomalyDetectionService
+            .Setup(a => a.Score(It.IsAny<SoftwareUpdate>()))
+            .Throws(new InvalidOperationException("Test scoring error"));
+
+        // Act
+        await this.functionsWithAnomaly.ScheduledHealthCheck(timer);
+
+        // Assert
+        this.mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Error analyzing update") && v.ToString()!.Contains("during health check")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    #endregion
+
+    private SoftwareUpdate CreateMockSoftwareUpdate()
+    {
+        var mockIdentity = new Mock<Microsoft.PackageGraph.MicrosoftUpdate.Metadata.MicrosoftUpdatePackageIdentity>();
+        mockIdentity.Setup(i => i.ID).Returns(Guid.NewGuid());
+        
+        var mockUpdate = new Mock<SoftwareUpdate>();
+        mockUpdate.Setup(u => u.Id).Returns(mockIdentity.Object);
+        mockUpdate.Setup(u => u.Title).Returns("Test Update for Health Check");
+        
+        return mockUpdate.Object;
     }
 }
