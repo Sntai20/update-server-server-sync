@@ -6,6 +6,9 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 using UpdateEngine.Services;
+using UpdateEngine.Models;
+using Microsoft.PackageGraph.Storage;
+using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
 using System.Net;
 
 namespace UpdateEngine.Functions;
@@ -27,17 +30,23 @@ public class UnifiedHealthFunctions
     private readonly ILogger<UnifiedHealthFunctions> logger;
     private readonly IHealthService healthService;
     private readonly ISyncService syncService;
+    private readonly IAnomalyDetectionService? anomalyDetectionService;
+    private readonly IMetadataStore? metadataStore;
     private readonly JsonSerializerOptions jsonOptions;
 
     public UnifiedHealthFunctions(
         ILogger<UnifiedHealthFunctions> logger,
         IHealthService healthService,
         ISyncService syncService,
-        JsonSerializerOptions jsonOptions)
+        JsonSerializerOptions jsonOptions,
+        IAnomalyDetectionService? anomalyDetectionService = null,
+        IMetadataStore? metadataStore = null)
     {
         this.logger = logger;
         this.healthService = healthService;
         this.syncService = syncService;
+        this.anomalyDetectionService = anomalyDetectionService;
+        this.metadataStore = metadataStore;
         this.jsonOptions = jsonOptions;
     }
 
@@ -117,6 +126,9 @@ public class UnifiedHealthFunctions
                     this.logger.LogInformation("Health metric - {Name}: {Value}", metric.Name, metric.Value);
                 }
             }
+
+            // Perform metadata anomaly health check if available
+            await this.PerformMetadataHealthAnomalyCheck();
 
             this.logger.LogInformation("Scheduled health check completed. Next run: {NextRun}", timer.ScheduleStatus?.Next);
         }
@@ -302,6 +314,83 @@ public class UnifiedHealthFunctions
                     new() { Name = "scope", Value = "store" }
                 }
             };
+        }
+    }
+
+    /// <summary>
+    /// Performs metadata health check including anomaly detection for monitoring purposes.
+    /// Analyzes recent metadata for anomalies and potential security issues.
+    /// </summary>
+    private async Task PerformMetadataHealthAnomalyCheck()
+    {
+        if (this.anomalyDetectionService == null || this.metadataStore == null)
+        {
+            this.logger.LogDebug("Anomaly detection service or metadata store not available, skipping metadata health check");
+            return;
+        }
+
+        try
+        {
+            this.logger.LogInformation("Performing metadata health anomaly check");
+
+            // Get sample of recent software updates for health monitoring
+            var allUpdates = this.metadataStore.OfType<SoftwareUpdate>().Take(50).ToList();
+
+            if (!allUpdates.Any())
+            {
+                this.logger.LogInformation("No software updates found in metadata store for health check");
+                return;
+            }
+
+            var anomalyCount = 0;
+            var highRiskCount = 0;
+            var totalAnalyzed = 0;
+
+            foreach (var softwareUpdate in allUpdates)
+            {
+                try
+                {
+                    var anomalyScore = this.anomalyDetectionService.Score(softwareUpdate);
+                    totalAnalyzed++;
+
+                    if (anomalyScore > 0.5)
+                    {
+                        anomalyCount++;
+                        if (anomalyScore > 0.8)
+                        {
+                            highRiskCount++;
+                            this.logger.LogWarning("HIGH-RISK metadata anomaly detected in health check: {UpdateId} - {Title} (Score: {Score:F2})",
+                                softwareUpdate.Id.ID, softwareUpdate.Title, anomalyScore);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    this.logger.LogWarning(ex, "Error analyzing update {UpdateId} during health check", softwareUpdate.Id.ID);
+                }
+            }
+
+            // Log health summary
+            var anomalyPercentage = totalAnalyzed > 0 ? (double)anomalyCount / totalAnalyzed * 100 : 0;
+            
+            if (highRiskCount > 0)
+            {
+                this.logger.LogWarning("Metadata health alert: {HighRisk} high-risk anomalies found out of {Total} updates analyzed ({Percentage:F1}% anomaly rate)",
+                    highRiskCount, totalAnalyzed, anomalyPercentage);
+            }
+            else if (anomalyCount > 0)
+            {
+                this.logger.LogInformation("Metadata health check: {Anomalies} anomalies found out of {Total} updates analyzed ({Percentage:F1}% anomaly rate)",
+                    anomalyCount, totalAnalyzed, anomalyPercentage);
+            }
+            else
+            {
+                this.logger.LogInformation("Metadata health check passed: No anomalies detected in {Total} updates analyzed", totalAnalyzed);
+            }
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Error during metadata health anomaly check");
         }
     }
 }

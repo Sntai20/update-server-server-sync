@@ -9,10 +9,11 @@ using Microsoft.Extensions.Logging;
 using Microsoft.PackageGraph.Storage;
 using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
 using Microsoft.UpdateServices.WebServices.ServerSync;
+using UpdateEngine.Services;
+using UpdateEngine.Models;
 using System.Net;
 using System.Text.Json;
 using System.ComponentModel.DataAnnotations;
-using UpdateEngine.Services;
 
 /// <summary>
 /// Azure Functions for metadata export and copy operations.
@@ -22,11 +23,16 @@ public class MetadataExportFunctions
 {
     private readonly ILogger<MetadataExportFunctions> logger;
     private readonly IMetadataStore? metadataStore;
+    private readonly IAnomalyDetectionService? anomalyDetectionService;
 
-    public MetadataExportFunctions(ILogger<MetadataExportFunctions> logger, IMetadataStore? metadataStore)
+    public MetadataExportFunctions(
+        ILogger<MetadataExportFunctions> logger, 
+        IMetadataStore? metadataStore,
+        IAnomalyDetectionService? anomalyDetectionService = null)
     {
         this.logger = logger;
         this.metadataStore = metadataStore;
+        this.anomalyDetectionService = anomalyDetectionService;
     }
 
     /// <summary>

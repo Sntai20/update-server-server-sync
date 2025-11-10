@@ -7,6 +7,9 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 using UpdateEngine.Services;
+using UpdateEngine.Models;
+using Microsoft.PackageGraph.Storage;
+using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
 using System.Net;
 using System.Text.Json;
 
@@ -18,13 +21,19 @@ public class MetadataQueryFunctions
 {
     private readonly ILogger<MetadataQueryFunctions> logger;
     private readonly IQueryService queryService;
+    private readonly IAnomalyDetectionService? anomalyDetectionService;
+    private readonly IMetadataStore? metadataStore;
 
     public MetadataQueryFunctions(
-     ILogger<MetadataQueryFunctions> logger,
-        IQueryService queryService)
+        ILogger<MetadataQueryFunctions> logger,
+        IQueryService queryService,
+        IAnomalyDetectionService? anomalyDetectionService = null,
+        IMetadataStore? metadataStore = null)
     {
         this.logger = logger;
         this.queryService = queryService;
+        this.anomalyDetectionService = anomalyDetectionService;
+        this.metadataStore = metadataStore;
     }
 
     /// <summary>
@@ -181,4 +190,140 @@ public class MetadataQueryFunctions
             return errorResponse;
         }
     }
+
+    /// <summary>
+    /// Analyze metadata for anomalies using Microsoft Update library capabilities.
+    /// POST /api/AnalyzeMetadataAnomalies
+    /// </summary>
+    [Function("AnalyzeMetadataAnomalies")]
+    public async Task<HttpResponseData> AnalyzeMetadataAnomalies(
+        [HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequestData req)
+    {
+        this.logger.LogInformation("Metadata anomaly analysis requested");
+
+        try
+        {
+            var requestBody = await new StreamReader(req.Body).ReadToEndAsync();
+            var analysisRequest = JsonSerializer.Deserialize<MetadataAnomalyAnalysisRequest>(requestBody) 
+                ?? new MetadataAnomalyAnalysisRequest();
+
+            if (this.anomalyDetectionService == null || this.metadataStore == null)
+            {
+                var notAvailableResponse = req.CreateResponse(HttpStatusCode.ServiceUnavailable);
+                await notAvailableResponse.WriteAsJsonAsync(new { 
+                    error = "Anomaly detection service or metadata store not available",
+                    message = "Anomaly detection capabilities are not configured"
+                });
+                return notAvailableResponse;
+            }
+
+            // Get software updates for analysis
+            var allUpdates = this.metadataStore.OfType<SoftwareUpdate>().ToList();
+            var updatesToAnalyze = analysisRequest.MaxUpdates.HasValue 
+                ? allUpdates.Take(analysisRequest.MaxUpdates.Value).ToList()
+                : allUpdates.Take(100).ToList(); // Default limit
+
+            if (!updatesToAnalyze.Any())
+            {
+                var noDataResponse = req.CreateResponse(HttpStatusCode.OK);
+                await noDataResponse.WriteAsJsonAsync(new MetadataAnomalyAnalysisResult
+                {
+                    TotalAnalyzed = 0,
+                    AnomaliesDetected = 0,
+                    HighRiskCount = 0,
+                    Anomalies = new List<AnomalyDetails>(),
+                    AnalysisTimestamp = DateTime.UtcNow
+                });
+                return noDataResponse;
+            }
+
+            this.logger.LogInformation("Analyzing {Count} software updates for anomalies", updatesToAnalyze.Count);
+
+            var anomalies = new List<AnomalyDetails>();
+            var startTime = DateTime.UtcNow;
+
+            foreach (var softwareUpdate in updatesToAnalyze)
+            {
+                try
+                {
+                    var anomalyScore = this.anomalyDetectionService.Score(softwareUpdate);
+                    
+                    if (anomalyScore > (analysisRequest.AnomalyThreshold ?? 0.5))
+                    {
+                        anomalies.Add(new AnomalyDetails
+                        {
+                            UpdateId = softwareUpdate.Id.ID,
+                            Title = softwareUpdate.Title,
+                            Score = anomalyScore,
+                            RiskLevel = anomalyScore > 0.8 ? "High" : anomalyScore > 0.5 ? "Medium" : "Low",
+                            KBArticleId = softwareUpdate.KBArticleId,
+                            Categories = softwareUpdate.Categories?.Select(c => c.ToString()).ToList() ?? new List<string>()
+                        });
+                    }
+                }
+                catch (Exception ex)
+                {
+                    this.logger.LogWarning(ex, "Error analyzing update {UpdateId} for anomalies", softwareUpdate.Id.ID);
+                }
+            }
+
+            var result = new MetadataAnomalyAnalysisResult
+            {
+                TotalAnalyzed = updatesToAnalyze.Count,
+                AnomaliesDetected = anomalies.Count,
+                HighRiskCount = anomalies.Count(a => a.RiskLevel == "High"),
+                Anomalies = anomalies.OrderByDescending(a => a.Score).ToList(),
+                AnalysisTimestamp = DateTime.UtcNow,
+                AnalysisDuration = DateTime.UtcNow - startTime,
+                AnomalyThreshold = analysisRequest.AnomalyThreshold ?? 0.5
+            };
+
+            var response = req.CreateResponse(HttpStatusCode.OK);
+            await response.WriteAsJsonAsync(result);
+            return response;
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Error during metadata anomaly analysis");
+            var errorResponse = req.CreateResponse(HttpStatusCode.InternalServerError);
+            await errorResponse.WriteAsJsonAsync(new { error = ex.Message });
+            return errorResponse;
+        }
+    }
+}
+
+/// <summary>
+/// Request model for metadata anomaly analysis
+/// </summary>
+public class MetadataAnomalyAnalysisRequest
+{
+    public int? MaxUpdates { get; set; } = 100;
+    public double? AnomalyThreshold { get; set; } = 0.5;
+}
+
+/// <summary>
+/// Result model for metadata anomaly analysis
+/// </summary>
+public class MetadataAnomalyAnalysisResult
+{
+    public int TotalAnalyzed { get; set; }
+    public int AnomaliesDetected { get; set; }
+    public int HighRiskCount { get; set; }
+    public List<AnomalyDetails> Anomalies { get; set; } = new();
+    public DateTime AnalysisTimestamp { get; set; }
+    public TimeSpan AnalysisDuration { get; set; }
+    public double AnomalyThreshold { get; set; }
+}
+
+/// <summary>
+/// Details of a detected anomaly
+/// </summary>
+public class AnomalyDetails
+{
+    public Guid UpdateId { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public double Score { get; set; }
+    public string RiskLevel { get; set; } = string.Empty;
+    public string? KBArticleId { get; set; }
+    public List<string> Categories { get; set; } = new();
 }

@@ -9,7 +9,9 @@ using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.PackageGraph.Storage;
 using Microsoft.PackageGraph.MicrosoftUpdate.Source;
+using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
 using UpdateEngine.Services;
+using UpdateEngine.Models;
 using System.Net;
 
 /// <summary>
@@ -22,17 +24,23 @@ public class UnifiedSyncFunctions
     private readonly ILogger<UnifiedSyncFunctions> logger;
     private readonly ISyncService syncService;
     private readonly IContentStore? contentStore;
+    private readonly IAnomalyDetectionService? anomalyDetectionService;
+    private readonly IMetadataStore? metadataStore;
     private readonly JsonSerializerOptions jsonOptions;
 
     public UnifiedSyncFunctions(
         ILogger<UnifiedSyncFunctions> logger,
         ISyncService syncService,
         JsonSerializerOptions jsonOptions,
-        IContentStore? contentStore = null)
+        IContentStore? contentStore = null,
+        IAnomalyDetectionService? anomalyDetectionService = null,
+        IMetadataStore? metadataStore = null)
     {
         this.logger = logger;
         this.syncService = syncService;
         this.contentStore = contentStore;
+        this.anomalyDetectionService = anomalyDetectionService;
+        this.metadataStore = metadataStore;
         this.jsonOptions = jsonOptions;
     }
 
@@ -411,6 +419,12 @@ public class UnifiedSyncFunctions
 
             result.EndTime = DateTime.UtcNow;
             result.Success = true;
+
+            // Perform post-sync anomaly detection if services are available
+            if (this.anomalyDetectionService != null && this.metadataStore != null)
+            {
+                await this.PerformPostSyncAnomalyDetection(request?.SyncType ?? "unknown", result.StartTime);
+            }
         }
         catch (Exception ex)
         {
@@ -476,5 +490,98 @@ public class UnifiedSyncFunctions
         // Always perform critical updates in emergency
         var filter = this.syncService.CreateCriticalUpdatesFilter();
         await this.syncService.SyncUpdatesAsync(filter);
+    }
+
+    /// <summary>
+    /// Perform anomaly detection on recently synchronized updates using Microsoft Update library capabilities.
+    /// Leverages comprehensive metadata analysis including category resolution and applicability rules.
+    /// </summary>
+    private async Task PerformPostSyncAnomalyDetection(string syncType, DateTime syncStartTime)
+    {
+        if (this.anomalyDetectionService == null || this.metadataStore == null)
+        {
+            this.logger.LogDebug("Anomaly detection service or metadata store not available, skipping post-sync analysis");
+            return;
+        }
+
+        this.logger.LogInformation("Performing post-sync anomaly detection for {SyncType} sync", syncType);
+
+        try
+        {
+            // Get all packages from the metadata store and filter for software updates
+            var allPackages = this.metadataStore.OfType<SoftwareUpdate>().ToList();
+            
+            // Filter for recent updates (would need metadata to determine recency)
+            // For now, analyze recent packages based on available data
+            var recentUpdates = allPackages.Take(100).ToList(); // Limit for performance
+
+            if (!recentUpdates.Any())
+            {
+                this.logger.LogInformation("No software updates found in metadata store for post-sync anomaly detection");
+                return;
+            }
+
+            this.logger.LogInformation("Analyzing {Count} software updates for anomalies", recentUpdates.Count);
+
+            var anomalies = new List<(SoftwareUpdate Update, AnomalyDetectionResult Result)>();
+            var normalCount = 0;
+            
+            foreach (var softwareUpdate in recentUpdates)
+            {
+                try
+                {
+                    // Use the SoftwareUpdate scoring method directly
+                    var anomalyScore = this.anomalyDetectionService.Score(softwareUpdate);
+                    
+                    // Create detection result
+                    var anomalyResult = new AnomalyDetectionResult
+                    {
+                        IsAnomaly = anomalyScore > 0.5, // Threshold for anomaly detection
+                        Score = anomalyScore,
+                        Message = anomalyScore > 0.8 ? "High-risk anomaly detected" : 
+                                 anomalyScore > 0.5 ? "Medium-risk anomaly detected" : "Normal update"
+                    };
+                    
+                    if (anomalyResult.IsAnomaly)
+                    {
+                        anomalies.Add((softwareUpdate, anomalyResult));
+                    }
+                    else
+                    {
+                        normalCount++;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    this.logger.LogWarning(ex, "Error analyzing update {UpdateId} for anomalies", softwareUpdate.Id.ID);
+                }
+            }
+
+            // Report findings
+            if (anomalies.Any())
+            {
+                foreach (var (update, anomaly) in anomalies)
+                {
+                    this.logger.LogWarning("POST-SYNC ANOMALY DETECTED: {UpdateId} - {Title} (Score: {Score:F2}) - {Message}",
+                        update.Id.ID, update.Title, anomaly.Score, anomaly.Message);
+                }
+
+                // Log summary
+                var highRiskCount = anomalies.Count(a => a.Result.Score > 0.8);
+                var mediumRiskCount = anomalies.Count(a => a.Result.Score > 0.5 && a.Result.Score <= 0.8);
+                
+                this.logger.LogWarning("Post-sync anomaly summary for {SyncType}: {HighRisk} high-risk, {MediumRisk} medium-risk anomalies detected from {Total} updates analyzed",
+                    syncType, highRiskCount, mediumRiskCount, recentUpdates.Count);
+            }
+            else
+            {
+                this.logger.LogInformation("Post-sync anomaly detection completed for {SyncType}: No anomalies detected in {AnalyzedCount} updates ({NormalCount} normal)",
+                    syncType, recentUpdates.Count, normalCount);
+            }
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Error during post-sync anomaly detection for {SyncType}", syncType);
+        }
     }
 }
