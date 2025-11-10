@@ -45,12 +45,13 @@ public static class ConfigurationHelper
     /// <item><description>Storage paths and container names</description></item>
     /// <item><description>Service URLs and configuration JSON</description></item>
     /// </list>
+    /// Storage directories and containers are created automatically during Functions startup via DI.
     /// </remarks>
     public static void ConfigureUpdateFunctions(
-    IResourceBuilder<AzureFunctionsProjectResource> functions,
-    ServiceConfiguration serviceConfiguration,
-    IConfigurationSection storageConfig,
-    IConfigurationSection azureWebJobsConfig)
+        IResourceBuilder<AzureFunctionsProjectResource> functions,
+        ServiceConfiguration serviceConfiguration,
+        IConfigurationSection storageConfig,
+        IConfigurationSection azureWebJobsConfig)
     {
         var storageConf = serviceConfiguration.StorageConfiguration;
 
@@ -86,43 +87,6 @@ public static class ConfigurationHelper
         {
             var disabledValue = job.GetValue<bool>("Disabled");
             functions.WithEnvironment($"AzureWebJobs.{job.Key}.Disabled", disabledValue.ToString().ToLower());
-        }
-    }
-
-    /// <summary>
-    /// Validates storage configuration and sets up storage resources for the application.
-    /// </summary>
-    /// <param name="builder">The distributed application builder.</param>
-    /// <param name="serviceConfiguration">The service configuration containing storage settings to validate.</param>
-    /// <exception cref="InvalidOperationException">Thrown when MetadataStorePath is not configured.</exception>
-    /// <remarks>
-    /// <para>Ensures that required storage paths are configured and accessible.</para>
-    /// <para>When using local storage in development mode:</para>
-    /// <list type="bullet">
-    /// <item><description>Creates local storage directories if they don't exist</description></item>
-    /// <item><description>Registers health checks to monitor metadata store availability</description></item>
-    /// </list>
-    /// </remarks>
-    public static void ValidateAndSetupStorage(
-        IDistributedApplicationBuilder builder,
-        ServiceConfiguration serviceConfiguration)
-    {
-        var storageConf = serviceConfiguration.StorageConfiguration;
-
-        if (string.IsNullOrEmpty(storageConf.MetadataStorePath))
-        {
-            throw new InvalidOperationException("MetadataStorePath must be configured");
-        }
-
-        if ((!storageConf.UseAzureStorageForContent || !storageConf.UseAzureStorageForMetadata) && builder.Environment.IsDevelopment())
-        {
-            StorageSetupHelper.EnsureLocalDirectories(storageConf.MetadataStorePath, storageConf.ContentStorePath);
-
-            builder.Services.AddHealthChecks()
-                .AddCheck("metadata-store", () =>
-                    StorageSetupHelper.ValidateLocalStorage(storageConf.MetadataStorePath)
-                        ? Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult.Healthy("Metadata store directory exists")
-                        : Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult.Unhealthy("Metadata store path not found"));
         }
     }
 }

@@ -7,15 +7,14 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.PackageGraph.Storage;
 using Configuration;
-using UpdateEngine.Services;
 using System.Text.Json;
+using UpdateEngine.Services;
 
 var hostBuilder = new HostBuilder()
-  .ConfigureFunctionsWebApplication()
+    .ConfigureFunctionsWebApplication()
     .ConfigureServices((context, services) =>
     {
         ConfigureLogging(context);
-        ConfigureDirectories(context);
         ConfigureJsonSerialization(services);
         ConfigureServices(services, context.Configuration);
     });
@@ -48,63 +47,25 @@ static void ConfigureLogging(HostBuilderContext context)
     }
 }
 
-static void ConfigureDirectories(HostBuilderContext context)
-{
-    var useAzureStorageForMetadata = bool.Parse(context.Configuration["UseAzureStorageForMetadata"] ?? "false");
-    var useAzureStorageForContent = bool.Parse(context.Configuration["UseAzureStorageForContent"] ?? "false");
-    if (useAzureStorageForMetadata || useAzureStorageForContent)
-    {
-        return; // Storage validation happens during DI registration
-    }
-
-    var tempLogger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger("Startup");
-    var metadataPath = context.Configuration["MetadataStorePath"] ?? "./localMetadataStore";
-    var contentPath = context.Configuration["ContentStorePath"] ?? "./localContentStore";
-
-    // Validate directories can be created using StorageFactory
-    try
-    {
-        if (!Directory.Exists(metadataPath))
-        {
-            Directory.CreateDirectory(metadataPath);
-            tempLogger.LogInformation("Created metadata directory: {Path}", metadataPath);
-        }
-
-        if (!string.IsNullOrEmpty(contentPath) && !Directory.Exists(contentPath))
-        {
-            Directory.CreateDirectory(contentPath);
-            tempLogger.LogInformation("Created content directory: {Path}", contentPath);
-        }
-    }
-    catch (Exception ex)
-    {
-        tempLogger.LogError(ex, "Failed to validate storage directories");
-        throw;
-    }
-}
-
 static void ConfigureJsonSerialization(IServiceCollection services)
 {
     // Configure global JSON serialization options for Azure Functions
     var jsonOptions = new JsonSerializerOptions
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        WriteIndented = false, // Set to true for debugging
+        WriteIndented = false,
         PropertyNameCaseInsensitive = true,
         DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
     };
 
-    // Register as singleton so Functions can inject it
     services.AddSingleton(jsonOptions);
 }
 
 static void ConfigureServices(IServiceCollection services, IConfiguration configuration)
 {
-    // Get the registered JsonSerializerOptions for deserialization
     var serviceProvider = services.BuildServiceProvider();
     var jsonOptions = serviceProvider.GetRequiredService<JsonSerializerOptions>();
 
-    // Bind service configuration from JSON
     var configJson = configuration["ServiceConfigurationJson"];
     if (!string.IsNullOrEmpty(configJson))
     {
@@ -115,10 +76,9 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
         }
     }
 
-    // Configure from settings
     services.Configure<ServiceConfigurationMutable>(configuration.GetSection("ServiceConfiguration"));
-
-    // Register Microsoft Update services
+    
+    // Register Microsoft Update services - this handles ALL storage setup
     services.AddMicrosoftUpdateServices(configuration);
 }
 
@@ -129,7 +89,7 @@ static async Task InitializeStorageAsync(IHost host)
 
     try
     {
-        // Initialize metadata store (creates Azure containers if needed)
+        // Initialize metadata store (creates directories/containers automatically via DI)
         var metadataStore = scope.ServiceProvider.GetRequiredService<IMetadataStore>();
         logger.LogInformation("Metadata store initialized successfully");
 

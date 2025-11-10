@@ -11,8 +11,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 /// <summary>
 /// Configures Azurite storage emulator with fixed ports for blob, queue, and table services.
-/// Uses consistent port assignments defined in <see cref="AzuriteDefaults"/> to ensure
-/// reliable local development and testing environments.
+/// Uses consistent port assignments to ensure reliable local development and testing environments.
 /// </summary>
 var storage = builder
     .AddAzureStorage("Storage")
@@ -23,12 +22,10 @@ var storage = builder
 var enableServiceBus = builder.Configuration.GetValue<bool>("Features:EnableScheduledSync", false);
 
 /// <summary>
-/// Builds and validates service configuration from application settings, including storage paths,
-/// service URLs, and operational parameters. Ensures storage resources are properly initialized
-/// before starting the application.
+/// Builds service configuration from application settings, including storage paths,
+/// service URLs, and operational parameters.
 /// </summary>
 var serviceConfiguration = ConfigurationHelper.BuildServiceConfiguration(builder.Configuration);
-ConfigurationHelper.ValidateAndSetupStorage(builder, serviceConfiguration);
 
 /// <summary>
 /// Configures the UpdateEngine Azure Functions project with dependencies.
@@ -67,6 +64,7 @@ if (enableServiceBus)
 /// <summary>
 /// Applies service configuration and storage settings to the Azure Functions environment,
 /// including metadata store paths, content store paths, and service endpoint URLs.
+/// Storage directories/containers are created automatically during Functions startup via DI.
 /// </summary>
 ConfigurationHelper.ConfigureUpdateFunctions(
     updateFunctions,
