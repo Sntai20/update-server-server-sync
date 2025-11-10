@@ -6,136 +6,39 @@ namespace UpdateEngine.Functions;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
-using Microsoft.PackageGraph.Storage;
 using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
+using Microsoft.PackageGraph.Storage;
 using Microsoft.UpdateServices.WebServices.ServerSync;
-using UpdateEngine.Services;
-using UpdateEngine.Models;
 using System.Net;
 using System.Text.Json;
-using System.ComponentModel.DataAnnotations;
+using UpdateEngine.Services;
 
 /// <summary>
-/// Azure Functions for metadata export and copy operations.
+/// Azure Functions for metadata export operations.
 /// Provides export capabilities equivalent to the upsync export commands.
 /// </summary>
 public class MetadataExportFunctions
 {
     private readonly ILogger<MetadataExportFunctions> logger;
-    private readonly IMetadataStore? metadataStore;
-    private readonly IAnomalyDetectionService? anomalyDetectionService;
+    private readonly IMetadataStore metadataStore;
 
     public MetadataExportFunctions(
         ILogger<MetadataExportFunctions> logger, 
-        IMetadataStore? metadataStore,
-        IAnomalyDetectionService? anomalyDetectionService = null)
+        IMetadataStore metadataStore)
     {
         this.logger = logger;
         this.metadataStore = metadataStore;
-        this.anomalyDetectionService = anomalyDetectionService;
     }
 
     /// <summary>
-    /// Copy metadata between stores with filtering.
-    /// Equivalent to: upsync copy
-    /// </summary>
-    [Function("CopyMetadata")]
-    public async Task<HttpResponseData> CopyMetadata(
-        [HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequestData req)
-    {
-        this.logger.LogInformation("CopyMetadata function called");
-
-        try
-        {
-            var requestBody = await new StreamReader(req.Body).ReadToEndAsync();
-            var copyRequest = JsonSerializer.Deserialize<MetadataCopyRequest>(requestBody);
-
-            if (copyRequest == null)
-            {
-                var badRequest = req.CreateResponse(HttpStatusCode.BadRequest);
-                await badRequest.WriteStringAsync("Invalid request body");
-                return badRequest;
-            }
-
-            // Validate required parameters
-            if (string.IsNullOrEmpty(copyRequest.SourcePath) || string.IsNullOrEmpty(copyRequest.DestinationPath))
-            {
-                var badRequest = req.CreateResponse(HttpStatusCode.BadRequest);
-                await badRequest.WriteStringAsync("Source and destination paths are required");
-                return badRequest;
-            }
-
-            // Open source store
-            var sourceStore = this.GetMetadataStoreFromOptions(
-                copyRequest.SourcePath,
-                copyRequest.SourceType,
-                copyRequest.SourceConnectionString);
-
-            if (sourceStore == null)
-            {
-                var errorResponse = req.CreateResponse(HttpStatusCode.InternalServerError);
-                await errorResponse.WriteStringAsync("Failed to open source metadata store");
-                return errorResponse;
-            }
-
-            // Create/open destination store
-            var destinationStore = this.GetMetadataStoreFromOptions(
-                copyRequest.DestinationPath,
-                copyRequest.DestinationType,
-                copyRequest.DestinationConnectionString,
-                true);
-
-            if (destinationStore == null)
-            {
-                var errorResponse = req.CreateResponse(HttpStatusCode.InternalServerError);
-                await errorResponse.WriteStringAsync("Failed to create/open destination metadata store");
-                return errorResponse;
-            }
-
-            // Build filter
-            var filter = this.BuildFilterFromRequest(copyRequest);
-            if (filter == null)
-            {
-                var badRequest = req.CreateResponse(HttpStatusCode.BadRequest);
-                await badRequest.WriteStringAsync("Invalid filter parameters");
-                return badRequest;
-            }
-
-            // Perform copy operation
-            var copyResult = await this.PerformCopyOperation(sourceStore, destinationStore, filter);
-
-            var response = req.CreateResponse(HttpStatusCode.OK);
-            response.Headers.Add("Content-Type", "application/json");
-            await response.WriteStringAsync(JsonSerializer.Serialize(copyResult, new JsonSerializerOptions { WriteIndented = true }));
-            return response;
-        }
-        catch (Exception ex)
-        {
-            this.logger.LogError(ex, "Error during metadata copy");
-            var errorResponse = req.CreateResponse(HttpStatusCode.InternalServerError);
-            await errorResponse.WriteStringAsync($"Error: {ex.Message}");
-            return errorResponse;
-        }
-    }
-
-    /// <summary>
-    /// Export filtered metadata to a file using comprehensive filtering.
+    /// Export filtered metadata using comprehensive filtering.
     /// Equivalent to: upsync export
-    /// Provides direct metadata store access with full filter support.
     /// </summary>
     [Function("ExportMetadataAdvanced")]
     public async Task<HttpResponseData> ExportMetadataAdvanced(
         [HttpTrigger(AuthorizationLevel.Function, "post", Route = "ExportMetadata/Advanced")] HttpRequestData req)
     {
         this.logger.LogInformation("ExportMetadataAdvanced function called");
-
-        if (this.metadataStore == null)
-        {
-            this.logger.LogError("No metadata store configured");
-            var errorResponse = req.CreateResponse(HttpStatusCode.InternalServerError);
-            await errorResponse.WriteStringAsync("Metadata store not configured");
-            return errorResponse;
-        }
 
         try
         {
@@ -175,19 +78,19 @@ public class MetadataExportFunctions
                 }
             }
 
-            // Perform export
-            var exportResult = await this.PerformExportOperation(filter, serverConfig, exportRequest.Format);
+            // Perform export using the injected metadata store
+            var exportResult = this.PerformExportOperation(filter, serverConfig, exportRequest.Format);
 
             var response = req.CreateResponse(HttpStatusCode.OK);
             response.Headers.Add("Content-Type", "application/json");
-            await response.WriteStringAsync(JsonSerializer.Serialize(exportResult, new JsonSerializerOptions { WriteIndented = true }));
+            await response.WriteAsJsonAsync(exportResult);
             return response;
         }
         catch (Exception ex)
         {
             this.logger.LogError(ex, "Error during metadata export");
             var errorResponse = req.CreateResponse(HttpStatusCode.InternalServerError);
-            await errorResponse.WriteStringAsync($"Error: {ex.Message}");
+            await errorResponse.WriteAsJsonAsync(new { error = ex.Message });
             return errorResponse;
         }
     }
@@ -215,7 +118,7 @@ public class MetadataExportFunctions
             {
                 if (!Guid.TryParse(request.ComputerHardwareIdFilter, out Guid computerHardwareIdFilterGuid))
                 {
-                    this.logger.LogError($"Invalid computer hardware ID GUID: {request.ComputerHardwareIdFilter}");
+                    this.logger.LogError("Invalid computer hardware ID GUID: {Guid}", request.ComputerHardwareIdFilter);
                     return null;
                 }
                 filter.ComputerHardwareIdFilter = computerHardwareIdFilterGuid;
@@ -230,7 +133,7 @@ public class MetadataExportFunctions
                 {
                     if (!Guid.TryParse(classification, out Guid classificationGuid))
                     {
-                        this.logger.LogError($"Invalid classification GUID: {classification}");
+                        this.logger.LogError("Invalid classification GUID: {Guid}", classification);
                         return null;
                     }
                     categoryGuids.Add(classificationGuid);
@@ -243,7 +146,7 @@ public class MetadataExportFunctions
                 {
                     if (!Guid.TryParse(product, out Guid productGuid))
                     {
-                        this.logger.LogError($"Invalid product GUID: {product}");
+                        this.logger.LogError("Invalid product GUID: {Guid}", product);
                         return null;
                     }
                     categoryGuids.Add(productGuid);
@@ -260,7 +163,7 @@ public class MetadataExportFunctions
                 {
                     if (!Guid.TryParse(id, out Guid idGuid))
                     {
-                        this.logger.LogError($"Invalid ID GUID: {id}");
+                        this.logger.LogError("Invalid ID GUID: {Guid}", id);
                         return null;
                     }
                     idGuids.Add(idGuid);
@@ -277,32 +180,12 @@ public class MetadataExportFunctions
         }
     }
 
-    private IMetadataStore? GetMetadataStoreFromOptions(string path, string type, string? connectionString, bool createIfNotExists = false)
+    private MetadataExportResult PerformExportOperation(
+        MetadataFilter filter, 
+        ServerSyncConfigData? serverConfig, 
+        string format)
     {
-        try
-        {
-            return StorageFactory.CreateMetadataStore(
-                path,
-                type,
-                connectionString,
-                containerName: null,
-                createIfNotExists,
-                this.logger);
-        }
-        catch (Exception ex)
-        {
-            this.logger.LogError(ex, "Error accessing metadata store at {Path}", path);
-            return null;
-        }
-    }
-
-    private async Task<MetadataExportResult> PerformExportOperation(MetadataFilter filter, ServerSyncConfigData? serverConfig, string format)
-    {
-        if (this.metadataStore == null)
-        {
-            throw new InvalidOperationException("Metadata store not configured");
-        }
-
+        // Apply filter using the injected metadata store
         var filteredPackages = filter.Apply(this.metadataStore);
         
         var result = new MetadataExportResult
@@ -314,40 +197,9 @@ public class MetadataExportFunctions
             ExportTimestamp = DateTime.UtcNow
         };
 
-        // For now, we'll return summary information
-        // In a full implementation, you would generate the actual export file
-        this.logger.LogInformation($"Export would contain {filteredPackages.Count()} packages");
+        this.logger.LogInformation("Exported {Count} packages", filteredPackages.Count());
 
         return result;
-    }
-
-    private async Task<MetadataCopyResult> PerformCopyOperation(IMetadataStore sourceStore, IMetadataStore destinationStore, MetadataFilter filter)
-    {
-        var cancellationTokenSource = new CancellationTokenSource();
-        
-        var progressTracker = new MetadataCopyProgressTracker(this.logger);
-        sourceStore.MetadataCopyProgress += progressTracker.OnCopyProgress;
-        destinationStore.PackagesAddProgress += progressTracker.OnAddProgress;
-
-        try
-        {
-            sourceStore.CopyTo(destinationStore, filter, cancellationTokenSource.Token);
-            
-            var filteredPackages = filter.Apply(sourceStore);
-            
-            return new MetadataCopyResult
-            {
-                Success = true,
-                Message = "Copy completed successfully",
-                PackagesCopied = filteredPackages.Count(),
-                CopyTimestamp = DateTime.UtcNow
-            };
-        }
-        finally
-        {
-            sourceStore.MetadataCopyProgress -= progressTracker.OnCopyProgress;
-            destinationStore.PackagesAddProgress -= progressTracker.OnAddProgress;
-        }
     }
 }
 
@@ -370,32 +222,6 @@ public class MetadataExportRequest : IMetadataFilterRequest
 }
 
 /// <summary>
-/// Request model for metadata copy operations
-/// </summary>
-public class MetadataCopyRequest : IMetadataFilterRequest
-{
-    [Required]
-    public string SourcePath { get; set; } = string.Empty;
-    public string SourceType { get; set; } = "local";
-    public string? SourceConnectionString { get; set; }
-    
-    [Required]
-    public string DestinationPath { get; set; } = string.Empty;
-    public string DestinationType { get; set; } = "local";
-    public string? DestinationConnectionString { get; set; }
-    
-    public IEnumerable<string>? ProductsFilter { get; set; }
-    public IEnumerable<string>? ClassificationsFilter { get; set; }
-    public IEnumerable<string>? IdFilter { get; set; }
-    public string? TitleFilter { get; set; }
-    public string? HardwareIdFilter { get; set; }
-    public string? ComputerHardwareIdFilter { get; set; }
-    public IEnumerable<string>? KbArticleFilter { get; set; }
-    public bool SkipSuperseded { get; set; } = false;
-    public int FirstX { get; set; } = 0;
-}
-
-/// <summary>
 /// Result model for metadata export operations
 /// </summary>
 public class MetadataExportResult
@@ -405,38 +231,4 @@ public class MetadataExportResult
     public int PackagesExported { get; set; }
     public string Format { get; set; } = string.Empty;
     public DateTime ExportTimestamp { get; set; }
-}
-
-/// <summary>
-/// Result model for metadata copy operations
-/// </summary>
-public class MetadataCopyResult
-{
-    public bool Success { get; set; }
-    public string Message { get; set; } = string.Empty;
-    public int PackagesCopied { get; set; }
-    public DateTime CopyTimestamp { get; set; }
-}
-
-/// <summary>
-/// Progress tracker for metadata copy operations
-/// </summary>
-internal class MetadataCopyProgressTracker
-{
-    private readonly ILogger logger;
-
-    public MetadataCopyProgressTracker(ILogger logger)
-    {
-        this.logger = logger;
-    }
-
-    public void OnCopyProgress(object? sender, PackageStoreEventArgs e)
-    {
-        this.logger.LogInformation($"Copy progress: {e.Current}/{e.Total} packages");
-    }
-
-    public void OnAddProgress(object? sender, PackageStoreEventArgs e)
-    {
-        this.logger.LogInformation($"Add progress: {e.Current}/{e.Total} packages");
-    }
 }
