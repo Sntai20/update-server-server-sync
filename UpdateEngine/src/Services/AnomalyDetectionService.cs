@@ -9,6 +9,8 @@ using Microsoft.ML;
 using Microsoft.ML.Data;
 using UpdateEngine.Models;
 using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
+using Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Applicability;
+using Microsoft.PackageGraph.Storage;
 
 /// <summary>
 /// ML.NET-based anomaly detection for Windows Updates
@@ -17,19 +19,23 @@ using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
 public class AnomalyDetectionService : IAnomalyDetectionService
 {
     private readonly ILogger<AnomalyDetectionService> logger;
+    private readonly IMetadataStore metadataStore;
     private readonly MLContext mlContext;
     private ITransformer? model;
     private readonly string modelPath;
     private readonly double anomalyThreshold;
     private readonly bool enabled;
+    private ILookup<Guid, MicrosoftUpdatePackage>? categoriesLookup;
 
     public bool IsModelReady => this.model != null;
 
     public AnomalyDetectionService(
         ILogger<AnomalyDetectionService> logger,
+        IMetadataStore metadataStore,
         IConfiguration configuration)
     {
         this.logger = logger;
+        this.metadataStore = metadataStore;
         this.mlContext = new MLContext(seed: 0);
         
         // Read configuration from appsettings
@@ -62,6 +68,30 @@ public class AnomalyDetectionService : IAnomalyDetectionService
         }
     }
 
+    /// <summary>
+    /// Builds categories lookup from metadata store for enhanced category resolution
+    /// Leverages Microsoft Update library OfType<> capabilities
+    /// </summary>
+    private ILookup<Guid, MicrosoftUpdatePackage> GetCategoriesLookup()
+    {
+        if (this.categoriesLookup == null)
+        {
+            this.logger.LogInformation("Building categories lookup from metadata store");
+            
+            // Use Microsoft Update library to efficiently query categories
+            this.categoriesLookup = this.metadataStore
+                .OfType<MicrosoftUpdatePackage>()
+                .Where(p => p is ClassificationCategory || p is ProductCategory)
+                .Where(p => p.Id?.OpenId != null && p.Id.OpenId.Length == 16) // Valid GUID IDs
+                .ToLookup(p => new Guid(p.Id.OpenId));
+                
+            this.logger.LogInformation("Categories lookup built with {Count} categories", 
+                this.categoriesLookup.Count());
+        }
+        
+        return this.categoriesLookup;
+    }
+
     public async Task<AnomalyDetectionResult> DetectAnomalyAsync(UpdateMetadata metadata)
     {
         if (!this.enabled)
@@ -91,7 +121,17 @@ public class AnomalyDetectionService : IAnomalyDetectionService
             IsSigned = metadata.IsSigned ? 1.0f : 0.0f,
             DomainReputation = ConvertDomainReputationToScore(metadata.DomainReputation),
             HashMatchScore = metadata.HashMatch ? 1.0f : 0.0f,
-            UpdateFrequency = metadata.UpdateFrequency
+            UpdateFrequency = metadata.UpdateFrequency,
+            
+            // Enhanced features using Microsoft Update library data
+            SupersededCount = metadata.SupersededCount,
+            SupersededByCount = metadata.SupersededByCount,
+            BundledUpdatesCount = metadata.BundledUpdatesCount,
+            IsSecurityUpdate = metadata.IsSecurityUpdate ? 1.0f : 0.0f,
+            IsCriticalUpdate = metadata.IsCriticalUpdate ? 1.0f : 0.0f,
+            IsCumulativeUpdate = metadata.IsCumulativeUpdate ? 1.0f : 0.0f,
+            ApplicabilityRulesCount = metadata.ApplicabilityRulesCount,
+            HasComplexApplicability = metadata.HasComplexApplicability ? 1.0f : 0.0f
         };
 
         var predictionEngine = this.mlContext.Model.CreatePredictionEngine<UpdateFeatures, AnomalyPrediction>(this.model);
@@ -122,7 +162,17 @@ public class AnomalyDetectionService : IAnomalyDetectionService
             IsSigned = metadata.IsSigned ? 1.0f : 0.0f,
             DomainReputation = ConvertDomainReputationToScore(metadata.DomainReputation),
             HashMatchScore = metadata.HashMatch ? 1.0f : 0.0f,
-            UpdateFrequency = metadata.UpdateFrequency
+            UpdateFrequency = metadata.UpdateFrequency,
+            
+            // Enhanced features using Microsoft Update library data
+            SupersededCount = metadata.SupersededCount,
+            SupersededByCount = metadata.SupersededByCount,
+            BundledUpdatesCount = metadata.BundledUpdatesCount,
+            IsSecurityUpdate = metadata.IsSecurityUpdate ? 1.0f : 0.0f,
+            IsCriticalUpdate = metadata.IsCriticalUpdate ? 1.0f : 0.0f,
+            IsCumulativeUpdate = metadata.IsCumulativeUpdate ? 1.0f : 0.0f,
+            ApplicabilityRulesCount = metadata.ApplicabilityRulesCount,
+            HasComplexApplicability = metadata.HasComplexApplicability ? 1.0f : 0.0f
         };
 
         var predictionEngine = this.mlContext.Model.CreatePredictionEngine<UpdateFeatures, AnomalyPrediction>(this.model);
@@ -132,13 +182,14 @@ public class AnomalyDetectionService : IAnomalyDetectionService
     }
 
     /// <summary>
-    /// Scores a SoftwareUpdate for anomaly likelihood
+    /// Scores a SoftwareUpdate for anomaly likelihood using rich Microsoft Update library metadata
     /// </summary>
     /// <param name="softwareUpdate">Software update to score</param>
     /// <returns>Anomaly score (0.0 = normal, 1.0 = highly anomalous)</returns>
     public double Score(SoftwareUpdate softwareUpdate)
     {
-        var metadata = ConvertToUpdateMetadata(softwareUpdate);
+        var categoriesLookup = GetCategoriesLookup();
+        var metadata = ConvertToUpdateMetadata(softwareUpdate, categoriesLookup);
         return Score(metadata);
     }
 
@@ -160,9 +211,9 @@ public class AnomalyDetectionService : IAnomalyDetectionService
 
     /// <summary>
     /// Converts a SoftwareUpdate to UpdateMetadata for anomaly detection
-    /// Leverages rich Microsoft Update library metadata
+    /// Leverages rich Microsoft Update library metadata including category resolution
     /// </summary>
-    private static UpdateMetadata ConvertToUpdateMetadata(SoftwareUpdate softwareUpdate)
+    private UpdateMetadata ConvertToUpdateMetadata(SoftwareUpdate softwareUpdate, ILookup<Guid, MicrosoftUpdatePackage>? categoriesLookup = null)
     {
         // Calculate update frequency based on supersedence relationships
         var updateFrequency = CalculateUpdateFrequency(softwareUpdate);
@@ -181,6 +232,36 @@ public class AnomalyDetectionService : IAnomalyDetectionService
         var supersededCount = softwareUpdate.SupersededUpdates?.Count ?? 0;
         var supersededByCount = softwareUpdate.IsSupersededBy?.Count ?? 0;
         var bundledCount = softwareUpdate.BundledUpdates?.Count ?? 0;
+        
+        // Analyze applicability rules for complexity (anomaly indicator)
+        var applicabilityRulesCount = softwareUpdate.ApplicabilityRules?.Count ?? 0;
+        var hasComplexApplicability = applicabilityRulesCount > 5 || 
+            softwareUpdate.ApplicabilityRules?.Any(rule => 
+                rule.RuleType == ApplicabilityRuleType.WindowsDriver ||
+                rule.RuleType == ApplicabilityRuleType.MsiApplicationMetadata) == true;
+        
+        // Leverage Microsoft Update library category resolution
+        string classification = "Unknown";
+        string product = "Unknown";
+        
+        if (categoriesLookup != null)
+        {
+            var categories = softwareUpdate.GetCategories(categoriesLookup);
+            if (categories != null)
+            {
+                var classificationCategory = categories.OfType<ClassificationCategory>().FirstOrDefault();
+                var productCategory = categories.OfType<ProductCategory>().FirstOrDefault();
+                
+                classification = classificationCategory?.Title ?? "Unknown";
+                product = productCategory?.Title ?? "Unknown";
+                
+                // Enhance security/critical detection using actual classifications
+                if (classification.Contains("Security", StringComparison.OrdinalIgnoreCase))
+                    isSecurityUpdate = true;
+                if (classification.Contains("Critical", StringComparison.OrdinalIgnoreCase))
+                    isCriticalUpdate = true;
+            }
+        }
         
         return new UpdateMetadata
         {
@@ -201,8 +282,10 @@ public class AnomalyDetectionService : IAnomalyDetectionService
             IsSecurityUpdate = isSecurityUpdate,
             IsCriticalUpdate = isCriticalUpdate,
             IsCumulativeUpdate = isCumulativeUpdate,
-            Classification = "Unknown", // Would be populated with category resolution
-            Product = "Unknown" // Would be populated with category resolution
+            Classification = classification,
+            Product = product,
+            ApplicabilityRulesCount = applicabilityRulesCount,
+            HasComplexApplicability = hasComplexApplicability
         };
     }
 
@@ -286,11 +369,13 @@ public class AnomalyDetectionService : IAnomalyDetectionService
                 nameof(UpdateFeatures.BundledUpdatesCount),
                 nameof(UpdateFeatures.IsSecurityUpdate),
                 nameof(UpdateFeatures.IsCriticalUpdate),
-                nameof(UpdateFeatures.IsCumulativeUpdate))
+                nameof(UpdateFeatures.IsCumulativeUpdate),
+                nameof(UpdateFeatures.ApplicabilityRulesCount),
+                nameof(UpdateFeatures.HasComplexApplicability))
             .Append(this.mlContext.Transforms.NormalizeMinMax("Features"))
             .Append(this.mlContext.AnomalyDetection.Trainers.RandomizedPca(
                 featureColumnName: "Features",
-                rank: 5, // Increased rank for more features
+                rank: 6, // Increased rank for 13 features (roughly half)
                 ensureZeroMean: true,
                 oversampling: 20));
 
@@ -327,6 +412,8 @@ public class UpdateFeatures
     public float IsSecurityUpdate { get; set; }
     public float IsCriticalUpdate { get; set; }
     public float IsCumulativeUpdate { get; set; }
+    public float ApplicabilityRulesCount { get; set; }
+    public float HasComplexApplicability { get; set; }
 }
 
 public class AnomalyPrediction

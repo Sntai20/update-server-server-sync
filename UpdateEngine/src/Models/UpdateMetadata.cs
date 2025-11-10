@@ -26,4 +26,6 @@ public class UpdateMetadata
     public bool IsCumulativeUpdate { get; set; } // Determined from title
     public string Classification { get; set; } = string.Empty; // Update classification
     public string Product { get; set; } = string.Empty; // Product category
+    public int ApplicabilityRulesCount { get; set; } // Number of applicability rules
+    public bool HasComplexApplicability { get; set; } // Complex applicability requirements
 }

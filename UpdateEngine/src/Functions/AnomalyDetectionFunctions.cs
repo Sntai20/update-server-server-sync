@@ -147,7 +147,15 @@ public class AnomalyDetectionFunctions
                 HashMatch = false,
                 IsSigned = false,
                 FileSize = 1234567,
-                DomainReputation = "Suspicious"
+                DomainReputation = "Suspicious",
+                SupersededCount = 0,
+                SupersededByCount = 0,
+                BundledUpdatesCount = 0,
+                IsSecurityUpdate = false,
+                IsCriticalUpdate = false,
+                IsCumulativeUpdate = false,
+                ApplicabilityRulesCount = 0,
+                HasComplexApplicability = false
             };
 
             // Score the fake anomaly first for demo
@@ -166,12 +174,20 @@ public class AnomalyDetectionFunctions
                 // Convert PackageInfo to UpdateMetadata for anomaly detection
                 var metadata = new UpdateMetadata
                 {
-                    KB_ID = packageInfo.KbArticle ?? packageInfo.Title,
+                    KB_ID = packageInfo.KbArticle ?? packageInfo.Title ?? "Unknown",
                     Publisher = "Microsoft",
                     HashMatch = true,
                     IsSigned = true,
                     FileSize = packageInfo.Size,
-                    DomainReputation = "Trusted"
+                    DomainReputation = "Trusted",
+                    SupersededCount = 0, // Would need SoftwareUpdate object for actual values
+                    SupersededByCount = 0,
+                    BundledUpdatesCount = 0,
+                    IsSecurityUpdate = packageInfo.Title?.ToLowerInvariant().Contains("security") ?? false,
+                    IsCriticalUpdate = packageInfo.Title?.ToLowerInvariant().Contains("critical") ?? false,
+                    IsCumulativeUpdate = packageInfo.Title?.ToLowerInvariant().Contains("cumulative") ?? false,
+                    ApplicabilityRulesCount = 0, // Would need SoftwareUpdate object for actual values
+                    HasComplexApplicability = false
                 };
 
                 double score = this.anomalyService.Score(metadata);
