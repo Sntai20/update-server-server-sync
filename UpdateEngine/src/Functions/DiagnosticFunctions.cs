@@ -11,7 +11,6 @@ using Microsoft.PackageGraph.Storage;
 using System.Collections;
 using System.Net;
 using System.Text.Json;
-using UpdateEngine.Services;
 using Azure.Storage.Blobs;
 
 /// <summary>
@@ -48,8 +47,8 @@ public class DiagnosticFunctions
         {
             var diagnostics = new
             {
-                MetadataStore = StorageFactory.GetStoreInfo(this.metadataStore!, this.logger),
-                ContentStore = StorageFactory.GetStoreInfo(this.contentStore, this.logger),
+                MetadataStore = this.GetMetadataStoreInfo(this.metadataStore),
+                ContentStore = this.GetContentStoreInfo(this.contentStore),
                 Configuration = new
                 {
                     MetadataStorageType = Environment.GetEnvironmentVariable("UseAzureStorageForMetadata"),
@@ -158,51 +157,55 @@ public class DiagnosticFunctions
         }
     }
 
-    private async Task<object> GetMetadataStoreInfo(bool useAzureStorage)
+    /// <summary>
+    /// Gets diagnostic information about the metadata store.
+    /// </summary>
+    private object GetMetadataStoreInfo(IMetadataStore store)
     {
         try
         {
-            var identities = this.metadataStore.GetPackageIdentities();
-
             return new
             {
-                Type = useAzureStorage ? "Azure Blob Storage" : "File System",
-                Initialized = true,
-                PackageCount = identities.Count,
-                IsReindexingRequired = this.metadataStore.IsReindexingRequired,
-                IsMetadataIndexingSupported = this.metadataStore.IsMetadataIndexingSupported,
-                SamplePackages = identities.Take(5).Select(p => p.ToString()).ToList()
+                Type = store.GetType().Name,
+                IsIndexed = !store.IsReindexingRequired,
+                IsMetadataIndexingSupported = store.IsMetadataIndexingSupported,
+                PackageCount = store.Count(),
+                PendingPackageCount = store.IsReindexingRequired ? store.GetPendingPackages().Count : 0,
+                Status = "Operational"
             };
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, "Error getting metadata store info");
-            return new { Initialized = false, Error = ex.Message };
+            this.logger.LogError(ex, "Failed to get metadata store information");
+            return new { Status = "Error", Error = ex.Message };
         }
     }
 
-    private async Task<object> GetContentStoreInfo(bool useAzureStorage)
+    /// <summary>
+    /// Gets diagnostic information about the content store.
+    /// </summary>
+    private object? GetContentStoreInfo(IContentStore? store)
     {
-        if (this.contentStore == null)
+        if (store == null)
         {
-            return new { Configured = false };
+            return new { Status = "Not configured" };
         }
 
         try
         {
             return new
             {
-                Type = useAzureStorage ? "Azure Blob Storage" : "File System",
-                Configured = true,
-                QueuedCount = this.contentStore.QueuedCount,
-                QueuedSize = this.contentStore.QueuedSize,
-                DownloadedSize = this.contentStore.DownloadedSize
+                Type = store.GetType().Name,
+                QueuedCount = store.QueuedCount,
+                QueuedSize = store.QueuedSize,
+                DownloadedSize = store.DownloadedSize,
+                Status = "Operational"
             };
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, "Error getting content store info");
-            return new { Configured = true, Error = ex.Message };
+            this.logger.LogError(ex, "Failed to get content store information");
+            return new { Status = "Error", Error = ex.Message };
         }
     }
 

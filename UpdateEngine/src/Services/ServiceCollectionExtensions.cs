@@ -34,23 +34,96 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IMetadataStore>(provider =>
         {
             var logger = provider.GetRequiredService<ILogger<IMetadataStore>>();
-            
-            // Try multiple connection string names - AzureWebJobsStorage is provided by WithHostStorage()
-            var connectionString = configuration.GetConnectionString("MetadataStorageConnection")
-                ?? configuration["AzureWebJobsStorage"];  // Fallback to the Functions host storage
-            
-            var useAzureStorageForMetadata = bool.Parse(configuration["UseAzureStorageForMetadata"] ?? "false");
-            var storePath = configuration["MetadataStorePath"] ?? "./store";
-            var containerName = configuration["MetadataContainerName"] ?? "metadata";
-            var storeType = useAzureStorageForMetadata ? "azure" : "local";
+            var useAzure = bool.Parse(configuration["UseAzureStorageForMetadata"] ?? "false");
 
-            return StorageFactory.CreateMetadataStore(
-                storePath,
-                storeType,
-                connectionString,
-                containerName,
-                createIfNotExists: true,
-                logger);
+            IMetadataStore store;
+
+            if (useAzure)
+            {
+                // Azure Blob Storage for metadata
+                var connectionString = configuration.GetConnectionString("MetadataStorageConnection")
+                    ?? configuration["AzureWebJobsStorage"]
+                    ?? throw new InvalidOperationException(
+                        "Azure storage connection string not found. Set either 'MetadataStorageConnection' " +
+                        "connection string or 'AzureWebJobsStorage' configuration value.");
+
+                var containerName = configuration["MetadataContainerName"] ?? "metadata";
+
+                logger.LogInformation(
+                    "Initializing Azure Blob metadata store in container: {ContainerName}",
+                    containerName);
+
+                try
+                {
+                    var blobServiceClient = new BlobServiceClient(connectionString);
+                    
+                    // Create container if it doesn't exist
+                    var containerClient = blobServiceClient.GetBlobContainerClient(containerName);
+                    containerClient.CreateIfNotExists();
+
+                    // Use library's native method
+                    store = Microsoft.PackageGraph.Storage.Azure.PackageStore.OpenOrCreate(blobServiceClient, containerName);
+
+                    logger.LogInformation(
+                        "Azure Blob metadata store initialized - Account: {AccountName}, Container: {Container}",
+                        blobServiceClient.AccountName,
+                        containerName);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Failed to initialize Azure Blob metadata store");
+                    throw;
+                }
+            }
+            else
+            {
+                // Local file system storage for metadata
+                var storePath = configuration["MetadataStorePath"] ?? "./store";
+
+                logger.LogInformation(
+                    "Initializing local file system metadata store at: {Path}",
+                    storePath);
+
+                try
+                {
+                    // Create directory if it doesn't exist
+                    if (!Directory.Exists(storePath))
+                    {
+                        Directory.CreateDirectory(storePath);
+                        logger.LogInformation("Created metadata directory: {Path}", storePath);
+                    }
+
+                    // Use library's native method
+                    store = Microsoft.PackageGraph.Storage.Local.PackageStore.OpenOrCreate(storePath);
+
+                    logger.LogInformation(
+                        "Local metadata store initialized at: {Path}",
+                        Path.GetFullPath(storePath));
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Failed to initialize local metadata store at: {Path}", storePath);
+                    throw;
+                }
+            }
+
+            // Check if reindexing is required
+            if (store.IsMetadataIndexingSupported && store.IsReindexingRequired)
+            {
+                var pendingPackages = store.GetPendingPackages();
+                logger.LogWarning(
+                    "Metadata store requires reindexing. {PendingCount} packages pending indexing.",
+                    pendingPackages.Count);
+            }
+            else
+            {
+                var packageCount = store.Count();
+                logger.LogInformation(
+                    "Metadata store ready with {PackageCount} packages",
+                    packageCount);
+            }
+
+            return store;
         });
     }
 
@@ -59,23 +132,86 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IContentStore?>(provider =>
         {
             var logger = provider.GetRequiredService<ILogger<IContentStore>>();
-            
-            // Try multiple connection string names - AzureWebJobsStorage is provided by WithHostStorage()
-            var connectionString = configuration.GetConnectionString("ContentStorageConnection")
-                ?? configuration["AzureWebJobsStorage"];  // Fallback to the Functions host storage
-            
-            var useAzureStorageForContent = bool.Parse(configuration["UseAzureStorageForContent"] ?? "false");
             var storePath = configuration["ContentStorePath"];
-            var containerName = configuration["ContentContainerName"] ?? "content";
-            var storeType = useAzureStorageForContent ? "azureblob" : "local";
 
-            return StorageFactory.CreateContentStore(
-                storePath,
-                storeType,
-                connectionString,
-                containerName,
-                createIfNotExists: true,
-                logger);
+            // Content store is optional - return null for catalog-only mode
+            if (string.IsNullOrEmpty(storePath))
+            {
+                logger.LogInformation("Content store path not configured - running in catalog-only mode");
+                return null;
+            }
+
+            var useAzure = bool.Parse(configuration["UseAzureStorageForContent"] ?? "false");
+            IContentStore store;
+
+            if (useAzure)
+            {
+                // Azure Blob Storage for content
+                var connectionString = configuration.GetConnectionString("ContentStorageConnection")
+                    ?? configuration["AzureWebJobsStorage"]
+                    ?? throw new InvalidOperationException(
+                        "Azure storage connection string not found. Set either 'ContentStorageConnection' " +
+                        "connection string or 'AzureWebJobsStorage' configuration value.");
+
+                var containerName = configuration["ContentContainerName"] ?? "content";
+
+                logger.LogInformation(
+                    "Initializing Azure Blob content store in container: {ContainerName}",
+                    containerName);
+
+                try
+                {
+                    var blobServiceClient = new BlobServiceClient(connectionString);
+                    
+                    // Create container if it doesn't exist
+                    var containerClient = blobServiceClient.GetBlobContainerClient(containerName);
+                    containerClient.CreateIfNotExists();
+
+                    // Use library's native method
+                    store = BlobContentStore.OpenOrCreate(blobServiceClient, containerName);
+
+                    logger.LogInformation(
+                        "Azure Blob content store initialized - Account: {AccountName}, Container: {Container}",
+                        blobServiceClient.AccountName,
+                        containerName);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Failed to initialize Azure Blob content store");
+                    throw;
+                }
+            }
+            else
+            {
+                // Local file system storage for content
+                logger.LogInformation(
+                    "Initializing local file system content store at: {Path}",
+                    storePath);
+
+                try
+                {
+                    // Create directory if it doesn't exist
+                    if (!Directory.Exists(storePath))
+                    {
+                        Directory.CreateDirectory(storePath);
+                        logger.LogInformation("Created content directory: {Path}", storePath);
+                    }
+
+                    // Use library's native constructor
+                    store = new FileSystemContentStore(storePath);
+
+                    logger.LogInformation(
+                        "Local content store initialized at: {Path}",
+                        Path.GetFullPath(storePath));
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Failed to initialize local content store at: {Path}", storePath);
+                    throw;
+                }
+            }
+
+            return store;
         });
     }
 
@@ -117,6 +253,30 @@ public static class ServiceCollectionExtensions
             {
                 service.SetPackageStore(metadataStore);
 
+                // Validate store readiness
+                var packageCount = metadataStore.Count();
+                if (packageCount == 0)
+                {
+                    logger.LogWarning(
+                        "Metadata store is empty. Service will not be able to serve updates. " +
+                        "Run metadata sync first.");
+                }
+                else
+                {
+                    logger.LogInformation(
+                        "ClientSyncWebService initialized with {PackageCount} packages",
+                        packageCount);
+                }
+
+                // Check for pending packages requiring indexing
+                if (metadataStore.IsReindexingRequired)
+                {
+                    var pendingPackages = metadataStore.GetPendingPackages();
+                    logger.LogWarning(
+                        "{PendingCount} packages pending indexing. Some queries may be slow.",
+                        pendingPackages.Count);
+                }
+
                 if (config != null)
                 {
                     service.SetServiceConfiguration(config);
@@ -149,6 +309,12 @@ public static class ServiceCollectionExtensions
             try
             {
                 service.SetPackageStore(metadataStore);
+
+                // Validate store readiness
+                var packageCount = metadataStore.Count();
+                logger.LogInformation(
+                    "ServerSyncWebService initialized with {PackageCount} packages",
+                    packageCount);
 
                 if (config != null)
                 {

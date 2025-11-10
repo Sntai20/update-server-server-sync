@@ -64,11 +64,16 @@ static void ConfigureDirectories(HostBuilderContext context)
     // Validate directories can be created using StorageFactory
     try
     {
-        StorageFactory.ValidateOrCreateDirectory(metadataPath, tempLogger);
-
-        if (!string.IsNullOrEmpty(contentPath))
+        if (!Directory.Exists(metadataPath))
         {
-            StorageFactory.ValidateOrCreateDirectory(contentPath, tempLogger);
+            Directory.CreateDirectory(metadataPath);
+            tempLogger.LogInformation("Created metadata directory: {Path}", metadataPath);
+        }
+
+        if (!string.IsNullOrEmpty(contentPath) && !Directory.Exists(contentPath))
+        {
+            Directory.CreateDirectory(contentPath);
+            tempLogger.LogInformation("Created content directory: {Path}", contentPath);
         }
     }
     catch (Exception ex)
