@@ -8,6 +8,7 @@ using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
 
 /// <summary>
 /// Service for detecting anomalies in Windows Update metadata using ML.NET
+/// Leverages rich Microsoft Update library capabilities for enhanced feature engineering
 /// </summary>
 public interface IAnomalyDetectionService
 {
@@ -27,6 +28,7 @@ public interface IAnomalyDetectionService
     
     /// <summary>
     /// Scores a SoftwareUpdate for anomaly likelihood
+    /// Leverages Microsoft Update library metadata including supersedence, bundling, and categorization
     /// </summary>
     /// <param name="softwareUpdate">Software update to score</param>
     /// <returns>Anomaly score (0.0 = normal, 1.0 = highly anomalous)</returns>

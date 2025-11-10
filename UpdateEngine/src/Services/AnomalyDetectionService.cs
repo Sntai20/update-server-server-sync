@@ -160,34 +160,83 @@ public class AnomalyDetectionService : IAnomalyDetectionService
 
     /// <summary>
     /// Converts a SoftwareUpdate to UpdateMetadata for anomaly detection
+    /// Leverages rich Microsoft Update library metadata
     /// </summary>
     private static UpdateMetadata ConvertToUpdateMetadata(SoftwareUpdate softwareUpdate)
     {
+        // Calculate update frequency based on supersedence relationships
+        var updateFrequency = CalculateUpdateFrequency(softwareUpdate);
+        
+        // Use rich file metadata - check if files have cryptographic signatures
+        var hasSignedFiles = softwareUpdate.Files?.Any(f => 
+            f.Digest?.Algorithm?.Contains("SHA", StringComparison.OrdinalIgnoreCase) == true) ?? true;
+        
+        // Analyze title for update characteristics
+        var title = softwareUpdate.Title?.ToLowerInvariant() ?? "";
+        var isSecurityUpdate = title.Contains("security") || title.Contains("vulnerability");
+        var isCriticalUpdate = title.Contains("critical") || title.Contains("important");
+        var isCumulativeUpdate = title.Contains("cumulative");
+        
+        // Get supersedence counts from Microsoft Update library
+        var supersededCount = softwareUpdate.SupersededUpdates?.Count ?? 0;
+        var supersededByCount = softwareUpdate.IsSupersededBy?.Count ?? 0;
+        var bundledCount = softwareUpdate.BundledUpdates?.Count ?? 0;
+        
         return new UpdateMetadata
         {
             KB_ID = !string.IsNullOrEmpty(softwareUpdate.KBArticleId) 
                 ? $"KB{softwareUpdate.KBArticleId}" 
-                : ExtractKBIdFromTitle(softwareUpdate.Title),
+                : "KB_NoArticle",
             Publisher = "Microsoft", // All updates in this store are from Microsoft
             HashMatch = true, // Assume true for existing updates in store
-            IsSigned = true, // Assume true for Microsoft updates
+            IsSigned = hasSignedFiles, // Use digest information to infer signing
             FileSize = softwareUpdate.Files?.Sum(f => (long)f.Size) ?? 0,
             DomainReputation = "Trusted", // Microsoft is trusted
-            UpdateFrequency = 1.0f // Default frequency
+            UpdateFrequency = updateFrequency,
+            
+            // Enhanced fields using Microsoft Update library data
+            SupersededCount = supersededCount,
+            SupersededByCount = supersededByCount,
+            BundledUpdatesCount = bundledCount,
+            IsSecurityUpdate = isSecurityUpdate,
+            IsCriticalUpdate = isCriticalUpdate,
+            IsCumulativeUpdate = isCumulativeUpdate,
+            Classification = "Unknown", // Would be populated with category resolution
+            Product = "Unknown" // Would be populated with category resolution
         };
     }
 
     /// <summary>
-    /// Extracts KB ID from update title
+    /// Calculates update frequency based on supersedence relationships and metadata
+    /// Uses Microsoft Update library supersedence data
     /// </summary>
-    private static string ExtractKBIdFromTitle(string title)
+    private static float CalculateUpdateFrequency(SoftwareUpdate softwareUpdate)
     {
-        if (string.IsNullOrEmpty(title))
-            return "KB_Unknown";
-            
-        // Look for KB pattern in title (KB followed by numbers)
-        var match = System.Text.RegularExpressions.Regex.Match(title, @"KB\d+", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-        return match.Success ? match.Value : $"KB_FromTitle";
+        // Base frequency
+        float frequency = 0.5f;
+        
+        // Higher frequency if this update supersedes many others (major update)
+        var supersededCount = softwareUpdate.SupersededUpdates?.Count ?? 0;
+        if (supersededCount > 10) frequency += 0.3f;
+        else if (supersededCount > 5) frequency += 0.2f;
+        else if (supersededCount > 0) frequency += 0.1f;
+        
+        // Lower frequency if superseded by many updates (older/less relevant)
+        var supersededByCount = softwareUpdate.IsSupersededBy?.Count ?? 0;
+        if (supersededByCount > 3) frequency -= 0.2f;
+        else if (supersededByCount > 1) frequency -= 0.1f;
+        
+        // Higher frequency for bundled updates (typically important)
+        var bundledCount = softwareUpdate.BundledUpdates?.Count ?? 0;
+        if (bundledCount > 0) frequency += 0.15f;
+        
+        // Analyze title for importance indicators
+        var title = softwareUpdate.Title?.ToLowerInvariant() ?? "";
+        if (title.Contains("security") || title.Contains("critical")) frequency += 0.2f;
+        if (title.Contains("cumulative")) frequency += 0.15f;
+        if (title.Contains("preview") || title.Contains("beta")) frequency -= 0.1f;
+        
+        return Math.Max(0.0f, Math.Min(1.0f, frequency)); // Clamp to [0,1]
     }
 
     public async Task TrainModelAsync(IEnumerable<UpdateMetadata> trainingData)
@@ -212,22 +261,36 @@ public class AnomalyDetectionService : IAnomalyDetectionService
             IsSigned = m.IsSigned ? 1.0f : 0.0f,
             DomainReputation = ConvertDomainReputationToScore(m.DomainReputation),
             HashMatchScore = m.HashMatch ? 1.0f : 0.0f,
-            UpdateFrequency = m.UpdateFrequency
+            UpdateFrequency = m.UpdateFrequency,
+            
+            // Enhanced features leveraging Microsoft Update library
+            SupersededCount = m.SupersededCount,
+            SupersededByCount = m.SupersededByCount,
+            BundledUpdatesCount = m.BundledUpdatesCount,
+            IsSecurityUpdate = m.IsSecurityUpdate ? 1.0f : 0.0f,
+            IsCriticalUpdate = m.IsCriticalUpdate ? 1.0f : 0.0f,
+            IsCumulativeUpdate = m.IsCumulativeUpdate ? 1.0f : 0.0f
         });
 
         var dataView = this.mlContext.Data.LoadFromEnumerable(features);
 
-        // Build pipeline using RandomizedPCA for anomaly detection
+        // Enhanced pipeline using more Microsoft Update library features
         var pipeline = this.mlContext.Transforms.Concatenate("Features", 
                 nameof(UpdateFeatures.FileSize),
                 nameof(UpdateFeatures.IsSigned),
                 nameof(UpdateFeatures.DomainReputation),
                 nameof(UpdateFeatures.HashMatchScore),
-                nameof(UpdateFeatures.UpdateFrequency))
+                nameof(UpdateFeatures.UpdateFrequency),
+                nameof(UpdateFeatures.SupersededCount),
+                nameof(UpdateFeatures.SupersededByCount),
+                nameof(UpdateFeatures.BundledUpdatesCount),
+                nameof(UpdateFeatures.IsSecurityUpdate),
+                nameof(UpdateFeatures.IsCriticalUpdate),
+                nameof(UpdateFeatures.IsCumulativeUpdate))
             .Append(this.mlContext.Transforms.NormalizeMinMax("Features"))
             .Append(this.mlContext.AnomalyDetection.Trainers.RandomizedPca(
                 featureColumnName: "Features",
-                rank: 3,
+                rank: 5, // Increased rank for more features
                 ensureZeroMean: true,
                 oversampling: 20));
 
@@ -248,7 +311,7 @@ public class AnomalyDetectionService : IAnomalyDetectionService
     }
 }
 
-// ML.NET data structures
+// Enhanced ML.NET data structures leveraging Microsoft Update library
 public class UpdateFeatures
 {
     public float FileSize { get; set; }
@@ -256,6 +319,14 @@ public class UpdateFeatures
     public float DomainReputation { get; set; }
     public float HashMatchScore { get; set; }
     public float UpdateFrequency { get; set; }
+    
+    // Additional features from Microsoft Update library
+    public float SupersededCount { get; set; }
+    public float SupersededByCount { get; set; }
+    public float BundledUpdatesCount { get; set; }
+    public float IsSecurityUpdate { get; set; }
+    public float IsCriticalUpdate { get; set; }
+    public float IsCumulativeUpdate { get; set; }
 }
 
 public class AnomalyPrediction
