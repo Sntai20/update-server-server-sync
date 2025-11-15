@@ -366,7 +366,10 @@ public class UnifiedHealthFunctions
                 }
                 catch (Exception ex)
                 {
-                    this.logger.LogWarning(ex, "Error analyzing update {UpdateId} during health check", softwareUpdate.Id.ID);
+                    // Log but continue - missing metadata is expected during partial sync
+                    this.logger.LogDebug("Skipping update {UpdateId} during health check - metadata incomplete: {Message}", 
+                        softwareUpdate.Id.ID, ex.Message);
+                    // Don't increment totalAnalyzed for failed analyses
                 }
             }
 

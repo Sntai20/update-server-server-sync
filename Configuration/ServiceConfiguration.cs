@@ -103,6 +103,9 @@ public class SyncConfigMutable
     /// <summary>Gets or sets the interval in minutes for health checks.</summary>
     public int HealthCheckIntervalMinutes { get; set; }
 
+    /// <summary>Gets or sets the interval in minutes for anomaly detection.</summary>
+    public double AnomalyDetectionIntervalMinutes { get; set; } = 30;
+
     // TimeSpan-based schedules for Azure Functions
     /// <summary>Gets or sets the schedule for hourly health checks.</summary>
     public TimeSpan HourlyHealthCheckSchedule { get; set; } = TimeSpan.FromHours(1);
@@ -260,4 +263,7 @@ public record FunctionSchedules
 
     /// <summary>Gets the schedule for scheduled content sync function.</summary>
     public required string SyncContentSchedule { get; init; }
+
+    /// <summary>Gets the schedule for anomaly detection function.</summary>
+    public string AnomalyDetectionSchedule { get; init; } = "00:30:00";
 }

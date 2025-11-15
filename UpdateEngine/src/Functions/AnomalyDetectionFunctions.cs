@@ -110,23 +110,24 @@ public class AnomalyDetectionFunctions
     }
 
     /// <summary>
-    /// Timer-triggered function for anomaly detection demo
-    /// Runs every 5 minutes to demonstrate anomaly detection capabilities
+    /// Scheduled anomaly detection for sync patterns and metadata health
+    /// Default: Every 30 minutes for production monitoring
+    /// Configure with AnomalyDetectionSchedule app setting (TimeSpan format)
     /// </summary>
-    [Function("UpdateAnomalyDetectionDemo")]
-    public async Task RunUpdateAnomalyDetectionDemo([TimerTrigger("0 */5 * * * *")] TimerInfo timer)
+    [Function("ScheduledAnomalyDetection")]
+    public async Task RunScheduledAnomalyDetection([TimerTrigger("%AnomalyDetectionSchedule%")] TimerInfo timer)
     {
-        this.logger.LogInformation("Update anomaly detection demo triggered at {time}", DateTime.Now);
+        this.logger.LogInformation("Scheduled anomaly detection triggered at {time}", DateTime.UtcNow);
 
         if (!this.enabled)
         {
-            this.logger.LogInformation("Anomaly detection is disabled, skipping demo");
+            this.logger.LogInformation("Anomaly detection is disabled, skipping scheduled analysis");
             return;
         }
 
         try
         {
-            // Use existing query service to get recent updates (non-superseded)
+            // Analyze recent sync patterns and metadata health
             var queryRequest = new MetadataQueryRequest
             {
                 IncludeSuperseded = false, // Exclude superseded updates

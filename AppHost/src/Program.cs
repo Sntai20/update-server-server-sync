@@ -10,13 +10,12 @@ using Microsoft.Extensions.Configuration;
 var builder = DistributedApplication.CreateBuilder(args);
 
 /// <summary>
-/// Configures Azurite storage emulator with fixed ports for blob, queue, and table services.
-/// Uses consistent port assignments to ensure reliable local development and testing environments.
+/// Configures Azurite storage emulator for blob, queue, and table services.
+/// Aspire automatically assigns ports and provides connection strings to dependent services.
 /// </summary>
 var storage = builder
     .AddAzureStorage("Storage")
-    .RunAsEmulator(emulator => emulator
-        .WithArgs("--skipApiVersionCheck"));
+    .RunAsEmulator();
 
 // Check if Service Bus should be enabled (disable for minimal testing)
 var enableServiceBus = builder.Configuration.GetValue<bool>("Features:EnableScheduledSync", false);

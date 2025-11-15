@@ -41,11 +41,12 @@ public static class ServiceCollectionExtensions
             if (useAzure)
             {
                 // Azure Blob Storage for metadata
-                var connectionString = configuration.GetConnectionString("MetadataStorageConnection")
-                    ?? configuration["AzureWebJobsStorage"]
+                // Aspire provides connection via AzureWebJobsStorage from .WithHostStorage()
+                var connectionString = configuration["AzureWebJobsStorage"]
+                    ?? configuration.GetConnectionString("MetadataStorageConnection")
                     ?? throw new InvalidOperationException(
-                        "Azure storage connection string not found. Set either 'MetadataStorageConnection' " +
-                        "connection string or 'AzureWebJobsStorage' configuration value.");
+                        "Azure storage connection string not found. Set either 'AzureWebJobsStorage' " +
+                        "configuration value or 'MetadataStorageConnection' connection string.");
 
                 var containerName = configuration["MetadataContainerName"] ?? "metadata";
 
@@ -147,11 +148,12 @@ public static class ServiceCollectionExtensions
             if (useAzure)
             {
                 // Azure Blob Storage for content
-                var connectionString = configuration.GetConnectionString("ContentStorageConnection")
-                    ?? configuration["AzureWebJobsStorage"]
+                // Aspire provides connection via AzureWebJobsStorage from .WithHostStorage()
+                var connectionString = configuration["AzureWebJobsStorage"]
+                    ?? configuration.GetConnectionString("ContentStorageConnection")
                     ?? throw new InvalidOperationException(
-                        "Azure storage connection string not found. Set either 'ContentStorageConnection' " +
-                        "connection string or 'AzureWebJobsStorage' configuration value.");
+                        "Azure storage connection string not found. Set either 'AzureWebJobsStorage' " +
+                        "configuration value or 'ContentStorageConnection' connection string.");
 
                 var containerName = configuration["ContentContainerName"] ?? "content";
 

@@ -75,7 +75,8 @@ public static class ConfigurationExtensions
             WeeklyMaintenanceSchedule = ParseTimeSpan(functionSchedules.WeeklyMaintenanceSchedule, TimeSpan.FromDays(7)),
             SyncMetadataComprehensiveSchedule = ParseTimeSpan(functionSchedules.SyncMetadataComprehensiveSchedule, TimeSpan.FromHours(24)),
             SyncMetadataCriticalSchedule = ParseTimeSpan(functionSchedules.SyncMetadataCriticalSchedule, TimeSpan.FromHours(4)),
-            SyncContentSchedule = ParseTimeSpan(functionSchedules.SyncContentSchedule, TimeSpan.FromDays(7))
+            SyncContentSchedule = ParseTimeSpan(functionSchedules.SyncContentSchedule, TimeSpan.FromDays(7)),
+            AnomalyDetectionIntervalMinutes = ParseTimeSpan(functionSchedules.AnomalyDetectionSchedule, TimeSpan.FromMinutes(30)).TotalMinutes
         };
     }
 
@@ -195,7 +196,8 @@ public static class ConfigurationExtensions
             WeeklyMaintenanceSchedule = config.WeeklyMaintenanceSchedule.ToString(@"d\.hh\:mm\:ss"),
             SyncMetadataComprehensiveSchedule = config.SyncMetadataComprehensiveSchedule.ToString(@"d\.hh\:mm\:ss"),
             SyncMetadataCriticalSchedule = config.SyncMetadataCriticalSchedule.ToString(@"hh\:mm\:ss"),
-            SyncContentSchedule = config.SyncContentSchedule.ToString(@"d\.hh\:mm\:ss")
+            SyncContentSchedule = config.SyncContentSchedule.ToString(@"d\.hh\:mm\:ss"),
+            AnomalyDetectionSchedule = TimeSpan.FromMinutes(config.AnomalyDetectionIntervalMinutes).ToString(@"hh\:mm\:ss")
         };
     }
 
@@ -289,7 +291,8 @@ public static class ConfigurationBuilderExtensions
                 WeeklyMaintenanceSchedule = functionSchedulesConfig["WeeklyMaintenanceSchedule"] ?? "7.00:00:00",
                 SyncMetadataComprehensiveSchedule = functionSchedulesConfig["SyncMetadataComprehensiveSchedule"] ?? "1.00:00:00",
                 SyncMetadataCriticalSchedule = functionSchedulesConfig["SyncMetadataCriticalSchedule"] ?? "04:00:00",
-                SyncContentSchedule = functionSchedulesConfig["SyncContentSchedule"] ?? "7.00:00:00"
+                SyncContentSchedule = functionSchedulesConfig["SyncContentSchedule"] ?? "7.00:00:00",
+                AnomalyDetectionSchedule = functionSchedulesConfig["AnomalyDetectionSchedule"] ?? "00:30:00"
             }
         };
     }

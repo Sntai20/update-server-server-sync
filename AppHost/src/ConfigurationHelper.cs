@@ -80,7 +80,8 @@ public static class ConfigurationHelper
 
             // Map to the expected timer trigger parameter names
             .WithEnvironment("SyncComprehensiveSchedule", schedules.SyncMetadataComprehensiveSchedule)
-            .WithEnvironment("SyncCriticalSchedule", schedules.SyncMetadataCriticalSchedule);
+            .WithEnvironment("SyncCriticalSchedule", schedules.SyncMetadataCriticalSchedule)
+            .WithEnvironment("AnomalyDetectionSchedule", schedules.AnomalyDetectionSchedule);
 
         // Pass Azure Functions disable configuration
         foreach (var job in azureWebJobsConfig.GetChildren())
