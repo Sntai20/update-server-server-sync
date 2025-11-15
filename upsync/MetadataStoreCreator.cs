@@ -162,9 +162,19 @@ namespace Microsoft.PackageGraph.Utilitites.Upsync
                         var blobServiceClient = new BlobServiceClient(sourceOptions.StoreConnectionString);
                         return Microsoft.PackageGraph.Storage.Azure.PackageStore.Open(blobServiceClient, sourceOptions.Path);
                     }
-                    catch (Exception ex)
+                    catch (ArgumentException ex)
                     {
-                        ConsoleOutput.WriteRed($"The connection string is invalid: {sourceOptions.StoreConnectionString}. Error: {ex.Message}");
+                        ConsoleOutput.WriteRed($"The connection string is invalid (argument error). Error: {ex.Message}");
+                        return null;
+                    }
+                    catch (FormatException ex)
+                    {
+                        ConsoleOutput.WriteRed($"The connection string is invalid (format error). Error: {ex.Message}");
+                        return null;
+                    }
+                    catch (Azure.RequestFailedException ex)
+                    {
+                        ConsoleOutput.WriteRed($"Azure request failed. Error: {ex.Message}");
                         return null;
                     }
                 }
@@ -225,9 +235,19 @@ namespace Microsoft.PackageGraph.Utilitites.Upsync
                     var blobServiceClient = new BlobServiceClient(sourceOptions.StoreConnectionString);
                     return Microsoft.PackageGraph.Storage.Azure.PackageStore.OpenOrCreate(blobServiceClient, sourceOptions.Path);
                 }
-                catch (Exception ex)
+                catch (ArgumentException ex)
                 {
-                    ConsoleOutput.WriteRed($"The connection string is invalid: {sourceOptions.StoreConnectionString}. Error: {ex.Message}");
+                    ConsoleOutput.WriteRed($"The connection string is invalid (argument error). Error: {ex.Message}");
+                    return null;
+                }
+                catch (FormatException ex)
+                {
+                    ConsoleOutput.WriteRed($"The connection string is invalid (format error). Error: {ex.Message}");
+                    return null;
+                }
+                catch (Azure.RequestFailedException ex)
+                {
+                    ConsoleOutput.WriteRed($"Azure request failed. Error: {ex.Message}");
                     return null;
                 }
             }

@@ -134,9 +134,19 @@ namespace Microsoft.PackageGraph.Utilitites.Upsync
                         var blobServiceClient = new BlobServiceClient(options.ContentStoreConnectionString);
                         return Storage.Azure.BlobContentStore.OpenOrCreate(blobServiceClient, options.ContentPath);
                     }
-                    catch (Exception ex)
+                    catch (ArgumentException ex)
                     {
-                        ConsoleOutput.WriteRed($"Invalid connection string: {ex.Message}");
+                        ConsoleOutput.WriteRed($"Invalid connection string (argument error): {ex.Message}");
+                        return null;
+                    }
+                    catch (FormatException ex)
+                    {
+                        ConsoleOutput.WriteRed($"Invalid connection string (format error): {ex.Message}");
+                        return null;
+                    }
+                    catch (Azure.RequestFailedException ex)
+                    {
+                        ConsoleOutput.WriteRed($"Azure request failed: {ex.Message}");
                         return null;
                     }
 
