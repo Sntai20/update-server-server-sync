@@ -1,0 +1,25 @@
+<Project>
+  <PropertyGroup>
+    <!-- Common Framework & Language Settings -->
+    <TargetFramework>net9.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Platforms>x64</Platforms>
+    
+    <!-- Version Management -->
+    <VersionPrefix>3.0.0</VersionPrefix>
+    <FileVersion>$(VersionPrefix).0</FileVersion>
+    <AssemblyVersion>$(VersionPrefix).0</AssemblyVersion>
+    <ProductVersion>$(VersionPrefix).0</ProductVersion>
+    
+    <!-- Package Metadata -->
+    <Authors>Cristian Petruta</Authors>
+    <Company>Microsoft Corp.</Company>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    
+    <!-- Output Configuration -->
+    <BaseOutputPath Condition="'$(BaseOutputPath)' == ''">$(MSBuildThisFileDirectory)out\$(MSBuildProjectName)\</BaseOutputPath>
+  </PropertyGroup>
+</Project>

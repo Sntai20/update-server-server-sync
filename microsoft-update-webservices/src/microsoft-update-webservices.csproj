@@ -1,26 +1,16 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <!-- Project-specific properties only -->
     <AssemblyName>microsoft-update-webservices</AssemblyName>
     <RootNamespace>Microsoft.UpdateServices.WebServices</RootNamespace>
     <PackageId>Microsoft.PackageGraph.MicrosoftUpdate.WebServices</PackageId>
-    <Authors>Cristian Petruta</Authors>
-    <Company>Microsoft Corp.</Company>
     <Description>C# bindings for the Microsoft Update web services. WSDL auto-generated code.</Description>
-    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <BaseOutputPath>..\..\out\microsoft-update-webservices</BaseOutputPath>
-    <FileVersion>3.0.0.0</FileVersion>
-    <AssemblyVersion>3.0.0.0</AssemblyVersion>
-    <ProductVersion>3.0.0.0</ProductVersion>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Platforms>x64</Platforms>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="System.ServiceModel.Primitives" Version="8.1.2" />
-    <PackageReference Include="System.ServiceModel.Http" Version="8.1.2" />
+    <PackageReference Include="System.ServiceModel.Primitives" />
+    <PackageReference Include="System.ServiceModel.Http" />
   </ItemGroup>
 
 </Project>
