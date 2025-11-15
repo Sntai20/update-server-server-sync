@@ -2,6 +2,28 @@
   "IsEncrypted": false,
   "Values": {
     "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
-    "AzureWebJobsSecretStorageType": "files"
+    "AzureWebJobsSecretStorageType": "files",
+    
+    // Development: Empty means use AppHost/Aspire provided storage
+    "AzureWebJobsStorage": "",
+    
+    // Development settings - only used when no Azure connection is available
+    "UseLocalStorageForMetadata": "false",
+    "UseLocalStorageForContent": "false", 
+    "MetadataStorePath": "../../store",
+    "ContentStorePath": "../../content",
+    "MetadataContainerName": "data",
+    "ContentContainerName": "data",
+    
+    "ServiceConfigurationJson": "{\"ServiceUrl\":\"http://localhost:7071\",\"SupportsContentDownload\":false,\"MaxUpdateCount\":100}",
+    
+    // Development schedules - fast for testing
+    "SyncMetadataCriticalSchedule": "00:02:00",
+    "SyncMetadataComprehensiveSchedule": "00:05:00",
+    "SyncContentSchedule": "00:03:00",
+    "ScheduledHealthCheckSchedule": "00:01:00",
+    "AnomalyDetectionSchedule": "00:02:00",
+    
+    "ContentHttpRoot": "http://localhost:7071/api/content/"
   }
 }

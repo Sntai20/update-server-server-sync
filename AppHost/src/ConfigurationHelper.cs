@@ -65,6 +65,20 @@ public static class ConfigurationHelper
             .WithEnvironment("ContentHttpRoot", serviceConfiguration.ContentUrl)
             .WithEnvironment("ServiceConfigurationJson", System.Text.Json.JsonSerializer.Serialize(serviceConfiguration));
 
+        // In production, set explicit connection strings if provided in configuration
+        var metadataConnectionString = storageConfig.GetConnectionString("MetadataStorageConnection");
+        var contentConnectionString = storageConfig.GetConnectionString("ContentStorageConnection");
+
+        if (!string.IsNullOrEmpty(metadataConnectionString))
+        {
+            functions.WithEnvironment("ConnectionStrings__MetadataStorageConnection", metadataConnectionString);
+        }
+
+        if (!string.IsNullOrEmpty(contentConnectionString))
+        {
+            functions.WithEnvironment("ConnectionStrings__ContentStorageConnection", contentConnectionString);
+        }
+
         // Pass function schedules as environment variables for timer triggers
         var schedules = serviceConfiguration.FunctionSchedules;
         functions

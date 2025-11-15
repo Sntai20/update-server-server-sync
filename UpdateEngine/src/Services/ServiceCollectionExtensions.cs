@@ -34,19 +34,21 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IMetadataStore>(provider =>
         {
             var logger = provider.GetRequiredService<ILogger<IMetadataStore>>();
-            var useAzure = bool.Parse(configuration["UseAzureStorageForMetadata"] ?? "false");
+            
+            // Production-first: Default to Azure Storage unless explicitly disabled
+            var useLocalStorage = bool.Parse(configuration["UseLocalStorageForMetadata"] ?? "false");
 
             IMetadataStore store;
 
-            if (useAzure)
+            if (!useLocalStorage)
             {
-                // Azure Blob Storage for metadata
-                // Aspire provides connection via AzureWebJobsStorage from .WithHostStorage()
-                var connectionString = configuration["AzureWebJobsStorage"]
-                    ?? configuration.GetConnectionString("MetadataStorageConnection")
+                // Azure Blob Storage for metadata (production default)
+                var connectionString = configuration.GetConnectionString("MetadataStorageConnection")
+                    ?? configuration["AzureWebJobsStorage"]
+                    ?? configuration["AZURE_STORAGE_CONNECTION_STRING"]
                     ?? throw new InvalidOperationException(
-                        "Azure storage connection string not found. Set either 'AzureWebJobsStorage' " +
-                        "configuration value or 'MetadataStorageConnection' connection string.");
+                        "Azure storage connection string not found. Set 'MetadataStorageConnection' connection string, " +
+                        "'AzureWebJobsStorage', or 'AZURE_STORAGE_CONNECTION_STRING' configuration value.");
 
                 var containerName = configuration["MetadataContainerName"] ?? "metadata";
 
@@ -78,11 +80,11 @@ public static class ServiceCollectionExtensions
             }
             else
             {
-                // Local file system storage for metadata
+                // Local file system storage for metadata (development fallback)
                 var storePath = configuration["MetadataStorePath"] ?? "./store";
 
                 logger.LogInformation(
-                    "Initializing local file system metadata store at: {Path}",
+                    "Using local file system metadata store for development at: {Path}",
                     storePath);
 
                 try
@@ -130,30 +132,47 @@ public static class ServiceCollectionExtensions
 
     private static void RegisterContentStore(IServiceCollection services, IConfiguration configuration)
     {
-        services.AddSingleton<IContentStore?>(provider =>
+        // Register as a factory that returns IContentStore (can be null)
+        services.AddSingleton(typeof(IContentStore), provider =>
         {
             var logger = provider.GetRequiredService<ILogger<IContentStore>>();
-            var storePath = configuration["ContentStorePath"];
-
-            // Content store is optional - return null for catalog-only mode
-            if (string.IsNullOrEmpty(storePath))
+            
+            // Check if content store is explicitly disabled (catalog-only mode)
+            var disableContentStore = bool.Parse(configuration["DisableContentStore"] ?? "false");
+            if (disableContentStore)
             {
-                logger.LogInformation("Content store path not configured - running in catalog-only mode");
-                return null;
+                logger.LogInformation("Content store explicitly disabled - running in catalog-only mode");
+                return null!;
             }
 
-            var useAzure = bool.Parse(configuration["UseAzureStorageForContent"] ?? "false");
-            IContentStore store;
+            // Production-first: Default to Azure Storage unless explicitly using local storage
+            var useLocalStorage = bool.Parse(configuration["UseLocalStorageForContent"] ?? "false");
 
-            if (useAzure)
+            if (!useLocalStorage)
             {
-                // Azure Blob Storage for content
-                // Aspire provides connection via AzureWebJobsStorage from .WithHostStorage()
-                var connectionString = configuration["AzureWebJobsStorage"]
-                    ?? configuration.GetConnectionString("ContentStorageConnection")
-                    ?? throw new InvalidOperationException(
-                        "Azure storage connection string not found. Set either 'AzureWebJobsStorage' " +
-                        "configuration value or 'ContentStorageConnection' connection string.");
+                // Azure Blob Storage for content (production default)
+                var connectionString = configuration.GetConnectionString("ContentStorageConnection")
+                    ?? configuration.GetConnectionString("MetadataStorageConnection")
+                    ?? configuration["AzureWebJobsStorage"]
+                    ?? configuration["AZURE_STORAGE_CONNECTION_STRING"];
+                    
+                if (string.IsNullOrEmpty(connectionString))
+                {
+                    // Fallback to local storage if no Azure connection is available
+                    logger.LogWarning("No Azure storage connection found - falling back to local content storage");
+                    var localStorePath = configuration["ContentStorePath"] ?? "./content";
+                    if (!string.IsNullOrEmpty(localStorePath))
+                    {
+                        var store = new FileSystemContentStore(localStorePath);
+                        logger.LogInformation("Using local content store fallback at: {Path}", localStorePath);
+                        return store;
+                    }
+                    else
+                    {
+                        logger.LogInformation("No content storage configured - running in catalog-only mode");
+                        return null!;
+                    }
+                }
 
                 var containerName = configuration["ContentContainerName"] ?? "content";
 
@@ -170,12 +189,14 @@ public static class ServiceCollectionExtensions
                     containerClient.CreateIfNotExists();
 
                     // Use library's native method
-                    store = BlobContentStore.OpenOrCreate(blobServiceClient, containerName);
+                    var store = BlobContentStore.OpenOrCreate(blobServiceClient, containerName);
 
                     logger.LogInformation(
                         "Azure Blob content store initialized - Account: {AccountName}, Container: {Container}",
                         blobServiceClient.AccountName,
                         containerName);
+                        
+                    return store;
                 }
                 catch (Exception ex)
                 {
@@ -185,58 +206,59 @@ public static class ServiceCollectionExtensions
             }
             else
             {
-                // Local file system storage for content
+                // Local file system storage for content (development fallback)
+                var localStorePath = configuration["ContentStorePath"] ?? "./content";
                 logger.LogInformation(
-                    "Initializing local file system content store at: {Path}",
-                    storePath);
+                    "Using local file system content store for development at: {Path}",
+                    localStorePath);
 
                 try
                 {
                     // Create directory if it doesn't exist
-                    if (!Directory.Exists(storePath))
+                    if (!Directory.Exists(localStorePath))
                     {
-                        Directory.CreateDirectory(storePath);
-                        logger.LogInformation("Created content directory: {Path}", storePath);
+                        Directory.CreateDirectory(localStorePath);
+                        logger.LogInformation("Created content directory: {Path}", localStorePath);
                     }
 
                     // Use library's native constructor
-                    store = new FileSystemContentStore(storePath);
+                    var store = new FileSystemContentStore(localStorePath);
 
                     logger.LogInformation(
                         "Local content store initialized at: {Path}",
-                        Path.GetFullPath(storePath));
+                        Path.GetFullPath(localStorePath));
+                        
+                    return store;
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError(ex, "Failed to initialize local content store at: {Path}", storePath);
+                    logger.LogError(ex, "Failed to initialize local content store at: {Path}", localStorePath);
                     throw;
                 }
             }
-
-            return store;
         });
     }
 
     private static void RegisterConfigurations(IServiceCollection services, IConfiguration configuration)
     {
-        services.AddSingleton(provider =>
+        services.AddSingleton(typeof(Microsoft.UpdateServices.WebServices.ClientSync.Config), provider =>
         {
             var serviceConfigJson = configuration["ServiceConfigurationJson"];
             if (!string.IsNullOrEmpty(serviceConfigJson))
             {
-                return JsonSerializer.Deserialize<Config>(serviceConfigJson);
+                return JsonSerializer.Deserialize<Microsoft.UpdateServices.WebServices.ClientSync.Config>(serviceConfigJson) ?? throw new InvalidOperationException("Failed to deserialize Config from ServiceConfigurationJson");
             }
-            return null as Config;
+            return null!;
         });
 
-        services.AddSingleton(provider =>
+        services.AddSingleton(typeof(Microsoft.UpdateServices.WebServices.ServerSync.ServerSyncConfigData), provider =>
         {
             var serviceConfigJson = configuration["ServiceConfigurationJson"];
             if (!string.IsNullOrEmpty(serviceConfigJson))
             {
-                return JsonSerializer.Deserialize<ServerSyncConfigData>(serviceConfigJson);
+                return JsonSerializer.Deserialize<Microsoft.UpdateServices.WebServices.ServerSync.ServerSyncConfigData>(serviceConfigJson) ?? throw new InvalidOperationException("Failed to deserialize ServerSyncConfigData from ServiceConfigurationJson");
             }
-            return null as ServerSyncConfigData;
+            return null!;
         });
     }
 
@@ -246,8 +268,8 @@ public static class ServiceCollectionExtensions
         {
             var service = new ClientSyncWebService();
             var metadataStore = provider.GetRequiredService<IMetadataStore>();
-            var contentStore = provider.GetService<IContentStore?>();
-            var config = provider.GetService<Config?>();
+            var contentStore = provider.GetService<IContentStore>();
+            var config = provider.GetService(typeof(Microsoft.UpdateServices.WebServices.ClientSync.Config)) as Microsoft.UpdateServices.WebServices.ClientSync.Config;
             var contentRoot = configuration["ContentHttpRoot"];
             var logger = provider.GetRequiredService<ILogger<ClientSyncWebService>>();
 
@@ -304,8 +326,8 @@ public static class ServiceCollectionExtensions
         {
             var service = new ServerSyncWebService();
             var metadataStore = provider.GetRequiredService<IMetadataStore>();
-            var config = provider.GetService<ServerSyncConfigData?>();
-            var contentStore = provider.GetService<IContentStore?>();
+            var config = provider.GetService(typeof(Microsoft.UpdateServices.WebServices.ServerSync.ServerSyncConfigData)) as Microsoft.UpdateServices.WebServices.ServerSync.ServerSyncConfigData;
+            var contentStore = provider.GetService<IContentStore>();
             var logger = provider.GetRequiredService<ILogger<ServerSyncWebService>>();
 
             try

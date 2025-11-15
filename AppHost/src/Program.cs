@@ -1,6 +1,7 @@
 ﻿using AppHost;
 using Aspire.Hosting;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 
 /// <summary>
 /// Entry point for the .NET Aspire application host that orchestrates the distributed
@@ -10,12 +11,13 @@ using Microsoft.Extensions.Configuration;
 var builder = DistributedApplication.CreateBuilder(args);
 
 /// <summary>
-/// Configures Azurite storage emulator for blob, queue, and table services.
-/// Aspire automatically assigns ports and provides connection strings to dependent services.
+/// Configures Azure Storage for the appropriate environment.
+/// - Development: Uses Azurite storage emulator with dynamic ports
+/// - Production: Uses real Azure Storage with connection strings from configuration
 /// </summary>
-var storage = builder
-    .AddAzureStorage("Storage")
-    .RunAsEmulator();
+var storage = builder.Environment.EnvironmentName == Environments.Development
+    ? builder.AddAzureStorage("Storage").RunAsEmulator()
+    : builder.AddAzureStorage("Storage");
 
 // Check if Service Bus should be enabled (disable for minimal testing)
 var enableServiceBus = builder.Configuration.GetValue<bool>("Features:EnableScheduledSync", false);
