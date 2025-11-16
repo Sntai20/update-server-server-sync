@@ -198,3 +198,47 @@ public static class AppConfigExtensions
     Caching: {config.EnableCaching}";
     }
 }
+
+/// <summary>
+/// Extension methods for IConfigurationBuilder to add shared configuration files.
+/// </summary>
+public static class SharedConfigurationExtensions  
+{
+    /// <summary>
+    /// Adds shared configuration files from the Configuration project to the configuration builder.
+    /// Loads: defaults -> shared overrides -> environment-specific overrides.
+    /// </summary>
+    /// <param name="builder">The configuration builder</param>
+    /// <returns>The configuration builder for chaining</returns>
+    public static IConfigurationBuilder AddSharedAppConfiguration(this IConfigurationBuilder builder)
+    {
+        // Get the Configuration assembly location
+        var configAssembly = typeof(ConfigurationServiceExtensions).Assembly;
+        var baseDirectory = Path.GetDirectoryName(configAssembly.Location)
+            ?? throw new InvalidOperationException("Could not determine assembly directory");
+        
+        var sharedPath = Path.Combine(baseDirectory, "shared");
+        
+        // Load configuration files in order: defaults -> shared overrides -> environment overrides  
+        var defaultsPath = Path.Combine(sharedPath, "appsettings.defaults.json");
+        if (File.Exists(defaultsPath))
+        {
+            builder.AddJsonFile(defaultsPath, optional: false, reloadOnChange: true);
+        }
+        
+        var sharedOverridesPath = Path.Combine(sharedPath, "appsettings.shared.json");
+        if (File.Exists(sharedOverridesPath))
+        {
+            builder.AddJsonFile(sharedOverridesPath, optional: true, reloadOnChange: true);
+        }
+        
+        var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Development";
+        var environmentFile = Path.Combine(sharedPath, $"appsettings.{environment}.json");
+        if (File.Exists(environmentFile))
+        {
+            builder.AddJsonFile(environmentFile, optional: true, reloadOnChange: true);
+        }
+        
+        return builder;
+    }
+}
