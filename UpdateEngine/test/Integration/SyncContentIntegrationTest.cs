@@ -18,12 +18,12 @@ using Xunit.Abstractions;
 /// Updated to use unified sync functions.
 /// </summary>
 [Collection("AspireAppHost")]
-public class SyncContentIntegrationTests
+public class SyncContentIntegrationTest
 {
     private readonly AspireAppHostTestFixture _fixture;
     private readonly ITestOutputHelper _output;
 
-    public SyncContentIntegrationTests(AspireAppHostTestFixture fixture, ITestOutputHelper output)
+    public SyncContentIntegrationTest(AspireAppHostTestFixture fixture, ITestOutputHelper output)
     {
         this._fixture = fixture;
         this._output = output;
