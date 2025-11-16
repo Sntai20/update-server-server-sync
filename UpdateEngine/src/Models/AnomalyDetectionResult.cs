@@ -7,5 +7,5 @@ public class AnomalyDetectionResult
 {
     public bool IsAnomaly { get; set; }
     public double Score { get; set; }
-    public string Message { get; set; }
+    public required string Message { get; set; }
 }

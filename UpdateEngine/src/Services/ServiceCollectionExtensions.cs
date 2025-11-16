@@ -244,21 +244,41 @@ public static class ServiceCollectionExtensions
         services.AddSingleton(typeof(Microsoft.UpdateServices.WebServices.ClientSync.Config), provider =>
         {
             var serviceConfigJson = configuration["ServiceConfigurationJson"];
-            if (!string.IsNullOrEmpty(serviceConfigJson))
+            if (string.IsNullOrEmpty(serviceConfigJson))
             {
-                return JsonSerializer.Deserialize<Microsoft.UpdateServices.WebServices.ClientSync.Config>(serviceConfigJson) ?? throw new InvalidOperationException("Failed to deserialize Config from ServiceConfigurationJson");
+                // Return default configuration instead of null to avoid null reference issues
+                return new Microsoft.UpdateServices.WebServices.ClientSync.Config();
             }
-            return null!;
+            
+            try
+            {
+                return JsonSerializer.Deserialize<Microsoft.UpdateServices.WebServices.ClientSync.Config>(serviceConfigJson) 
+                    ?? new Microsoft.UpdateServices.WebServices.ClientSync.Config();
+            }
+            catch (JsonException ex)
+            {
+                throw new InvalidOperationException("Failed to deserialize Config from ServiceConfigurationJson", ex);
+            }
         });
 
         services.AddSingleton(typeof(Microsoft.UpdateServices.WebServices.ServerSync.ServerSyncConfigData), provider =>
         {
             var serviceConfigJson = configuration["ServiceConfigurationJson"];
-            if (!string.IsNullOrEmpty(serviceConfigJson))
+            if (string.IsNullOrEmpty(serviceConfigJson))
             {
-                return JsonSerializer.Deserialize<Microsoft.UpdateServices.WebServices.ServerSync.ServerSyncConfigData>(serviceConfigJson) ?? throw new InvalidOperationException("Failed to deserialize ServerSyncConfigData from ServiceConfigurationJson");
+                // Return default configuration instead of null to avoid null reference issues
+                return new Microsoft.UpdateServices.WebServices.ServerSync.ServerSyncConfigData();
             }
-            return null!;
+            
+            try
+            {
+                return JsonSerializer.Deserialize<Microsoft.UpdateServices.WebServices.ServerSync.ServerSyncConfigData>(serviceConfigJson) 
+                    ?? new Microsoft.UpdateServices.WebServices.ServerSync.ServerSyncConfigData();
+            }
+            catch (JsonException ex)
+            {
+                throw new InvalidOperationException("Failed to deserialize ServerSyncConfigData from ServiceConfigurationJson", ex);
+            }
         });
     }
 

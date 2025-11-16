@@ -317,7 +317,7 @@ internal class XUnitLoggerProvider : ILoggerProvider
 internal class XUnitLogger : ILogger
 {
     private readonly ITestOutputHelper output;
-    private readonly string categoryName;
+    private readonly string categoryName = null!;
 
     public XUnitLogger(ITestOutputHelper output, string categoryName)
     {

@@ -78,7 +78,7 @@ public class ContentFunctions
                         
                         contentStream.Seek(start, SeekOrigin.Begin);
                         var buffer = new byte[end - start + 1];
-                        await contentStream.ReadAsync(buffer, 0, buffer.Length);
+                        await contentStream.ReadAsync(buffer.AsMemory(0, buffer.Length));
                         await response.WriteBytesAsync(buffer);
                     }
                     else

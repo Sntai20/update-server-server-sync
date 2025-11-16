@@ -385,8 +385,8 @@ public class QueryService : IQueryService
         {
             var filter = new MetadataFilter
             {
-                TitleFilter = request.TitleFilter,
-                HardwareIdFilter = request.HardwareIdFilter,
+                TitleFilter = request.TitleFilter ?? string.Empty,
+                HardwareIdFilter = request.HardwareIdFilter ?? string.Empty,
                 SkipSuperseded = request.SkipSuperseded,
                 FirstX = request.FirstX
             };

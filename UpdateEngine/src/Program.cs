@@ -80,16 +80,29 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
     services.Configure<FeatureOptions>(configuration.GetSection(FeatureOptions.SectionName));
     services.Configure<SyncOptions>(configuration.GetSection(SyncOptions.SectionName));
     
+    // Get JSON options for legacy compatibility
+    var jsonOptions = new JsonSerializerOptions
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        PropertyNameCaseInsensitive = true
+    };
+    
     // Backward compatibility: Support legacy ServiceConfigurationJson for smooth migration
-    var serviceProvider = services.BuildServiceProvider();
-    var jsonOptions = serviceProvider.GetRequiredService<JsonSerializerOptions>();
     var configJson = configuration["ServiceConfigurationJson"];
     if (!string.IsNullOrEmpty(configJson))
     {
-        var legacyConfig = JsonSerializer.Deserialize<ServiceConfigurationMutable>(configJson, jsonOptions);
-        if (legacyConfig != null)
+        try
         {
-            services.AddSingleton(legacyConfig);
+            var legacyConfig = JsonSerializer.Deserialize<ServiceConfigurationMutable>(configJson, jsonOptions);
+            if (legacyConfig != null)
+            {
+                services.AddSingleton(legacyConfig);
+            }
+        }
+        catch (JsonException ex)
+        {
+            // Log error but don't fail startup - degraded mode without legacy config
+            Console.WriteLine($"Warning: Failed to parse legacy ServiceConfigurationJson: {ex.Message}");
         }
     }
     

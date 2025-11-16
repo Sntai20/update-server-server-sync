@@ -226,16 +226,20 @@ public class DiagnosticFunctions
 
             foreach (var key in envVars.Keys)
             {
-                var keyStr = key?.ToString() ?? "";
+                if (key == null) continue; // Skip null keys
+                
+                var keyStr = key.ToString();
                 var value = envVars[key]?.ToString() ?? "";
 
                 // Mask sensitive values
+#pragma warning disable CS8602 // keyStr is already null-checked above
                 if (keyStr.Contains("Connection", StringComparison.OrdinalIgnoreCase) ||
                   keyStr.Contains("Secret", StringComparison.OrdinalIgnoreCase) ||
                 keyStr.Contains("Key", StringComparison.OrdinalIgnoreCase) ||
                       keyStr.Contains("Password", StringComparison.OrdinalIgnoreCase))
+#pragma warning restore CS8602
                 {
-                    value = value.Length > 10 ? value.Substring(0, 10) + "..." : "***";
+                    value = !string.IsNullOrEmpty(value) && value.Length > 10 ? value.Substring(0, 10) + "..." : "***";
                 }
 
                 maskedVars[keyStr] = value;
