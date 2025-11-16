@@ -2,7 +2,9 @@
 // Licensed under the MIT License.
 
 using ICSharpCode.SharpZipLib.GZip;
-using Microsoft.Azure.Storage.Blob;
+using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Models;
+using Azure.Storage.Blobs.Specialized;
 using Microsoft.PackageGraph.ObjectModel;
 using Microsoft.PackageGraph.Partitions;
 using Newtonsoft.Json;
@@ -17,7 +19,7 @@ namespace Microsoft.PackageGraph.Storage.Azure
 {
     class IdentitiesIndex
     {
-        private readonly CloudBlobContainer ParentContainer;
+        private readonly BlobContainerClient ParentContainer;
 
         private Dictionary<IPackageIdentity, int> _IdentityToIndexMap;
         private Dictionary<int, IPackageIdentity> _IndexToIdentityMap;
@@ -28,51 +30,54 @@ namespace Microsoft.PackageGraph.Storage.Azure
 
         private const string IdentitiesIndexBlobName = "identities-index";
 
-        public IReadOnlyCollection<PackageStoreEntry> Entries => StoreEntries.Values;
+        public IReadOnlyCollection<PackageStoreEntry> Entries => this.StoreEntries.Values;
 
         private List<PackageStoreEntry> PendingIdentities;
 
-        public List<IPackageIdentity> Identities => _IdentityToIndexMap.Keys.ToList();
+        public List<IPackageIdentity> Identities => this._IdentityToIndexMap.Keys.ToList();
 
-        public IdentitiesIndex(CloudBlobContainer container, AzurePackageStoreInitializeMode mode)
+        public IdentitiesIndex(BlobContainerClient container, AzurePackageStoreInitializeMode mode)
         {
-            ParentContainer = container;
-            PendingIdentities = new List<PackageStoreEntry>();
-            Read(mode);
+            this.ParentContainer = container;
+            this.PendingIdentities = new List<PackageStoreEntry>();
+            this.Read(mode);
         }
 
-        public static void Erase(CloudBlobContainer container)
+        public static void Erase(BlobContainerClient container)
         {
-            var indexBlob = container.GetBlockBlobReference(IdentitiesIndexBlobName);
+            var indexBlob = container.GetBlockBlobClient(IdentitiesIndexBlobName);
             indexBlob.DeleteIfExists();
         }
 
         public void Reset()
         {
-            _IndexToIdentityMap = new Dictionary<int, IPackageIdentity>();
-            _IdentityToIndexMap = new Dictionary<IPackageIdentity, int>();
-            PackageTypeIndex = new Dictionary<int, int>();
-            PendingIdentities = new List<PackageStoreEntry>();
+            this._IndexToIdentityMap = new Dictionary<int, IPackageIdentity>();
+            this._IdentityToIndexMap = new Dictionary<IPackageIdentity, int>();
+            this.PackageTypeIndex = new Dictionary<int, int>();
+            this.PendingIdentities = new List<PackageStoreEntry>();
         }
 
         private void ReadIdentityEntries()
         {
-            _IndexToIdentityMap = new Dictionary<int, IPackageIdentity>();
-            _IdentityToIndexMap = new Dictionary<IPackageIdentity, int>();
-            PackageTypeIndex = new Dictionary<int, int>();
-            StoreEntries = new Dictionary<int, PackageStoreEntry>();
+            this._IndexToIdentityMap = new Dictionary<int, IPackageIdentity>();
+            this._IdentityToIndexMap = new Dictionary<IPackageIdentity, int>();
+            this.PackageTypeIndex = new Dictionary<int, int>();
+            this.StoreEntries = new Dictionary<int, PackageStoreEntry>();
 
-            var indexBlob = ParentContainer.GetBlockBlobReference(IdentitiesIndexBlobName);
+            var indexBlob = this.ParentContainer.GetBlockBlobClient(IdentitiesIndexBlobName);
             if (indexBlob.Exists())
             {
-                ConcurrencyEtag = indexBlob.Properties.ETag;
-                using var indexStream = new MemoryStream();
-                indexBlob.DownloadRangeToStream(indexStream, 0, indexBlob.Properties.Length);
+                var properties = indexBlob.GetProperties();
+                this.ConcurrencyEtag = properties.Value.ETag.ToString();
 
-                var blockList = indexBlob.DownloadBlockList(BlockListingFilter.Committed);
+                using var indexStream = new MemoryStream();
+                indexBlob.DownloadTo(indexStream);
+                indexStream.Seek(0, SeekOrigin.Begin);
+
+                var blockList = indexBlob.GetBlockList(BlockListTypes.Committed);
                 long currentOffset = 0;
 
-                foreach (var block in blockList)
+                foreach (var block in blockList.Value.CommittedBlocks)
                 {
                     indexStream.Seek(currentOffset, SeekOrigin.Begin);
 
@@ -83,34 +88,34 @@ namespace Microsoft.PackageGraph.Storage.Azure
                         var jsonDeserializer = new JsonSerializer();
                         var deserializedIntries = jsonDeserializer.Deserialize(jsonReader, typeof(List<PackageStoreEntry>)) as List<PackageStoreEntry>;
                         deserializedIntries.ForEach(entry =>
-                        {
-                            if (!PartitionRegistration.TryGetPartition(entry.PartitionName, out var partitionDefinition))
-                            {
-                                throw new Exception("Unknown package partition");
-                            }
+           {
+               if (!PartitionRegistration.TryGetPartition(entry.PartitionName, out var partitionDefinition))
+               {
+                   throw new Exception("Unknown package partition");
+               }
 
-                            var packageIdentity = partitionDefinition.Factory.IdentityFromString(entry.PackageId);
-                            _IndexToIdentityMap.Add((int)entry.PackageIndex, packageIdentity);
-                            _IdentityToIndexMap.Add(packageIdentity, (int)entry.PackageIndex);
-                            PackageTypeIndex.Add((int)entry.PackageIndex, entry.PackageType);
-                            StoreEntries.Add((int)entry.PackageIndex, entry);
-                        });
+               var packageIdentity = partitionDefinition.Factory.IdentityFromString(entry.PackageId);
+               this._IndexToIdentityMap.Add((int)entry.PackageIndex, packageIdentity);
+               this._IdentityToIndexMap.Add(packageIdentity, (int)entry.PackageIndex);
+               this.PackageTypeIndex.Add((int)entry.PackageIndex, entry.PackageType);
+               this.StoreEntries.Add((int)entry.PackageIndex, entry);
+           });
                     }
 
-                    currentOffset += block.Length;
+                    currentOffset += block.Size;
                 }
             }
             else
             {
-                ConcurrencyEtag = null;
+                this.ConcurrencyEtag = null;
             }
         }
 
         private void Read(AzurePackageStoreInitializeMode mode)
         {
-            ReadIdentityEntries();
+            this.ReadIdentityEntries();
 
-            if (_IndexToIdentityMap.Keys.Except(PackageTypeIndex.Keys).Any())
+            if (this._IndexToIdentityMap.Keys.Except(this.PackageTypeIndex.Keys).Any())
             {
                 if (mode == AzurePackageStoreInitializeMode.FailOnIndexCorruption)
                 {
@@ -118,7 +123,7 @@ namespace Microsoft.PackageGraph.Storage.Azure
                 }
                 else if (mode == AzurePackageStoreInitializeMode.ResetOnIndexCorruption)
                 {
-                    Reset();
+                    this.Reset();
                 }
                 else
                 {
@@ -129,19 +134,19 @@ namespace Microsoft.PackageGraph.Storage.Azure
 
         public bool TryGetStoreEntry(int packageIndex, out PackageStoreEntry storeEntry)
         {
-            return StoreEntries.TryGetValue(packageIndex, out storeEntry);
+            return this.StoreEntries.TryGetValue(packageIndex, out storeEntry);
         }
 
         public PackageStoreEntry GetStoreEntry(int packageIndex)
         {
-            return StoreEntries[packageIndex];
+            return this.StoreEntries[packageIndex];
         }
 
         public bool TryGetPackageType(IPackageIdentity packageIdentity, out int packageType)
         {
-            if (_IdentityToIndexMap.TryGetValue(packageIdentity, out var packageIndex))
+            if (this._IdentityToIndexMap.TryGetValue(packageIdentity, out var packageIndex))
             {
-                return PackageTypeIndex.TryGetValue(packageIndex, out packageType);
+                return this.PackageTypeIndex.TryGetValue(packageIndex, out packageType);
             }
             else
             {
@@ -152,35 +157,35 @@ namespace Microsoft.PackageGraph.Storage.Azure
 
         public bool TryGetPackageIndex(IPackageIdentity packageIdentity, out int index)
         {
-            return _IdentityToIndexMap.TryGetValue(packageIdentity, out index);
+            return this._IdentityToIndexMap.TryGetValue(packageIdentity, out index);
         }
 
         public int GetPackageIndex(IPackageIdentity packageIdentity)
         {
-            return _IdentityToIndexMap[packageIdentity];
+            return this._IdentityToIndexMap[packageIdentity];
         }
 
         public IPackageIdentity GetPackageIdentity(int index)
         {
-            return _IndexToIdentityMap[index];
+            return this._IndexToIdentityMap[index];
         }
 
         public bool TryGetPackageIdentity(int index, out IPackageIdentity packageIdentity)
         {
-            return _IndexToIdentityMap.TryGetValue(index, out packageIdentity);
+            return this._IndexToIdentityMap.TryGetValue(index, out packageIdentity);
         }
 
         public int AddPackage(IPackage package, PackageStoreEntry packageEntry)
         {
-            lock(_IdentityToIndexMap)
+            lock (this._IdentityToIndexMap)
             {
-                var insertIndex = _IdentityToIndexMap.Count;
-                if (!_IdentityToIndexMap.TryAdd(package.Id, insertIndex))
+                var insertIndex = this._IdentityToIndexMap.Count;
+                if (!this._IdentityToIndexMap.TryAdd(package.Id, insertIndex))
                 {
                     throw new Exception("package already exists");
                 }
 
-                _IndexToIdentityMap.Add(insertIndex, package.Id);
+                this._IndexToIdentityMap.Add(insertIndex, package.Id);
 
                 if (!PartitionRegistration.TryGetPartitionFromPackage(package, out var partitionDefinition))
                 {
@@ -188,14 +193,14 @@ namespace Microsoft.PackageGraph.Storage.Azure
                 }
 
                 var packageType = partitionDefinition.Factory.GetPackageType(package);
-                PackageTypeIndex.Add(insertIndex, packageType);
+                this.PackageTypeIndex.Add(insertIndex, packageType);
 
                 packageEntry.PackageId = package.Id.ToString();
                 packageEntry.PackageIndex = insertIndex;
                 packageEntry.PackageType = packageType;
                 packageEntry.PartitionName = package.Id.Partition;
 
-                PendingIdentities.Add(packageEntry);
+                this.PendingIdentities.Add(packageEntry);
 
                 return insertIndex;
             }
@@ -213,11 +218,11 @@ namespace Microsoft.PackageGraph.Storage.Azure
 
         public void Save()
         {
-            lock(_IdentityToIndexMap)
+            lock (this._IdentityToIndexMap)
             {
-                if (PendingIdentities.Count > 0)
+                if (this.PendingIdentities.Count > 0)
                 {
-                    var pendingIdentitiesJson = JsonConvert.SerializeObject(PendingIdentities);
+                    var pendingIdentitiesJson = JsonConvert.SerializeObject(this.PendingIdentities);
                     using var pendingIdentitiesStream = new MemoryStream();
                     using (var compressor = new GZipOutputStream(pendingIdentitiesStream))
                     {
@@ -226,28 +231,30 @@ namespace Microsoft.PackageGraph.Storage.Azure
                     }
 
                     pendingIdentitiesStream.Seek(0, SeekOrigin.Begin);
-                    var indexBlob = ParentContainer.GetBlockBlobReference(IdentitiesIndexBlobName);
+                    var indexBlob = this.ParentContainer.GetBlockBlobClient(IdentitiesIndexBlobName);
                     List<string> blocksList = new();
 
                     string currentEtag = null;
                     if (indexBlob.Exists())
                     {
-                        currentEtag = indexBlob.Properties.ETag;
-                        blocksList.AddRange(indexBlob.DownloadBlockList(BlockListingFilter.Committed).Select(block => block.Name));
+                        var properties = indexBlob.GetProperties();
+                        currentEtag = properties.Value.ETag.ToString();
+                        var blockListResponse = indexBlob.GetBlockList(BlockListTypes.Committed);
+                        blocksList.AddRange(blockListResponse.Value.CommittedBlocks.Select(block => block.Name));
                     }
 
-                    if (currentEtag != ConcurrencyEtag)
+                    if (currentEtag != this.ConcurrencyEtag)
                     {
                         throw new Exception("Package store index changed unexpectedly.");
                     }
 
-                    var commitId = GetCommitIdForPackages(PendingIdentities.Select(p => p.PackageId).ToList());
-                    indexBlob.PutBlock(commitId, pendingIdentitiesStream, null);
+                    var commitId = GetCommitIdForPackages(this.PendingIdentities.Select(p => p.PackageId).ToList());
+                    indexBlob.StageBlock(commitId, pendingIdentitiesStream);
 
                     blocksList.Add(commitId);
-                    indexBlob.PutBlockList(blocksList);
+                    indexBlob.CommitBlockList(blocksList);
 
-                    PendingIdentities.Clear();
+                    this.PendingIdentities.Clear();
                 }
             }
         }
