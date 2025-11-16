@@ -9,6 +9,7 @@ using Microsoft.PackageGraph.Storage;
 using Microsoft.PackageGraph.MicrosoftUpdate.Source;
 using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
 using UpdateEngine.Services;
+
 using UpdateEngine.Models;
 using Moq;
 using System.Net;
@@ -17,6 +18,7 @@ using System.Text.Json;
 using UpdateEngine.Functions;
 using Xunit;
 using Configuration;
+using Microsoft.Extensions.Configuration;
 
 namespace UpdateEngineTest.Functions;
 
@@ -42,12 +44,14 @@ public class UnifiedSyncFunctionsTest
         this._mockContentStore = new Mock<IContentStore>();
         this._mockAnomalyDetectionService = new Mock<IAnomalyDetectionService>();
         this._mockMetadataStore = new Mock<IMetadataStore>();
+        var mockConfiguration = new Mock<IConfiguration>();
 
         // Functions without anomaly detection (existing tests)
         this._functions = new UnifiedSyncFunctions(
             this._mockLogger.Object,
             this._mockSyncService.Object,
             new JsonSerializerOptions(),
+            mockConfiguration.Object,
             this._mockContentStore.Object);
 
         // Functions with anomaly detection (new tests)
@@ -55,6 +59,7 @@ public class UnifiedSyncFunctionsTest
             this._mockLogger.Object,
             this._mockSyncService.Object,
             new JsonSerializerOptions(),
+            mockConfiguration.Object,
             this._mockContentStore.Object,
             this._mockAnomalyDetectionService.Object,
             this._mockMetadataStore.Object);

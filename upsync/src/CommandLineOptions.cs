@@ -64,57 +64,57 @@ namespace Microsoft.PackageGraph.Utilitites.Upsync
     public class FetchConfigurationOptions
     {
         [Option("endpoint", Required = false, HelpText = "The endpoint from which to fetch updates", SetName = "custom")]
-        public string UpstreamEndpoint { get; set; }
+        public string? UpstreamEndpoint { get; set; }
 
         [Option("master", Required = false, Default = false, HelpText = "Only fetch categories", SetName = "official")]
         public bool MasterEndpoint { get; set; }
 
         [Option("destination", Required = true, HelpText = "Destination JSON file.")]
-        public string OutFile { get; set; }
+        public string? OutFile { get; set; }
     }
 
     [Verb("pre-fetch", HelpText = "Retrieves metadata from an upstream server")]
     public class FetchCategoriesOptions : IMetadataStoreOptions
     {
         [Option("endpoint", Required = false, HelpText = "The endpoint from which to fetch categories.", SetName = "custom")]
-        public string UpstreamEndpoint { get; set; }
+        public string? UpstreamEndpoint { get; set; }
 
         [Option("master", Required = false, Default = false, HelpText = "Fetch categories from the official Microsoft upstream server.", SetName = "official")]
         public bool MasterEndpoint { get; set; }
 
         [Option("account-name", Required = false, HelpText = "Account name; if not set, a random GUID is used.")]
-        public string AccountName { get; set; }
+        public string? AccountName { get; set; }
 
         [Option("account-guid", Required = false, HelpText = "Account GUID. If not set, a random GUID is used.")]
-        public string AccountGuid { get; set; }
+        public string? AccountGuid { get; set; }
 
         [Option("store-alias", Required = false, HelpText = "Destination store alias")]
-        public string Alias { get; set; }
+        public string? Alias { get; set; }
 
         [Option("store-path", Required = false, HelpText = "Destination store")]
-        public string Path { get; set; }
+        public string? Path { get; set; }
 
         [Option("store-type", Required = false, Default = "local", HelpText = "Store type; local (default) or azure")]
-        public string Type { get; set; }
+        public string? Type { get; set; }
 
         [Option("connection-string", Required = false, HelpText = "Azure connection string; required when the store type is azure")]
-        public string StoreConnectionString { get; set; }
+        public string? StoreConnectionString { get; set; }
     }
 
     [Verb("index", HelpText = "Indexes a package store")]
     public class ReindexStoreOptions : IMetadataStoreOptions
     {
         [Option("store-alias", Required = false, HelpText = "Destination store alias")]
-        public string Alias { get; set; }
+        public string? Alias { get; set; }
 
         [Option("store-path", Required = false, HelpText = "Store to index")]
-        public string Path { get; set; }
+        public string? Path { get; set; }
 
         [Option("store-type", Required = false, Default = "local", HelpText = "Store type; local (default) or azure")]
-        public string Type { get; set; }
+        public string? Type { get; set; }
 
         [Option("connection-string", Required = false, HelpText = "Azure connection string; required when the store type is azure")]
-        public string StoreConnectionString { get; set; }
+        public string? StoreConnectionString { get; set; }
 
         [Option("force", Required = false, Default = false, HelpText = "Force indexing even when not required")]
         public bool ForceReindex { get; set; }
@@ -129,80 +129,80 @@ namespace Microsoft.PackageGraph.Utilitites.Upsync
         public const string WebEndpoint = "web";
 
         [Option("store-alias", Required = false, HelpText = "Destination store alias")]
-        public string Alias { get; set; }
+        public string? Alias { get; set; }
 
         [Option("store-path", Required = false, HelpText = "Destination store")]
-        public string Path { get; set; }
+        public string? Path { get; set; }
 
         [Option("store-type", Required = false, Default = "local", HelpText = "Store type; local (default) or azure")]
-        public string Type { get; set; }
+        public string? Type { get; set; }
 
         [Option("connection-string", Required = false, HelpText = "Azure connection string; required when the store type is azure")]
-        public string StoreConnectionString { get; set; }
+        public string? StoreConnectionString { get; set; }
 
         [Option("endpoint", Required = false, HelpText = "The endpoint from which to fetch updates.")]
-        public string UpstreamEndpoint { get; set; }
+        public string? UpstreamEndpoint { get; set; }
 
         [Option("endpoint-type", Required = false, Default = MicrosoftUpdateEndpoint, HelpText = "The endpoint from which to fetch updates.")]
-        public string EndpointType { get; set; }
+        public string? EndpointType { get; set; }
 
         [Option("product-filter", Required = false, Separator = '+', HelpText = "Product filter for sync'ing updates")]
-        public IEnumerable<string> ProductsFilter { get; set; }
+        public IEnumerable<string>? ProductsFilter { get; set; }
 
         [Option("classification-filter", Required = false, Separator = '+', HelpText = "Classification filter for sync'ing updates")]
-        public IEnumerable<string> ClassificationsFilter { get; set; }
+        public IEnumerable<string>? ClassificationsFilter { get; set; }
 
         [Option("account-name", Required = false, HelpText = "Account name; if not set, a random GUID is used.")]
-        public string AccountName { get; set; }
+        public string? AccountName { get; set; }
 
         [Option("account-guid", Required = false, HelpText = "Account GUID. If not set, a random GUID is used.")]
-        public string AccountGuid { get; set; }
+        public string? AccountGuid { get; set; }
 
         [Option("ids", Required = false, Separator = '+', HelpText = "Try fetch metadata for this list of ids (GUIDs)")]
-        public IEnumerable<string> Ids { get; set; }
+        public IEnumerable<string>? Ids { get; set; }
     }
 
     [Verb("fetch-content", HelpText = "Downloads update content from an upstream server")]
     public class ContentSyncOptions : IMetadataStoreOptions, IMetadataFilterOptions
     {
         [Option("metadata-store-alias", Required = false, HelpText = "Destination store alias")]
-        public string Alias { get; set; }
+        public string? Alias { get; set; }
 
         [Option("metadata-store-path", Required = false, HelpText = "Destination store")]
-        public string Path { get; set; }
+        public string? Path { get; set; }
 
         [Option("metadata-store-type", Required = false, Default = "local", HelpText = "Store type; local (default) or azure")]
-        public string Type { get; set; }
+        public string? Type { get; set; }
 
         [Option("connection-string", Required = false, HelpText = "Azure connection string; required when the store type is azure")]
-        public string StoreConnectionString { get; set; }
+        public string? StoreConnectionString { get; set; }
 
         [Option("content-store-path", Required = true, HelpText = "Destination content store")]
-        public string ContentPath { get; set; }
+        public string? ContentPath { get; set; }
 
         [Option("content-store-type", Required = false, Default = "local", HelpText = "Content store type; default is local")]
-        public string ContentStoreType { get; set; }
+        public string? ContentStoreType { get; set; }
 
         [Option("content-connection-string", Required = false, HelpText = "Azure connection string; required when the store type is azure")]
-        public string ContentStoreConnectionString { get; set; }
+        public string? ContentStoreConnectionString { get; set; }
 
         [Option("product-filter", Required = false, Separator = '+', HelpText = "Product filter for sync'ing updates")]
-        public IEnumerable<string> ProductsFilter { get; set; }
+        public IEnumerable<string>? ProductsFilter { get; set; }
 
         [Option("classification-filter", Required = false, Separator = '+', HelpText = "Classification filter for sync'ing updates")]
-        public IEnumerable<string> ClassificationsFilter { get; set; }
+        public IEnumerable<string>? ClassificationsFilter { get; set; }
 
         [Option("id-filter", Required = false, Separator = '+', HelpText = "ID filter")]
-        public IEnumerable<string> IdFilter { get; set; }
+        public IEnumerable<string>? IdFilter { get; set; }
 
         [Option("title-filter", Required = false, HelpText = "Title filter")]
         public string TitleFilter { get; set; }
 
         [Option("hwid-filter", Required = false, HelpText = "Hardware ID filter")]
-        public string HardwareIdFilter { get; set; }
+        public string? HardwareIdFilter { get; set; }
 
         [Option("computer-hwid-filter", Required = false, HelpText = "Computer hardware ID filter")]
-        public string ComputerHardwareIdFilter { get; set; }
+        public string? ComputerHardwareIdFilter { get; set; }
 
         [Option("kbarticle-filter", Required = false, Separator = '+', HelpText = "KB article filter (numbers only)")]
         public IEnumerable<string> KbArticleFilter { get; set; }
@@ -255,7 +255,7 @@ namespace Microsoft.PackageGraph.Utilitites.Upsync
         public string FileHash { get; set; }
 
         [Option("title-filter", Required = false, HelpText = "Title filter")]
-        public string TitleFilter { get; set; }
+        public string? TitleFilter { get; set; }
 
         [Option("hwid-filter", Required = false, HelpText = "Hardware ID filter")]
         public string HardwareIdFilter { get; set; }
@@ -270,7 +270,7 @@ namespace Microsoft.PackageGraph.Utilitites.Upsync
         public IEnumerable<string> ClassificationsFilter { get; set; }
 
         [Option("kbarticle-filter", Required = false, Separator = '+', HelpText = "KB article filter (numbers only)")]
-        public IEnumerable<string> KbArticleFilter { get; set; }
+        public IEnumerable<string>? KbArticleFilter { get; set; }
 
         [Option("skip-superseded", Required = false, Default = false, HelpText = "Ignore superseded updates")]
         public bool SkipSuperseded { get; set; }

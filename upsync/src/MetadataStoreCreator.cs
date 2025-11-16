@@ -24,6 +24,121 @@ namespace Microsoft.PackageGraph.Utilitites.Upsync
 
     class MetadataStoreCreator
     {
+        public static IMetadataStore CreateFromOptions(IMetadataStoreOptions sourceOptions)
+            {
+                if (!string.IsNullOrEmpty(sourceOptions.Alias))
+                {
+                    List<StoreAliasCreateOptions> storeAliases = LoadStoreAliases(StoreAliasesConfigFile);
+                    var alias = sourceOptions.Alias;
+                    sourceOptions = storeAliases.FirstOrDefault(a => a.Alias == sourceOptions.Alias);
+                    if (sourceOptions == null)
+                    {
+                        Console.WriteLine($"Alias {alias} not found");
+                        return null;
+                    }
+                }
+
+                IMetadataStore source = null;
+                if (!Console.IsOutputRedirected)
+                {
+                    Console.Write($"Creating package source [{sourceOptions.Path}] ");
+                }
+
+                if (sourceOptions.Type == "local")
+                {
+                    try
+                    {
+                        source = PackageStore.OpenOrCreate(sourceOptions.Path);
+                        if (!Console.IsOutputRedirected)
+                        {
+                            ConsoleOutput.WriteGreen("Done!");
+                        }
+
+                        if (source.IsReindexingRequired)
+                        {
+                            ConsoleOutput.WriteRed("Warning: Package source must be reindexed!");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine();
+                        ConsoleOutput.WriteRed($"Cannot create the package store: {ex.Message}");
+                    }
+                }
+                else if (sourceOptions.Type == "azure-blob")
+                {
+                    string? containerName = null;
+                    // If StoreConnectionString is empty, treat Path as a URI to the container
+                    if (string.IsNullOrEmpty(sourceOptions.StoreConnectionString))
+                    {
+                        if (Uri.TryCreate(sourceOptions.Path, UriKind.Absolute, out var uri))
+                        {
+                            // Use last segment as container name
+                            var segments = uri.Segments;
+                            containerName = segments.Length > 0 ? segments[segments.Length - 1].Trim('/') : null;
+                        }
+                        else
+                        {
+                            containerName = sourceOptions.Path.Trim('/');
+                        }
+                        if (string.IsNullOrEmpty(containerName))
+                        {
+                            ConsoleOutput.WriteRed("Container name could not be determined from Path.");
+                            return null;
+                        }
+                        var containerClient = new BlobContainerClient(new Uri(sourceOptions.Path));
+                        return Microsoft.PackageGraph.Storage.Azure.PackageStore.Open(containerClient);
+                    }
+                    else
+                    {
+                        try
+                        {
+                            var blobServiceClient = new BlobServiceClient(sourceOptions.StoreConnectionString);
+                            if (Uri.TryCreate(sourceOptions.Path, UriKind.Absolute, out var uri))
+                            {
+                                var segments = uri.Segments;
+                                containerName = segments.Length > 0 ? segments[segments.Length - 1].Trim('/') : null;
+                            }
+                            else
+                            {
+                                containerName = sourceOptions.Path.Trim('/');
+                            }
+                            if (string.IsNullOrEmpty(containerName))
+                            {
+                                ConsoleOutput.WriteRed("Container name could not be determined from Path.");
+                                return null;
+                            }
+                            return Microsoft.PackageGraph.Storage.Azure.PackageStore.OpenOrCreate(blobServiceClient, containerName);
+                        }
+                        catch (ArgumentException ex)
+                        {
+                            ConsoleOutput.WriteRed($"The connection string is invalid (argument error). Error: {ex.Message}");
+                            return null;
+                        }
+                        catch (FormatException ex)
+                        {
+                            ConsoleOutput.WriteRed($"The connection string is invalid (format error). Error: {ex.Message}");
+                            return null;
+                        }
+                        catch (Azure.RequestFailedException ex)
+                        {
+                            ConsoleOutput.WriteRed($"Azure request failed. Error: {ex.Message}");
+                            return null;
+                        }
+                        catch (Exception ex)
+                        {
+                            ConsoleOutput.WriteRed($"Invalid connection string: {ex.Message}");
+                            return null;
+                        }
+                    }
+                }
+                else
+                {
+                    ConsoleOutput.WriteRed($"Unknown store type {sourceOptions.Type}");
+                }
+
+                return source;
+                }
         private const string StoreAliasesConfigFile = "store-aliases.json";
 
         public static void CreateAlias(StoreAliasCreateOptions storeOptions)
@@ -113,7 +228,7 @@ namespace Microsoft.PackageGraph.Utilitites.Upsync
             {
                 List<StoreAliasCreateOptions> storeAliases = LoadStoreAliases(StoreAliasesConfigFile);
                 var alias = sourceOptions.Alias;
-                sourceOptions = storeAliases.FirstOrDefault(alias => alias.Alias == sourceOptions.Alias);
+                sourceOptions = storeAliases.FirstOrDefault(a => a.Alias == sourceOptions.Alias);
                 if (sourceOptions == null)
                 {
                     Console.WriteLine($"Alias {alias} not found");
@@ -152,26 +267,16 @@ namespace Microsoft.PackageGraph.Utilitites.Upsync
             {
                 if (string.IsNullOrEmpty(sourceOptions.StoreConnectionString))
                 {
-<<<<<<<< HEAD:src/tools/upsync/MetadataStoreCreator.cs
-                    var azureContainer = new BlobContainerClient(new Uri(sourceOptions.Path));
-                    return Microsoft.PackageGraph.Storage.Azure.PackageStore.Open(azureContainer);
-                }
-                else
-                {
-                    try
-========
                     var containerClient = new BlobContainerClient(new Uri(sourceOptions.Path));
                     return Microsoft.PackageGraph.Storage.Azure.PackageStore.Open(containerClient);
                 }
                 else
                 {
-                    try 
->>>>>>>> origin/ansantan/Add-Functions:upsync/src/MetadataStoreCreator.cs
+                    try
                     {
                         var blobServiceClient = new BlobServiceClient(sourceOptions.StoreConnectionString);
                         return Microsoft.PackageGraph.Storage.Azure.PackageStore.Open(blobServiceClient, sourceOptions.Path);
                     }
-<<<<<<<< HEAD:src/tools/upsync/MetadataStoreCreator.cs
                     catch (ArgumentException ex)
                     {
                         ConsoleOutput.WriteRed($"The connection string is invalid (argument error). Error: {ex.Message}");
@@ -185,11 +290,11 @@ namespace Microsoft.PackageGraph.Utilitites.Upsync
                     catch (Azure.RequestFailedException ex)
                     {
                         ConsoleOutput.WriteRed($"Azure request failed. Error: {ex.Message}");
-========
+                        return null;
+                    }
                     catch (Exception ex)
                     {
                         ConsoleOutput.WriteRed($"Invalid connection string: {ex.Message}");
->>>>>>>> origin/ansantan/Add-Functions:upsync/src/MetadataStoreCreator.cs
                         return null;
                     }
                 }
@@ -201,89 +306,5 @@ namespace Microsoft.PackageGraph.Utilitites.Upsync
 
             return source;
         }
-
-        public static IMetadataStore CreateFromOptions(IMetadataStoreOptions sourceOptions)
-        {
-            if (!string.IsNullOrEmpty(sourceOptions.Alias))
-            {
-                List<StoreAliasCreateOptions> storeAliases = LoadStoreAliases(StoreAliasesConfigFile);
-                var alias = sourceOptions.Alias;
-                sourceOptions = storeAliases.FirstOrDefault(alias => alias.Alias == sourceOptions.Alias);
-                if (sourceOptions == null)
-                {
-                    Console.WriteLine($"Alias {alias} not found");
-                    return null;
-                }
-            }
-
-            IMetadataStore source = null;
-            Console.Write($"Creating package source [{sourceOptions.Path}] ");
-
-            if (sourceOptions.Type == "local")
-            {
-                try
-                {
-                    source = PackageStore.OpenOrCreate(sourceOptions.Path);
-                    ConsoleOutput.WriteGreen("Done!");
-
-                    if (source.IsReindexingRequired)
-                    {
-                        ConsoleOutput.WriteRed("Warning: Package source must be reindexed!");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine();
-                    ConsoleOutput.WriteRed($"Cannot open the package store: {ex.Message}");
-                }
-            }
-            else if (sourceOptions.Type == "azure-blob")
-            {
-                if (string.IsNullOrEmpty(sourceOptions.StoreConnectionString))
-                {
-                    ConsoleOutput.WriteRed("The connection string is missing. Use --azure-connection-string to set it");
-                    return null;
-                }
-
-<<<<<<<< HEAD:src/tools/upsync/MetadataStoreCreator.cs
-                try
-========
-                try 
->>>>>>>> origin/ansantan/Add-Functions:upsync/src/MetadataStoreCreator.cs
-                {
-                    var blobServiceClient = new BlobServiceClient(sourceOptions.StoreConnectionString);
-                    return Microsoft.PackageGraph.Storage.Azure.PackageStore.OpenOrCreate(blobServiceClient, sourceOptions.Path);
-                }
-<<<<<<<< HEAD:src/tools/upsync/MetadataStoreCreator.cs
-                catch (ArgumentException ex)
-                {
-                    ConsoleOutput.WriteRed($"The connection string is invalid (argument error). Error: {ex.Message}");
-                    return null;
-                }
-                catch (FormatException ex)
-                {
-                    ConsoleOutput.WriteRed($"The connection string is invalid (format error). Error: {ex.Message}");
-                    return null;
-                }
-                catch (Azure.RequestFailedException ex)
-                {
-                    ConsoleOutput.WriteRed($"Azure request failed. Error: {ex.Message}");
-========
-                catch (Exception ex)
-                {
-                    ConsoleOutput.WriteRed($"Invalid connection string: {ex.Message}");
->>>>>>>> origin/ansantan/Add-Functions:upsync/src/MetadataStoreCreator.cs
-                    return null;
-                }
-            }
-            else
-            {
-                ConsoleOutput.WriteRed($"Unknown store type {sourceOptions.Type}");
-            }
-
-            return source;
-        }
-
-        
     }
 }

@@ -2,10 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-<<<<<<<< HEAD:src/tools/upsync/upsync.csproj
     <TargetFramework>net9.0</TargetFramework>
-========
->>>>>>>> origin/ansantan/Add-Functions:upsync/src/upsync.csproj
     <RootNamespace>Microsoft.PackageGraph.Utilitites.Upsync</RootNamespace>
     <AssemblyName>upsync</AssemblyName>
     <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
@@ -15,14 +12,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-<<<<<<<< HEAD:src/tools/upsync/upsync.csproj
-    <PackageReference Include="CommandLineParser" Version="2.9.1" />
-    <PackageReference Include="Azure.Storage.Blobs" Version="12.26.0" />
-========
     <PackageReference Include="CommandLineParser" />
-    <PackageReference Include="Microsoft.AspNetCore.Hosting" />
     <PackageReference Include="Azure.Storage.Blobs" />
->>>>>>>> origin/ansantan/Add-Functions:upsync/src/upsync.csproj
+    <PackageReference Include="Microsoft.AspNetCore.Hosting" />
   </ItemGroup>
 
   <ItemGroup>

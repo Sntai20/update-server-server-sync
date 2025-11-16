@@ -6,12 +6,8 @@ using Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Content;
 using Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Handlers;
 using Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Prerequisites;
 using Microsoft.PackageGraph.Storage;
-<<<<<<<< HEAD:src/tools/upsync/PackageMetadataPrint/MicrosoftUpdateMetadata.cs
-using Newtonsoft.Json;
-========
 using System.Text.Json.Serialization;
 using System.Text.Json;
->>>>>>>> origin/ansantan/Add-Functions:upsync/src/PackageMetadataPrint/MicrosoftUpdateMetadata.cs
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Metrics;
@@ -66,38 +62,6 @@ namespace Microsoft.PackageGraph.Utilitites.Upsync
                 filteredPackages = filter.Apply<MicrosoftUpdatePackage>(metadataStore);
             }
 
-<<<<<<<< HEAD:src/tools/upsync/PackageMetadataPrint/MicrosoftUpdateMetadata.cs
-            if (!string.IsNullOrEmpty(options.JsonOutPath))
-            {
-                var packagesList = filteredPackages.ToList();
-
-                if (!options.IncludeExtendedMetadata)
-                {
-                    // Remove extended metadata unless explicitly requested.
-                    // Applicability rules can be very large but of little interest
-                    packagesList.ForEach(p => p.ApplicabilityRules.Clear());
-                }
-
-                Console.WriteLine("-----------------------------");
-                Console.WriteLine($"Query returned {packagesList.Count} entries.");
-
-                if (!options.CountOnly)
-                {
-                    Console.WriteLine($"Writing results to {options.JsonOutPath}.");
-
-                    using (var targetJsonFile = File.Create(options.JsonOutPath))
-                    {
-                        var serializer = JsonSerializer.Create(new JsonSerializerSettings() { Formatting = Formatting.Indented });
-                        using (var jsonWriter = new StreamWriter(targetJsonFile))
-                        {
-                            serializer.Serialize(jsonWriter, packagesList);
-                        }
-
-                    }
-
-                    Console.WriteLine($"Query result saved to {options.JsonOutPath}.");
-                }
-========
             if (!string.IsNullOrEmpty(options.JsonOutPath))
             {
                 var packagesList = filteredPackages.ToList();
@@ -124,7 +88,6 @@ namespace Microsoft.PackageGraph.Utilitites.Upsync
 
                     Console.WriteLine($"Query result saved to {options.JsonOutPath}.");
                 }
->>>>>>>> origin/ansantan/Add-Functions:upsync/src/PackageMetadataPrint/MicrosoftUpdateMetadata.cs
             }
             else
             {
