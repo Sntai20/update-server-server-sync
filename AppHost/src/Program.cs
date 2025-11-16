@@ -90,46 +90,43 @@ app.Run();
 /// <summary>
 /// Validates critical configuration settings at startup to catch errors early.
 /// Implements configuration validation best practice.
+/// Uses the new flat configuration structure from shared AppConfig.
 /// </summary>
 /// <param name="configuration">The application configuration to validate.</param>
 static void ValidateConfiguration(IConfiguration configuration)
 {
-    // Validate UpdateServer configuration
-    var updateServer = configuration.GetSection("UpdateServer");
-    if (string.IsNullOrWhiteSpace(updateServer["ServiceUrl"]))
-        throw new InvalidOperationException("UpdateServer:ServiceUrl is required");
+    // Create and bind AppConfig to validate the configuration structure
+    var appConfig = new AppConfig();
+    configuration.Bind(appConfig);
     
-    if (string.IsNullOrWhiteSpace(updateServer["ContentUrl"]))
-        throw new InvalidOperationException("UpdateServer:ContentUrl is required");
-        
-    if (!int.TryParse(updateServer["MaxUpdateCount"], out var maxCount) || maxCount <= 0)
-        throw new InvalidOperationException("UpdateServer:MaxUpdateCount must be a positive integer");
-
-    // Validate Storage configuration  
-    var storage = configuration.GetSection("Storage");
-    if (string.IsNullOrWhiteSpace(storage["MetadataPath"]))
-        throw new InvalidOperationException("Storage:MetadataPath is required");
-        
-    if (string.IsNullOrWhiteSpace(storage["ContentPath"]))
-        throw new InvalidOperationException("Storage:ContentPath is required");
-
-    // Validate FunctionSchedules configuration
-    var schedules = configuration.GetSection("FunctionSchedules");
-    ValidateTimeSpanFormat(schedules["SyncCritical"], "FunctionSchedules:SyncCritical");
-    ValidateTimeSpanFormat(schedules["SyncComprehensive"], "FunctionSchedules:SyncComprehensive");
-    ValidateTimeSpanFormat(schedules["HealthCheck"], "FunctionSchedules:HealthCheck");
+    // Use the built-in validation method from AppConfig
+    try
+    {
+        appConfig.Validate();
+    }
+    catch (InvalidOperationException ex)
+    {
+        throw new InvalidOperationException($"Configuration validation failed: {ex.Message}", ex);
+    }
+    
+    // Additional validation for schedules to ensure they're in correct CRON format
+    ValidateCronExpression(appConfig.SyncCriticalSchedule, nameof(appConfig.SyncCriticalSchedule));
+    ValidateCronExpression(appConfig.SyncComprehensiveSchedule, nameof(appConfig.SyncComprehensiveSchedule)); 
+    ValidateCronExpression(appConfig.ScheduledHealthCheckSchedule, nameof(appConfig.ScheduledHealthCheckSchedule));
 }
 
 /// <summary>
-/// Validates that a configuration value is a valid TimeSpan format.
+/// Validates that a configuration value is a valid CRON expression format.
+/// Azure Functions TimerTrigger expects 6-part CRON expressions.
 /// </summary>
 /// <param name="value">The value to validate.</param>
 /// <param name="configKey">The configuration key for error reporting.</param>
-static void ValidateTimeSpanFormat(string? value, string configKey)
+static void ValidateCronExpression(string? value, string configKey)
 {
     if (string.IsNullOrWhiteSpace(value))
         throw new InvalidOperationException($"{configKey} is required");
         
-    if (!TimeSpan.TryParse(value, out _))
-        throw new InvalidOperationException($"{configKey} must be a valid TimeSpan format (e.g., '02:00:00')");
+    var parts = value.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+    if (parts.Length != 6)
+        throw new InvalidOperationException($"{configKey} must be a valid 6-part CRON expression (e.g., '0 */2 * * * *'). Got: {value}");
 }

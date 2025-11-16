@@ -25,14 +25,14 @@ public class AppConfig
     public string ContentContainerName { get; set; } = "content";
     public bool ReindexOnStartup { get; set; } = false;
 
-    // Schedule settings (simple strings, convert to TimeSpan in code if needed)
-    public string SyncCriticalSchedule { get; set; } = "02:00:00";
-    public string SyncComprehensiveSchedule { get; set; } = "1.00:00:00";
-    public string SyncContentSchedule { get; set; } = "7.00:00:00";
-    public string HealthCheckSchedule { get; set; } = "00:15:00";
-    public string MaintenanceSchedule { get; set; } = "7.00:00:00";
-    public string WeeklyMaintenanceSchedule { get; set; } = "7.00:00:00";
-    public string AnomalyDetectionSchedule { get; set; } = "01:00:00";
+    // Schedule settings (CRON expressions for Azure Functions TimerTrigger)
+    public string SyncCriticalSchedule { get; set; } = "0 */2 * * * *";
+    public string SyncComprehensiveSchedule { get; set; } = "0 0 */1 * * *";
+    public string SyncContentSchedule { get; set; } = "0 0 0 */1 * *";
+    public string ScheduledHealthCheckSchedule { get; set; } = "0 */15 * * * *";
+    public string MaintenanceSchedule { get; set; } = "0 0 2 */7 * *";
+    public string WeeklyMaintenanceSchedule { get; set; } = "0 0 3 */7 * *";
+    public string AnomalyDetectionSchedule { get; set; } = "0 0 */1 * * *";
 
     // Feature flags
     public bool EnableScheduledSync { get; set; } = true;

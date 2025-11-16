@@ -50,7 +50,7 @@ public static class SimpleConfigurationHelper
             .WithEnvironment("SyncCriticalSchedule", appConfig.SyncCriticalSchedule)
             .WithEnvironment("SyncComprehensiveSchedule", appConfig.SyncComprehensiveSchedule)
             .WithEnvironment("SyncContentSchedule", appConfig.SyncContentSchedule)
-            .WithEnvironment("ScheduledHealthCheckSchedule", appConfig.HealthCheckSchedule)
+            .WithEnvironment("ScheduledHealthCheckSchedule", appConfig.ScheduledHealthCheckSchedule)
             .WithEnvironment("WeeklyMaintenanceSchedule", appConfig.WeeklyMaintenanceSchedule)
             .WithEnvironment("AnomalyDetectionSchedule", appConfig.AnomalyDetectionSchedule);
 

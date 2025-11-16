@@ -186,7 +186,7 @@ public static class AppConfigExtensions
     Critical Sync: {config.SyncCriticalSchedule}
     Comprehensive Sync: {config.SyncComprehensiveSchedule}
     Content Sync: {config.SyncContentSchedule}
-    Health Check: {config.HealthCheckSchedule}
+    Health Check: {config.ScheduledHealthCheckSchedule}
     Maintenance: {config.MaintenanceSchedule}
     Weekly Maintenance: {config.WeeklyMaintenanceSchedule}
     Anomaly Detection: {config.AnomalyDetectionSchedule}
