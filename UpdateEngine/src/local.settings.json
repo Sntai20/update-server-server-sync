@@ -5,10 +5,7 @@
     "AzureWebJobsSecretStorageType": "files",
     
     // Development: Empty means use AppHost/Aspire provided storage
-    "AzureWebJobsStorage": "",
-    
-    // Backward compatibility: Support legacy ServiceConfigurationJson during migration
-    "ServiceConfigurationJson": "{\"ServiceUrl\":\"http://localhost:7071\",\"SupportsContentDownload\":false,\"MaxUpdateCount\":100}"
+    "AzureWebJobsStorage": ""
   },
   "UpdateServer": {
     "ServiceUrl": "http://localhost:7071",
