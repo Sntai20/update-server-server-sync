@@ -2,7 +2,35 @@
 
 ## Configuration Overview
 
-The UpdateEngine uses a **production-first** configuration approach with environment-specific overrides.
+The UpdateEngine uses a **simplified configuration approach** with direct IConfiguration binding.
+
+## ⚠️ Important: Simplified Configuration
+
+**As of .NET 9.0 upgrade, the complex mutable/immutable configuration pattern has been replaced with a simple POCO approach using `AppConfig` class.**
+
+- ✅ **New**: Single `AppConfig` class with direct property binding  
+- ✅ **New**: Standard .NET IConfiguration patterns
+- ❌ **Removed**: Complex ServiceConfigurationMutable, SyncConfigMutable, etc.
+- ❌ **Removed**: Mutable/immutable conversion methods
+
+## Configuration Structure
+
+### AppConfig Class
+
+The simplified configuration uses a single `Configuration.AppConfig` class:
+
+```csharp
+public class AppConfig
+{
+    public string MetadataStorePath { get; set; } = "./store";
+    public string? ContentStorePath { get; set; }
+    public string ServiceUrl { get; set; } = "http://localhost:7071";
+    public int HealthCheckIntervalMinutes { get; set; } = 5;
+    public int SyncIntervalMinutes { get; set; } = 60;
+    public bool EnableScheduledSync { get; set; } = true;
+    // ... other properties
+}
+```
 
 ## Configuration Files
 
@@ -22,10 +50,12 @@ The UpdateEngine uses a **production-first** configuration approach with environ
 ```json
 {
   "Values": {
-    "UseLocalStorageForMetadata": "true",     // Override production default
-    "UseLocalStorageForContent": "true",      // Use local file system
-    "MetadataStorePath": "../../store",       // Local path
-    "SyncMetadataCriticalSchedule": "00:02:00" // Fast testing schedule
+    "MetadataStorePath": "./store",
+    "ContentStorePath": "./content", 
+    "ServiceUrl": "http://localhost:7071",
+    "EnableScheduledSync": "true",
+    "SyncIntervalMinutes": "60",
+    "AzureWebJobsStorage": ""
   }
 }
 ```
@@ -33,8 +63,8 @@ The UpdateEngine uses a **production-first** configuration approach with environ
 ### **Aspire Development**
 
 **Behavior**: AppHost provides `AzureWebJobsStorage` connection to Azurite container
-- Overrides local storage settings automatically
-- Uses containerized Azurite storage emulator
+- Uses containerized Azurite storage emulator for scale testing
+- Configuration bound to AppConfig automatically
 - Fast development schedules maintained
 
 ### **Production Deployment**
@@ -46,8 +76,9 @@ The UpdateEngine uses a **production-first** configuration approach with environ
 az functionapp config appsettings set \
   --name myupdateserver \
   --settings \
-    ASPNETCORE_ENVIRONMENT=Production \
-    UseLocalStorageForMetadata=false \        # Production default
+    MetadataStorePath="/app/store" \
+    ServiceUrl="https://myupdateserver.azurewebsites.net" \
+    EnableScheduledSync=true
     'ServiceConfigurationJson={"ServiceUrl":"https://myupdateserver.azurewebsites.net"}' \
     SyncMetadataCriticalSchedule=02:00:00      # Production schedule
 

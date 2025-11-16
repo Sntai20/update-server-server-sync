@@ -55,7 +55,7 @@ HTTP/Timer/ServiceBus Triggers → Service Layer → Storage Layer → Microsoft
 
 ### Configuration
 
-The service layer uses dependency injection with flexible configuration:
+The service layer uses simplified AppConfig dependency injection:
 
 ```json
 {
@@ -63,6 +63,9 @@ The service layer uses dependency injection with flexible configuration:
   "ContentStorePath": "./content",
   "ServiceConfigurationJson": "{\"ServiceUrl\":\"http://localhost:7071\"}"
 }
+```
+
+**📖 For configuration details, see [Configuration Guide](../docs/guides/CONFIGURATION_GUIDE.md)**
 ```
 
 ## 📡 Available Endpoints
