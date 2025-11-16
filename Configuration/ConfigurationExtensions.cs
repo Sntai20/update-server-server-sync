@@ -4,6 +4,8 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System;
+using System.IO;
+using System.Reflection;
 
 namespace Configuration;
 
@@ -30,6 +32,55 @@ public static class ConfigurationServiceExtensions
         appConfig.Validate();
         
         // Register as singleton
+        services.AddSingleton(appConfig);
+        
+        return services;
+    }
+    
+    /// <summary>
+    /// Adds AppConfig with shared configuration loading from Configuration project.
+    /// Loads shared base settings, then applies environment-specific overrides.
+    /// </summary>
+    /// <param name="services">The service collection</param>
+    /// <param name="environment">The current environment (Development, Production, etc.)</param>
+    /// <param name="additionalConfiguration">Optional additional configuration to apply</param>
+    /// <returns>The service collection for chaining</returns>
+    public static IServiceCollection AddSharedAppConfiguration(this IServiceCollection services, string environment, IConfiguration? additionalConfiguration = null)
+    {
+        var configBuilder = new ConfigurationBuilder();
+        
+        // Get the path to the Configuration project's shared settings
+        var configurationAssembly = Assembly.GetAssembly(typeof(AppConfig));
+        var configDirectory = Path.GetDirectoryName(configurationAssembly?.Location) ?? throw new InvalidOperationException("Cannot locate Configuration assembly");
+        var sharedPath = Path.Combine(configDirectory, "shared");
+        
+        // Load shared base configuration
+        var sharedBasePath = Path.Combine(sharedPath, "appsettings.shared.json");
+        if (File.Exists(sharedBasePath))
+        {
+            configBuilder.AddJsonFile(sharedBasePath, optional: false);
+        }
+        
+        // Load environment-specific shared configuration
+        var sharedEnvPath = Path.Combine(sharedPath, $"appsettings.{environment}.json");
+        if (File.Exists(sharedEnvPath))
+        {
+            configBuilder.AddJsonFile(sharedEnvPath, optional: true);
+        }
+        
+        // Add any additional configuration (project-specific overrides)
+        if (additionalConfiguration != null)
+        {
+            configBuilder.AddConfiguration(additionalConfiguration);
+        }
+        
+        var configuration = configBuilder.Build();
+        
+        // Bind to AppConfig and register
+        var appConfig = new AppConfig();
+        configuration.Bind(appConfig);
+        appConfig.Validate();
+        
         services.AddSingleton(appConfig);
         
         return services;

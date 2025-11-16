@@ -1,5 +1,6 @@
 ﻿using AppHost;
 using Aspire.Hosting;
+using Configuration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 
@@ -16,10 +17,12 @@ using Microsoft.Extensions.Hosting;
 /// </summary>
 var builder = DistributedApplication.CreateBuilder(args);
 
+// Configure shared configuration loading from Configuration project
+// This loads the shared base settings plus environment-specific overrides
+builder.Services.AddSharedAppConfiguration(builder.Environment.EnvironmentName, builder.Configuration);
+
 // Configure additional configuration sources following best practices
-builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
-    .AddEnvironmentVariables()
+builder.Configuration.AddEnvironmentVariables()
     .AddUserSecrets<Program>(optional: true);  // For local development secrets
 
 // Validate configuration at startup

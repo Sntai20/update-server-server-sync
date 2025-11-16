@@ -16,7 +16,11 @@ var hostBuilder = new HostBuilder()
     {
         ConfigureLogging(context);
         ConfigureJsonSerialization(services);
-        ConfigureServices(services, context.Configuration);
+        
+        // Configure shared configuration from Configuration project
+        services.AddSharedAppConfiguration(context.HostingEnvironment.EnvironmentName, context.Configuration);
+        
+        ConfigureStorageServices(services, context.Configuration);
     });
 
 var host = hostBuilder.Build();
@@ -37,21 +41,11 @@ static void ConfigureLogging(HostBuilderContext context)
     tempLogger.LogInformation("UseAzureStorageForMetadata: {UseAzureStorageForMetadata}", context.Configuration["UseAzureStorageForMetadata"]);
 }
 
-static void ConfigureServices(IServiceCollection services, IConfiguration configuration)
+static void ConfigureStorageServices(IServiceCollection services, IConfiguration configuration)
 {
-    // Simple configuration setup - no complex validation
-    var appConfig = new AppConfig();
-    configuration.Bind(appConfig);
-    services.AddSingleton(appConfig);
-    
-    // Optionally validate if needed
-    appConfig.Validate();
-
-    // Register storage and content services using simplified config
+    // Storage services are now configured using the shared AppConfig
+    // that was registered via AddSharedAppConfiguration
     services.AddMicrosoftUpdateServices(configuration);
-    
-    // Register additional services
-    services.AddSingleton<IConfiguration>(configuration);
 }
 
 static void ConfigureJsonSerialization(IServiceCollection services)
