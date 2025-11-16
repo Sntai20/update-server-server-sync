@@ -164,8 +164,14 @@ namespace Microsoft.PackageGraph.Storage.Azure
                                 throw new Exception($"Failed to download block from {file.Source}: {response.ReasonPhrase}");
                             }
 
-                            using var blockStream = response.Content.ReadAsStream(cancelToken);
-                            fileBlob.StageBlock(blockId, blockStream);
+                            using var httpStream = response.Content.ReadAsStream(cancelToken);
+                            
+                            // Buffer the stream content to support Length property for Azure Blob staging
+                            using var bufferedStream = new MemoryStream();
+                            httpStream.CopyTo(bufferedStream);
+                            bufferedStream.Position = 0; // Reset position for reading
+                            
+                            fileBlob.StageBlock(blockId, bufferedStream);
                         }
 
                         blockIdList.Add(blockId);
