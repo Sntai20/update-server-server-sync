@@ -58,6 +58,10 @@ static void ConfigureJsonSerialization(IServiceCollection services)
         DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
     };
     
+    // Register as singleton for dependency injection
+    services.AddSingleton(jsonOptions);
+    
+    // Also configure for IOptions<JsonSerializerOptions> if needed
     services.Configure<JsonSerializerOptions>(opts =>
     {
         opts.PropertyNamingPolicy = jsonOptions.PropertyNamingPolicy;

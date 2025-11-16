@@ -20,6 +20,7 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddMicrosoftUpdateServices(this IServiceCollection services, IConfiguration configuration)
     {
+        RegisterJsonSerialization(services);
         RegisterMetadataStore(services, configuration);
         RegisterContentStore(services, configuration);
         RegisterBlobServiceClient(services, configuration);
@@ -415,6 +416,29 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<SimpleAuthenticationWebService>();
         services.AddScoped<AuthenticationWebService>();
+    }
+
+    
+    private static void RegisterJsonSerialization(IServiceCollection services)
+    {
+        // Configure global JSON serialization options for Azure Functions
+        var jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = false,
+            DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+        };
+        
+        // Register as singleton for dependency injection
+        services.AddSingleton(jsonOptions);
+        
+        // Also configure for IOptions<JsonSerializerOptions> if needed
+        services.Configure<JsonSerializerOptions>(opts =>
+        {
+            opts.PropertyNamingPolicy = jsonOptions.PropertyNamingPolicy;
+            opts.WriteIndented = jsonOptions.WriteIndented;
+            opts.DefaultIgnoreCondition = jsonOptions.DefaultIgnoreCondition;
+        });
     }
 
     private static void RegisterAnomalyDetectionServices(IServiceCollection services, IConfiguration configuration)
