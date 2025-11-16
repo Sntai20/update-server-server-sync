@@ -29,6 +29,14 @@ Microsoft Update Catalog → UpstreamServerClient → IMetadataStore (local/Azur
 The project uses a specific DI pattern across Azure Functions and ASP.NET Core:
 
 ```csharp
+// Register JSON serialization options (REQUIRED for Azure Functions)
+services.AddSingleton<JsonSerializerOptions>(provider => new JsonSerializerOptions
+{
+    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+    WriteIndented = false,
+    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+});
+
 // Register metadata store (required)
 services.AddSingleton<IMetadataStore>(provider => PackageStore.Open(metadataPath));
 
@@ -39,6 +47,9 @@ services.AddSingleton<IContentStore?>(provider =>
 // Register service configurations as JSON
 services.AddSingleton<Config?>(provider => 
     JsonSerializer.Deserialize<Config>(serviceConfigJson));
+
+// Use centralized service registration (recommended approach)
+services.AddMicrosoftUpdateServices(configuration);  // Includes all above + JSON options
 ```
 
 ### JSON Serialization Standards
@@ -221,6 +232,24 @@ public async Task<HttpResponseData> HandleSoapRequest(
 - **Cold start**: First request after idle may take 10-15 seconds
 - **Memory limits**: Monitor memory usage during large sync operations
 
+### Dependency Injection Issues
+
+**COMMON ERROR**: `Unable to resolve service for type 'System.Text.Json.JsonSerializerOptions'`
+
+**Solution**: Ensure `AddMicrosoftUpdateServices()` is called, which includes JsonSerializerOptions registration:
+
+```csharp
+// In Program.cs or service configuration
+services.AddMicrosoftUpdateServices(configuration);
+
+// Or manually register JsonSerializerOptions if not using the extension:
+services.AddSingleton<JsonSerializerOptions>(/* configuration */);
+```
+
+**Root Cause**: Services like `QueueService`, `AnomalyDetectionService` depend on `JsonSerializerOptions` but it's not automatically registered in DI container.
+
+**Prevention**: Always use `AddMicrosoftUpdateServices()` extension method for proper service registration.
+
 ## Common Operations
 
 ### Sync from Microsoft Update
@@ -351,7 +380,16 @@ See `.github/upgrades/dotnet-upgrade-report.md` for complete migration details.
 
 ---
 
-**Last Updated**: 2025-01-24  
+## Recent Updates
+
+### November 2025
+- **Fixed JsonSerializerOptions DI issue**: Added proper JSON serialization registration in `ServiceCollectionExtensions.cs` to resolve dependency injection errors in AppHost
+- **Improved service registration**: `AddMicrosoftUpdateServices()` now includes all required dependencies including JSON options
+- **Enhanced troubleshooting**: Added guidance for common DI issues and their solutions
+
+---
+
+**Last Updated**: 2025-11-16  
 **Target Framework**: .NET 9.0  
 **Azure Functions**: v4 with isolated worker model  
 **Aspire**: .NET Aspire for orchestration
