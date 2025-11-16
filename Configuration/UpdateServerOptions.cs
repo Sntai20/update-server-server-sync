@@ -34,6 +34,15 @@ public class UpdateServerOptions
         "Critical Updates", 
         "Updates"
     ];
+
+    /// <summary>Gets or sets the supported languages for updates.</summary>
+    public string[] SupportedLanguages { get; set; } = 
+    [
+        "en",
+        "en-US", 
+        "neutral",
+        ""
+    ];
 }
 
 /// <summary>

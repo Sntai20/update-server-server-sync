@@ -52,7 +52,8 @@ public static class SimpleConfigurationHelper
             ServiceUrl = server.ServiceUrl,
             ContentUrl = server.ContentUrl,
             MaxUpdateCount = server.MaxUpdateCount,
-            SupportedCategories = server.SupportedCategories
+            SupportedCategories = server.SupportedCategories,
+            SupportedLanguages = server.SupportedLanguages
         };
 
         functions.WithEnvironment("ServiceConfigurationJson", JsonSerializer.Serialize(serviceConfig));

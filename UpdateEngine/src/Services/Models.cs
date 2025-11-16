@@ -22,6 +22,7 @@ public class SyncContentRequest
 {
     public List<string>? ProductFilters { get; set; }
     public List<string>? ClassificationFilters { get; set; }
+    public List<string>? LanguageFilters { get; set; }
     public DateTime? UpdatedAfter { get; set; }
     public int MaxItems { get; set; } = 1000;
 }
@@ -60,6 +61,7 @@ public class MetadataQueryRequest
 {
     public List<string>? ProductFilters { get; set; }
     public List<string>? ClassificationFilters { get; set; }
+    public List<string>? LanguageFilters { get; set; }
     public string? SearchTerm { get; set; }
     public DateTime? UpdatedAfter { get; set; }
     public DateTime? UpdatedBefore { get; set; }
@@ -252,6 +254,7 @@ public class ServiceMetadataFilter
 {
     public List<string>? ProductFilters { get; set; }
     public List<string>? ClassificationFilters { get; set; }
+    public List<string>? LanguageFilters { get; set; }
     public DateTime? UpdatedAfter { get; set; }
     public DateTime? UpdatedBefore { get; set; }
 }
@@ -267,6 +270,7 @@ public static class FilterExtensions
         {
             ProductFilters = request.ProductFilters,
             ClassificationFilters = request.ClassificationFilters,
+            LanguageFilters = request.LanguageFilters,
             UpdatedAfter = request.UpdatedAfter,
             UpdatedBefore = request.UpdatedBefore
         };
@@ -278,6 +282,7 @@ public static class FilterExtensions
         {
             ProductFilters = request.ProductFilters,
             ClassificationFilters = request.ClassificationFilters,
+            LanguageFilters = request.LanguageFilters,
             UpdatedAfter = request.UpdatedAfter
         };
     }
@@ -366,6 +371,21 @@ public class CustomSyncFilters
 {
     public IEnumerable<string>? ProductFilters { get; set; }
     public IEnumerable<string>? ClassificationFilters { get; set; }
+    public DateTime? UpdatedAfter { get; set; }
+    public DateTime? UpdatedBefore { get; set; }
+}
+
+/// <summary>
+/// Request for sync operations with custom language filtering
+/// </summary>
+public class LanguageFilteredSyncRequest
+{
+    public string? SyncType { get; set; } = "critical"; // critical, content, comprehensive, full
+    public bool SyncContent { get; set; } = true;
+    public int? ContentDaysBack { get; set; }
+    public List<string>? LanguageFilters { get; set; }
+    public List<string>? ProductFilters { get; set; }
+    public List<string>? ClassificationFilters { get; set; }
     public DateTime? UpdatedAfter { get; set; }
     public DateTime? UpdatedBefore { get; set; }
 }

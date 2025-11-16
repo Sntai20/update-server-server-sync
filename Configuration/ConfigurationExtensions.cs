@@ -43,6 +43,7 @@ public static class ConfigurationExtensions
             ContentUrl = config.ContentUrl,
             MaxUpdateCount = config.MaxUpdateCount,
             SupportedCategories = config.SupportedCategories.ToArray(), // Create a copy of the array
+            SupportedLanguages = config.SupportedLanguages.ToArray(), // Create a copy of the array
             SyncConfiguration = config.SyncConfiguration.ToImmutable(),
             StorageConfiguration = config.StorageConfiguration.ToImmutable(),
             FeatureFlags = config.FeatureFlags.ToImmutable(),
@@ -121,12 +122,14 @@ public static class ConfigurationExtensions
     /// <param name="useAzureStorageForContent">Whether Azure Storage is being used.</param>
     /// <param name="metadataContainerName">The metadata container name for Azure Storage.</param>
     /// <param name="contentContainerName">The content container name for Azure Storage.</param>
+    /// <param name="contentPathPrefix">The content path prefix for Azure Storage blob paths.</param>
     /// <returns>An immutable storage configuration with the same values.</returns>
     public static StorageConfiguration ToImmutable(this StorageConfigMutable config, 
         bool useAzureStorageForMetadata = false,
         bool useAzureStorageForContent = false,
         string metadataContainerName = "metadata", 
-        string contentContainerName = "content")
+        string contentContainerName = "content",
+        string contentPathPrefix = "")
     {
         return new StorageConfiguration
         {
@@ -137,7 +140,8 @@ public static class ConfigurationExtensions
             UseAzureStorageForMetadata = useAzureStorageForMetadata,
             UseAzureStorageForContent = useAzureStorageForContent,
             MetadataContainerName = metadataContainerName,
-            ContentContainerName = contentContainerName
+            ContentContainerName = contentContainerName,
+            ContentPathPrefix = contentPathPrefix
         };
     }
 
@@ -248,6 +252,8 @@ public static class ConfigurationBuilderExtensions
             MaxUpdateCount = serviceConfig.GetValue<int>("MaxUpdateCount", 1000),
             SupportedCategories = serviceConfig.GetSection("SupportedCategories").Get<string[]>()
                 ?? new[] { "Security Updates", "Critical Updates", "Feature Packs", "Updates", "Drivers" },
+            SupportedLanguages = serviceConfig.GetSection("SupportedLanguages").Get<string[]>()
+                ?? new[] { "en", "en-US", "neutral", "" },
 
             SyncConfiguration = new SyncConfiguration
             {
@@ -267,7 +273,8 @@ public static class ConfigurationBuilderExtensions
                 UseAzureStorageForMetadata = useAzureStorageForMetadata,
                 UseAzureStorageForContent = useAzureStorageForContent,
                 MetadataContainerName = storageConfig["MetadataContainerName"] ?? "metadata",
-                ContentContainerName = storageConfig["ContentContainerName"] ?? "content"
+                ContentContainerName = storageConfig["ContentContainerName"] ?? "content",
+                ContentPathPrefix = storageConfig["ContentPathPrefix"] ?? ""
             },
 
             FeatureFlags = new FeatureFlags

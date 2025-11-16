@@ -11,15 +11,17 @@
     "ServiceUrl": "http://localhost:7071",
     "ContentUrl": "http://localhost:7071/api/content",
     "MaxUpdateCount": 100,
-    "SupportedCategories": ["Security Updates", "Critical Updates"]
+    "SupportedCategories": ["Security Updates", "Critical Updates"],
+    "SupportedLanguages": ["en", "en-US", "neutral", ""]
   },
   "Storage": {
     "MetadataPath": "../../store",
     "ContentPath": "../../content",
-    "UseAzureStorageForMetadata": false,
-    "UseAzureStorageForContent": false,
+    "UseAzureStorageForMetadata": true,
+    "UseAzureStorageForContent": true,
     "MetadataContainerName": "data",
     "ContentContainerName": "data",
+    "ContentPathPrefix": "Content",
     "ReindexOnStartup": false
   },
   "FunctionSchedules": {

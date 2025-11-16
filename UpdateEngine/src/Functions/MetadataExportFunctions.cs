@@ -5,13 +5,17 @@ namespace UpdateEngine.Functions;
 
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.PackageGraph.MicrosoftUpdate;
 using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
 using Microsoft.PackageGraph.Storage;
 using Microsoft.UpdateServices.WebServices.ServerSync;
 using System.Net;
 using System.Text.Json;
 using UpdateEngine.Services;
+using Azure.Storage.Blobs;
+using System.Text;
 
 /// <summary>
 /// Azure Functions for metadata export operations.
@@ -21,13 +25,19 @@ public class MetadataExportFunctions
 {
     private readonly ILogger<MetadataExportFunctions> logger;
     private readonly IMetadataStore metadataStore;
+    private readonly BlobServiceClient? blobServiceClient;
+    private readonly IConfiguration configuration;
 
     public MetadataExportFunctions(
         ILogger<MetadataExportFunctions> logger, 
-        IMetadataStore metadataStore)
+        IMetadataStore metadataStore,
+        BlobServiceClient? blobServiceClient,
+        IConfiguration configuration)
     {
         this.logger = logger;
         this.metadataStore = metadataStore;
+        this.blobServiceClient = blobServiceClient;
+        this.configuration = configuration;
     }
 
     /// <summary>
@@ -200,6 +210,107 @@ public class MetadataExportFunctions
         this.logger.LogInformation("Exported {Count} packages", filteredPackages.Count());
 
         return result;
+    }
+
+    /// <summary>
+    /// Automatically export sync summary to CSV in blob storage.
+    /// Triggered after sync operations to maintain audit trail.
+    /// </summary>
+    [Function("ExportSyncSummaryToCsv")]
+    public async Task<HttpResponseData> ExportSyncSummaryToCsv(
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "ExportMetadata/SyncSummary")] HttpRequestData req)
+    {
+        this.logger.LogInformation("Auto-exporting sync summary to CSV in blob storage");
+
+        try
+        {
+            if (this.blobServiceClient == null)
+            {
+                var errorResponse = req.CreateResponse(HttpStatusCode.ServiceUnavailable);
+                await errorResponse.WriteStringAsync("Blob storage not configured");
+                return errorResponse;
+            }
+
+            // Get container configuration
+            var containerName = this.configuration["MetadataContainerName"] ?? "data";
+            var pathPrefix = this.configuration["ContentPathPrefix"] ?? "";
+            
+            // Create CSV export
+            var csvData = this.GenerateSyncSummaryCsv();
+            var fileName = $"sync-summary-{DateTime.UtcNow:yyyy-MM-dd-HH-mm-ss}.csv";
+            var blobPath = string.IsNullOrEmpty(pathPrefix) ? $"reports/{fileName}" : $"{pathPrefix.TrimEnd('/')}/reports/{fileName}";
+
+            // Upload to blob storage
+            var containerClient = this.blobServiceClient.GetBlobContainerClient(containerName);
+            await containerClient.CreateIfNotExistsAsync();
+            
+            var blobClient = containerClient.GetBlobClient(blobPath);
+            var csvBytes = Encoding.UTF8.GetBytes(csvData);
+            await blobClient.UploadAsync(new BinaryData(csvBytes), overwrite: true);
+
+            this.logger.LogInformation("Sync summary exported to: {BlobPath}", blobPath);
+
+            var response = req.CreateResponse(HttpStatusCode.OK);
+            await response.WriteAsJsonAsync(new { 
+                Success = true, 
+                BlobPath = blobPath,
+                FileName = fileName,
+                ItemsExported = csvData.Split('\n').Length - 1,
+                Timestamp = DateTime.UtcNow
+            });
+            return response;
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Error exporting sync summary to CSV");
+            var errorResponse = req.CreateResponse(HttpStatusCode.InternalServerError);
+            await errorResponse.WriteAsJsonAsync(new { error = ex.Message });
+            return errorResponse;
+        }
+    }
+
+    private string GenerateSyncSummaryCsv()
+    {
+        // Create a filter that returns all packages
+        var filter = new MetadataFilter
+        {
+            TitleFilter = string.Empty,
+            HardwareIdFilter = string.Empty,
+            SkipSuperseded = false,
+            FirstX = 0
+        };
+
+        var packages = filter.Apply(this.metadataStore).ToList();
+        var csv = new StringBuilder();
+        
+        // CSV Header
+        csv.AppendLine("Id,Title,Type,HasContent,IsSuperseded,FileSize,FileCount");
+
+        // CSV Data
+        foreach (var package in packages)
+        {
+            var hasContent = false;
+            var fileSize = 0L;
+            var fileCount = 0;
+            var isSuperseded = false;
+
+            // Get additional metadata based on package type
+            if (package is SoftwareUpdate softwareUpdate)
+            {
+                hasContent = softwareUpdate.Files?.Any() == true;
+                fileSize = softwareUpdate.Files?.Sum(f => (long)f.Size) ?? 0;
+                fileCount = softwareUpdate.Files?.Count() ?? 0;
+                isSuperseded = softwareUpdate.IsSupersededBy?.Any() == true;
+            }
+
+            // Escape CSV fields
+            var title = (package.Title ?? "").Replace("\"", "\"\"");
+            var type = package.GetType().Name;
+
+            csv.AppendLine($"\"{package.Id.OpenId}\",\"{title}\",\"{type}\",{hasContent},{isSuperseded},{fileSize},{fileCount}");
+        }
+
+        return csv.ToString();
     }
 }
 

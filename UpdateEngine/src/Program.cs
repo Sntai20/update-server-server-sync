@@ -39,6 +39,9 @@ static void ConfigureLogging(HostBuilderContext context)
     tempLogger.LogInformation("ContentUrl: {ContentUrl}", updateServerSection["ContentUrl"]);
     tempLogger.LogInformation("MaxUpdateCount: {MaxUpdateCount}", updateServerSection["MaxUpdateCount"]);
     
+    var supportedLanguages = updateServerSection.GetSection("SupportedLanguages").Get<string[]>();
+    tempLogger.LogInformation("SupportedLanguages: {SupportedLanguages}", string.Join(", ", supportedLanguages ?? new[] { "none" }));
+    
     // Log Storage configuration
     var storageSection = context.Configuration.GetSection(StorageOptions.SectionName);
     tempLogger.LogInformation("UseAzureStorageForMetadata: {UseAzureStorageForMetadata}", storageSection["UseAzureStorageForMetadata"]);
@@ -47,6 +50,7 @@ static void ConfigureLogging(HostBuilderContext context)
     tempLogger.LogInformation("ContentPath: {ContentPath}", storageSection["ContentPath"]);
     tempLogger.LogInformation("MetadataContainerName: {ContainerName}", storageSection["MetadataContainerName"]);
     tempLogger.LogInformation("ContentContainerName: {ContainerName}", storageSection["ContentContainerName"]);
+    tempLogger.LogInformation("ContentPathPrefix: {ContainerName}", storageSection["ContentPathPrefix"]);
 
     tempLogger.LogInformation("=== Connection Strings ===");
     foreach (var connStr in context.Configuration.GetSection("ConnectionStrings").GetChildren())

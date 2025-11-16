@@ -22,6 +22,7 @@ public static class ServiceCollectionExtensions
     {
         RegisterMetadataStore(services, configuration);
         RegisterContentStore(services, configuration);
+        RegisterBlobServiceClient(services, configuration);
         RegisterConfigurations(services, configuration);
         RegisterWebServices(services, configuration);
         RegisterAnomalyDetectionServices(services, configuration);
@@ -175,10 +176,11 @@ public static class ServiceCollectionExtensions
                 }
 
                 var containerName = configuration["ContentContainerName"] ?? "content";
+                var pathPrefix = configuration["ContentPathPrefix"] ?? "";
 
                 logger.LogInformation(
-                    "Initializing Azure Blob content store in container: {ContainerName}",
-                    containerName);
+                    "Initializing Azure Blob content store in container: {ContainerName}, path prefix: {PathPrefix}",
+                    containerName, pathPrefix);
 
                 try
                 {
@@ -188,13 +190,14 @@ public static class ServiceCollectionExtensions
                     var containerClient = blobServiceClient.GetBlobContainerClient(containerName);
                     containerClient.CreateIfNotExists();
 
-                    // Use library's native method
-                    var store = BlobContentStore.OpenOrCreate(blobServiceClient, containerName);
+                    // Use library's native method with path prefix
+                    var store = BlobContentStore.OpenOrCreate(blobServiceClient, containerName, pathPrefix);
 
                     logger.LogInformation(
-                        "Azure Blob content store initialized - Account: {AccountName}, Container: {Container}",
+                        "Azure Blob content store initialized - Account: {AccountName}, Container: {Container}, PathPrefix: {PathPrefix}",
                         blobServiceClient.AccountName,
-                        containerName);
+                        containerName, 
+                        pathPrefix);
                         
                     return store;
                 }
@@ -235,6 +238,37 @@ public static class ServiceCollectionExtensions
                     logger.LogError(ex, "Failed to initialize local content store at: {Path}", localStorePath);
                     throw;
                 }
+            }
+        });
+    }
+
+    private static void RegisterBlobServiceClient(IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddSingleton(provider =>
+        {
+            var logger = provider.GetRequiredService<ILogger<BlobServiceClient>>();
+            
+            try
+            {
+                var connectionString = configuration.GetConnectionString("MetadataStorageConnection")
+                    ?? configuration["AzureWebJobsStorage"]
+                    ?? configuration["AZURE_STORAGE_CONNECTION_STRING"];
+
+                if (string.IsNullOrEmpty(connectionString))
+                {
+                    logger.LogInformation("No Azure Storage connection string configured - BlobServiceClient will be null");
+                    return null as BlobServiceClient;
+                }
+
+                var blobServiceClient = new BlobServiceClient(connectionString);
+                logger.LogInformation("BlobServiceClient registered successfully for account: {Account}", 
+                    blobServiceClient.AccountName);
+                return blobServiceClient;
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to initialize BlobServiceClient - CSV export will be disabled");
+                return null as BlobServiceClient;
             }
         });
     }

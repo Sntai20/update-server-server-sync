@@ -21,6 +21,9 @@ public record ServiceConfiguration
     /// <summary>Gets the supported update categories.</summary>
     public required string[] SupportedCategories { get; init; }
 
+    /// <summary>Gets the supported language codes for update filtering.</summary>
+    public required string[] SupportedLanguages { get; init; }
+
     /// <summary>Gets the synchronization configuration settings.</summary>
     public required SyncConfiguration SyncConfiguration { get; init; }
 
@@ -51,6 +54,9 @@ public class ServiceConfigurationMutable
 
     /// <summary>Gets or sets the supported update categories.</summary>
     public string[] SupportedCategories { get; set; } = Array.Empty<string>();
+
+    /// <summary>Gets or sets the supported language codes for update filtering.</summary>
+    public string[] SupportedLanguages { get; set; } = Array.Empty<string>();
 
     /// <summary>Gets or sets the synchronization configuration settings.</summary>
     public SyncConfigMutable SyncConfiguration { get; set; } = new();
@@ -163,6 +169,9 @@ public record StorageConfiguration
 
     /// <summary>Gets the content container name for Azure Storage.</summary>
     public required string ContentContainerName { get; init; }
+
+    /// <summary>Gets the content path prefix for Azure Storage blob paths.</summary>
+    public string ContentPathPrefix { get; init; } = string.Empty;
 }
 
 /// <summary>
@@ -178,6 +187,9 @@ public class StorageConfigMutable
 
     /// <summary>Gets or sets a value indicating whether content storage is enabled.</summary>
     public bool EnableContentStorage { get; set; }
+
+    /// <summary>Gets or sets the content path prefix for Azure Storage blob paths.</summary>
+    public string ContentPathPrefix { get; set; } = string.Empty;
 
     /// <summary>Gets or sets a value indicating whether to reindex on startup.</summary>
     public bool ReindexOnStartup { get; set; }

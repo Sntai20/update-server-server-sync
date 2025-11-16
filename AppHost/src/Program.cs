@@ -23,12 +23,6 @@ var storage = builder.Environment.EnvironmentName == Environments.Development
 var enableServiceBus = builder.Configuration.GetValue<bool>("Features:EnableScheduledSync", false);
 
 /// <summary>
-/// Builds service configuration from application settings, including storage paths,
-/// service URLs, and operational parameters. Now uses simplified configuration approach.
-/// </summary>
-// Configuration is now handled directly by the simplified helper - no complex transformations needed
-
-/// <summary>
 /// Configures the UpdateEngine Azure Functions project with dependencies.
 /// Service Bus and queues are conditionally included based on configuration.
 /// Waits for storage to be ready to prevent worker process crashes during startup.

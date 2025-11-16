@@ -29,6 +29,7 @@ namespace Microsoft.PackageGraph.Storage.Azure
         private const long BlockSize = 64 * 1024 * 1024;
 
         readonly BlobContainerClient ParentContainer;
+        readonly string PathPrefix;
 
         /// <summary>
         /// List of pending downloads
@@ -48,9 +49,10 @@ namespace Microsoft.PackageGraph.Storage.Azure
         long _DownloadedSize;
         int _QueuedCount;
 
-        private BlobContentStore(BlobContainerClient contentContainer)
+        private BlobContentStore(BlobContainerClient contentContainer, string pathPrefix = "")
         {
             this.ParentContainer = contentContainer;
+            this.PathPrefix = pathPrefix;
         }
 
         /// <summary>
@@ -58,13 +60,14 @@ namespace Microsoft.PackageGraph.Storage.Azure
         /// </summary>
         /// <param name="client">The Azure Blob service client to use</param>
         /// <param name="containerName">The container name where to store update content</param>
+        /// <param name="pathPrefix">Optional path prefix for organizing blobs within the container</param>
         /// <returns></returns>
-        public static BlobContentStore OpenOrCreate(BlobServiceClient client, string containerName)
+        public static BlobContentStore OpenOrCreate(BlobServiceClient client, string containerName, string pathPrefix = "")
         {
             var container = client.GetBlobContainerClient(containerName);
             container.CreateIfNotExists();
 
-            return new BlobContentStore(container);
+            return new BlobContentStore(container, pathPrefix);
         }
 
         /// <inheritdoc cref="IContentStore.Download(IEnumerable{IContentFile}, CancellationToken)"/>
@@ -251,7 +254,14 @@ namespace Microsoft.PackageGraph.Storage.Azure
 
         private BlockBlobClient GetBlobForFile(IContentFile updateFile)
         {
-            return this.ParentContainer.GetBlockBlobClient(updateFile.Digest.HexString.ToLower());
+            var blobName = string.IsNullOrEmpty(this.PathPrefix) 
+                ? updateFile.Digest.HexString.ToLower()
+                : $"{this.PathPrefix.TrimEnd('/')}/{updateFile.Digest.HexString.ToLower()}";
+            
+            // Debug logging to track blob path construction
+            Console.WriteLine($"[BlobContentStore] Creating blob path: '{blobName}' (PathPrefix: '{this.PathPrefix}', Hash: '{updateFile.Digest.HexString}')");
+            
+            return this.ParentContainer.GetBlockBlobClient(blobName);
         }
 
         /// <inheritdoc cref="IContentStore.GetUri(IContentFile)"/>
