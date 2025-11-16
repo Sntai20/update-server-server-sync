@@ -23,6 +23,7 @@ public class AppConfig
     public bool UseAzureStorageForContent { get; set; } = false;
     public string MetadataContainerName { get; set; } = "metadata";
     public string ContentContainerName { get; set; } = "content";
+    public string ContentPathPrefix { get; set; } = "Content";
     public bool ReindexOnStartup { get; set; } = false;
 
     // Schedule settings (CRON expressions for Azure Functions TimerTrigger)
