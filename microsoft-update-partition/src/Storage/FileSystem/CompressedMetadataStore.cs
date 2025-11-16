@@ -70,6 +70,10 @@ namespace Microsoft.PackageGraph.Storage.Local
         private static string GetPackageIndex(IPackageIdentity identity)
         {
             // The index is the last 8 bits of the update ID.
+            if (identity.OpenId?.Length == 0)
+            {
+                throw new ArgumentException("Package identity OpenId cannot be empty");
+            }
             return identity.OpenId.Last().ToString();
         }
 

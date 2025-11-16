@@ -115,7 +115,12 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate.Metadata
                 .SelectMany(atLeastOne => atLeastOne.Simple)
                 .Select(simple => simple.UpdateId)
                 .Where(simple => knownCategories.Contains(simple))
-                .SelectMany(simple => knownCategories[simple].Take(1))
+                .SelectMany(simple => 
+                {
+                    // Use defensive access to prevent KeyNotFoundException during concurrent access
+                    var categoryPackages = knownCategories[simple];
+                    return categoryPackages?.Take(1) ?? Enumerable.Empty<MicrosoftUpdatePackage>();
+                })
                 .ToList();
         }
 

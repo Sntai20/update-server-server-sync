@@ -270,9 +270,14 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Drivers
                     {
                         // Select the driver with the best feature score (lower value is better)
                         var bestScore = matchesWithFeatureScore.SelectMany(metadataIndex => GetFeatureScores(metadataIndex)).Min();
-                        var matchedMetadataIndex = matchesWithFeatureScore
-                            .Where(metadataIndex => GetFeatureScores(metadataIndex).Any(featureScore => featureScore.Score == bestScore.Score))
-                            .First();
+                        var bestDriverCandidates = matchesWithFeatureScore
+                            .Where(metadataIndex => GetFeatureScores(metadataIndex).Any(featureScore => featureScore.Score == bestScore.Score));
+                        
+                        var matchedMetadataIndex = bestDriverCandidates.FirstOrDefault();
+                        if (matchedMetadataIndex == default)
+                        {
+                            throw new InvalidOperationException("No driver metadata found matching the best feature score");
+                        }
 
                         return new DriverMatchResult(GetDriverUpdateFromMetadataIndex(matchedMetadataIndex))
                         {
@@ -286,9 +291,14 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Drivers
                         // None of the drivers have a feature score; sort them by version information
                         var bestVersion = computerHwIdMatch.Select(metadataIndex => GetDriverVersion(metadataIndex)).Max();
 
-                        var matchedMetadataIndex = computerHwIdMatch
-                            .Where(metadataIndex => GetDriverVersion(metadataIndex).Equals(bestVersion))
-                            .First();
+                        var bestVersionCandidates = computerHwIdMatch
+                            .Where(metadataIndex => GetDriverVersion(metadataIndex).Equals(bestVersion));
+                        
+                        var matchedMetadataIndex = bestVersionCandidates.FirstOrDefault();
+                        if (matchedMetadataIndex == default)
+                        {
+                            throw new InvalidOperationException("No driver metadata found matching the best version");
+                        }
 
                         return new DriverMatchResult(GetDriverUpdateFromMetadataIndex(matchedMetadataIndex))
                         {
@@ -318,9 +328,14 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Drivers
                 // Find the best version and return the driver update
                 var bestVersion = metadataMatchedByOnlyHwId.Select(metadataIndex => GetDriverVersion(metadataIndex)).Max();
 
-                var matchedMetadataIndex = metadataMatchedByOnlyHwId
-                    .Where(metadataIndex => GetDriverVersion(metadataIndex).Equals(bestVersion))
-                    .First();
+                var bestVersionCandidates = metadataMatchedByOnlyHwId
+                    .Where(metadataIndex => GetDriverVersion(metadataIndex).Equals(bestVersion));
+                
+                var matchedMetadataIndex = bestVersionCandidates.FirstOrDefault();
+                if (matchedMetadataIndex == default)
+                {
+                    throw new InvalidOperationException("No driver metadata found matching the best version");
+                }
 
                 return new DriverMatchResult(GetDriverUpdateFromMetadataIndex(matchedMetadataIndex))
                 {
