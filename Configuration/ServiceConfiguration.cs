@@ -21,6 +21,9 @@ public record ServiceConfiguration
     /// <summary>Gets the supported update categories.</summary>
     public required string[] SupportedCategories { get; init; }
 
+    /// <summary>Gets the supported language codes for update filtering.</summary>
+    public required string[] SupportedLanguages { get; init; }
+
     /// <summary>Gets the synchronization configuration settings.</summary>
     public required SyncConfiguration SyncConfiguration { get; init; }
 
@@ -51,6 +54,9 @@ public class ServiceConfigurationMutable
 
     /// <summary>Gets or sets the supported update categories.</summary>
     public string[] SupportedCategories { get; set; } = Array.Empty<string>();
+
+    /// <summary>Gets or sets the supported language codes for update filtering.</summary>
+    public string[] SupportedLanguages { get; set; } = Array.Empty<string>();
 
     /// <summary>Gets or sets the synchronization configuration settings.</summary>
     public SyncConfigMutable SyncConfiguration { get; set; } = new();
@@ -102,6 +108,9 @@ public class SyncConfigMutable
 
     /// <summary>Gets or sets the interval in minutes for health checks.</summary>
     public int HealthCheckIntervalMinutes { get; set; }
+
+    /// <summary>Gets or sets the interval in minutes for anomaly detection.</summary>
+    public double AnomalyDetectionIntervalMinutes { get; set; } = 30;
 
     // TimeSpan-based schedules for Azure Functions
     /// <summary>Gets or sets the schedule for hourly health checks.</summary>
@@ -160,6 +169,9 @@ public record StorageConfiguration
 
     /// <summary>Gets the content container name for Azure Storage.</summary>
     public required string ContentContainerName { get; init; }
+
+    /// <summary>Gets the content path prefix for Azure Storage blob paths.</summary>
+    public string ContentPathPrefix { get; init; } = string.Empty;
 }
 
 /// <summary>
@@ -175,6 +187,9 @@ public class StorageConfigMutable
 
     /// <summary>Gets or sets a value indicating whether content storage is enabled.</summary>
     public bool EnableContentStorage { get; set; }
+
+    /// <summary>Gets or sets the content path prefix for Azure Storage blob paths.</summary>
+    public string ContentPathPrefix { get; set; } = string.Empty;
 
     /// <summary>Gets or sets a value indicating whether to reindex on startup.</summary>
     public bool ReindexOnStartup { get; set; }
@@ -260,4 +275,7 @@ public record FunctionSchedules
 
     /// <summary>Gets the schedule for scheduled content sync function.</summary>
     public required string SyncContentSchedule { get; init; }
+
+    /// <summary>Gets the schedule for anomaly detection function.</summary>
+    public string AnomalyDetectionSchedule { get; init; } = "00:30:00";
 }

@@ -37,14 +37,10 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Prerequisites
             {
                 var updateGuid = updateWithPrerequisites.Id.ID;
                 PrerequisiteGraphNode updateNode;
-                if (!graph.ContainsKey(updateGuid))
+                if (!graph.TryGetValue(updateGuid, out updateNode))
                 {
                     updateNode = new PrerequisiteGraphNode(updateGuid);
                     graph.Add(updateGuid, updateNode);
-                }
-                else
-                {
-                    updateNode = graph[updateGuid];
                 }
 
                 var prerequisites = updateWithPrerequisites.Prerequisites;
@@ -60,18 +56,13 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Prerequisites
                     }
                     else
                     {
-                        throw new Exception("Unknown prerequisite type");
+                        throw new NotSupportedException("Unknown prerequisite type");
                     }
                 });
 
                 foreach (var prerequisite in flatListPrerequisites)
                 {
-                    PrerequisiteGraphNode prerequisiteNode;
-                    if (graph.ContainsKey(prerequisite))
-                    {
-                        prerequisiteNode = graph[prerequisite];
-                    }
-                    else
+                    if (!graph.TryGetValue(prerequisite, out PrerequisiteGraphNode prerequisiteNode))
                     {
                         prerequisiteNode = new PrerequisiteGraphNode(prerequisite);
                         graph.Add(prerequisite, prerequisiteNode);

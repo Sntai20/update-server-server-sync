@@ -111,9 +111,9 @@ namespace Microsoft.PackageGraph.Storage.Local
             };
 
             // Validate starting offset
-            if (startOffset >= (long)updateFile.Size)
+            if (startOffset > (long)updateFile.Size)
             {
-                throw new Exception($"Start offset {startOffset} cannot be greater than expected file size {updateFile.Size}");
+                throw new ArgumentOutOfRangeException(nameof(startOffset), $"Start offset {startOffset} cannot be greater than expected file size {updateFile.Size}");
             }
 
             var url = updateFile.Source;
@@ -133,7 +133,7 @@ namespace Microsoft.PackageGraph.Storage.Local
                 // Make sure our size matches the server's size
                 if (fileSizeOnServer != (long)updateFile.Size)
                 {
-                    throw new Exception($"File size mismatch. Expected {updateFile.Size}, server advertised {fileSizeOnServer}");
+                    throw new InvalidDataException($"File size mismatch. Expected {updateFile.Size}, server advertised {fileSizeOnServer}");
                 }
 
                 // Build the range request for the download
@@ -193,7 +193,7 @@ namespace Microsoft.PackageGraph.Storage.Local
                     .GetResult();
                 if (!headResponse.IsSuccessStatusCode)
                 {
-                    throw new Exception($"Failed to get HEAD of update from {url}: {headResponse.ReasonPhrase}");
+                    throw new HttpRequestException($"Failed to get HEAD of update from {url}: {headResponse.ReasonPhrase}");
                 }
 
                 fileSizeOnServer = headResponse.Content.Headers.ContentLength.Value;

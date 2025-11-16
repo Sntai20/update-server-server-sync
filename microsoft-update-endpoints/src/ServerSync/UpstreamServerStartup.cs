@@ -12,7 +12,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.AspNetCore.Hosting;
 using System.Reflection;
 using Microsoft.UpdateServices.WebServices.ServerSync;
-using Newtonsoft.Json;
+using System.Text.Json;
 using System.IO;
 using Microsoft.PackageGraph.Storage;
 using Microsoft.PackageGraph.Storage.Local;
@@ -49,7 +49,7 @@ public class UpstreamServerStartup
         PackageSource = PackageStore.Open(metadataPath);
 
         var serviceConfigJson = config.GetValue<string>("service-config-json");
-        ServiceConfiguration = JsonConvert.DeserializeObject<ServerSyncConfigData>(serviceConfigJson);
+        ServiceConfiguration = JsonSerializer.Deserialize<ServerSyncConfigData>(serviceConfigJson);
 
         if (!string.IsNullOrEmpty(contentPath))
         {

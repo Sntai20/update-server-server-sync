@@ -1,8 +1,8 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
+using System.Text.Json.Serialization;
+using System.Text.Json;
 using System;
 using System.Collections.Generic;
 using System.Xml;
@@ -18,26 +18,26 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Applicability
         /// <summary>
         /// The type of applicability rule
         /// </summary>
-        [JsonProperty]
-        [JsonConverter(typeof(StringEnumConverter))]
+        [JsonPropertyName("ruleType")]
+        [JsonConverter(typeof(JsonStringEnumConverter))]
         public ApplicabilityRuleType RuleType { get; private set; }
 
         /// <summary>
         /// List of expression groups. Rules are joined together by boolean operators in a group; a rule can have multiple groups.
         /// </summary>
-        [JsonProperty]
+        [JsonPropertyName("expressionGroups")]
         public List<ExpressionGroup> ExpressionGroups { get; private set; }
 
         /// <summary>
         /// A single expression to evaluate.
         /// </summary>
-        [JsonProperty]
+        [JsonPropertyName("expression")]
         public Expression Expression { get; private set; }
 
         /// <summary>
         /// Set to true if this rule only stores metadata for other rules
         /// </summary>
-        [JsonProperty]
+        [JsonPropertyName("isMetadataOnlyRule")]
         public bool IsMetadataOnlyRule { get; private set; }
 
         [JsonConstructor]
@@ -95,7 +95,7 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Applicability
 
 
                     default:
-                        throw new Exception("Unknown rule: " + applicabilityRulesQueryResult.Current.Name);
+                        throw new NotSupportedException("Unknown rule: " + applicabilityRulesQueryResult.Current.Name);
                 }
             }
 
@@ -107,7 +107,7 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Applicability
             var returnList = new List<ApplicabilityRule>();
             if (!metadataNavigator.HasChildren)
             {
-                throw new Exception("Expected child nodes with metadata; got none");
+                throw new ArgumentException("Expected child nodes with metadata; got none");
             }
 
             var applicabilityRulesQueryResult = metadataNavigator.SelectChildren(XPathNodeType.Element);

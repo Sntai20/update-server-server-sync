@@ -129,7 +129,7 @@ namespace Microsoft.PackageGraph.Storage.Local
         {
             if (!Contains(updateFile))
             {
-                throw new Exception("The requested file is not downloaded");
+                throw new FileNotFoundException("The requested file is not downloaded");
             }
 
             return File.OpenRead(GetUri(updateFile));
@@ -151,7 +151,7 @@ namespace Microsoft.PackageGraph.Storage.Local
         {
             if (updateFile.Digest == null)
             {
-                throw new Exception("Cannot determine file path for update with no digest");
+                throw new InvalidOperationException("Cannot determine file path for update with no digest");
             }
 
             var contentSubDirectory = GetContentDirectoryName(updateFile.Digest);
@@ -207,7 +207,7 @@ namespace Microsoft.PackageGraph.Storage.Local
         {
             if (!Contains(fileDigest, out var _))
             {
-                throw new Exception("The requested file is not downloaded");
+                throw new FileNotFoundException("The requested file is not downloaded");
             }
 
             return File.OpenRead(GetUri(fileDigest));

@@ -8,7 +8,7 @@ using Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Parsers;
 using Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Prerequisites;
 using Microsoft.PackageGraph.ObjectModel;
 using Microsoft.PackageGraph.Storage;
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -115,7 +115,12 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate.Metadata
                 .SelectMany(atLeastOne => atLeastOne.Simple)
                 .Select(simple => simple.UpdateId)
                 .Where(simple => knownCategories.Contains(simple))
-                .Select(simple => knownCategories[simple].First())
+                .SelectMany(simple => 
+                {
+                    // Use defensive access to prevent KeyNotFoundException during concurrent access
+                    var categoryPackages = knownCategories[simple];
+                    return categoryPackages?.Take(1) ?? Enumerable.Empty<MicrosoftUpdatePackage>();
+                })
                 .ToList();
         }
 
@@ -159,7 +164,7 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate.Metadata
         /// <summary>
         /// Get the category or update description
         /// </summary>
-        [JsonProperty]
+        [JsonPropertyName("Description")]
         public string Description
         {
             get
@@ -358,7 +363,7 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate.Metadata
                     }
                     else
                     {
-                        throw new Exception($"Unexpected category type {categoryType}");
+                        throw new NotSupportedException($"Unexpected category type {categoryType}");
                     }
                     break;
 
@@ -371,7 +376,7 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate.Metadata
                     break;
 
                 default:
-                    throw new Exception($"Unexpected update type: {updateType}");
+                    throw new NotSupportedException($"Unexpected update type: {updateType}");
             }
 
             createdUpdate._MetadataSource = metadataStore;
@@ -424,7 +429,7 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate.Metadata
                     }
                     else
                     {
-                        throw new Exception($"Unexpected category type {categoryType}");
+                        throw new NotSupportedException($"Unexpected category type {categoryType}");
                     }
                     break;
 
@@ -437,7 +442,7 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate.Metadata
                     break;
 
                 default:
-                    throw new Exception($"Unexpected update type: {updateType}");
+                    throw new NotSupportedException($"Unexpected update type: {updateType}");
             }
 
             createdUpdate.MergeFileInformation(navigator, manager, filesCollection);
@@ -453,7 +458,7 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate.Metadata
                 StoredPackageType.MicrosoftUpdateClassification => new ClassificationCategory(id, metadataLookup, metadataSource),
                 StoredPackageType.MicrosoftUpdateDriver => new DriverUpdate(id, metadataLookup, metadataSource),
                 StoredPackageType.MicrosoftUpdateSoftware => new SoftwareUpdate(id, metadataLookup, metadataSource),
-                _ => throw new Exception($"Unexpected update type: {updateType}"),
+                _ => throw new NotSupportedException($"Unexpected update type: {updateType}"),
             };
         }
 
@@ -495,7 +500,7 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate.Metadata
 
             if (filesCollection == null)
             {
-                throw new Exception($"Update {_Id} has unresolved files");
+                throw new InvalidOperationException($"Update {_Id} has unresolved files");
             }
 
             foreach (var file in _Files.OfType<UpdateFile>())
@@ -511,7 +516,7 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate.Metadata
 
                 if (file.Urls.Count == 0)
                 {
-                    throw new Exception($"Update {_Id} has unresolved file {file.Digest.DigestBase64}");
+                    throw new InvalidOperationException($"Update {_Id} has unresolved file {file.Digest.DigestBase64}");
                 }
             }
 

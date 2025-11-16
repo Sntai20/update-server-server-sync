@@ -43,18 +43,18 @@ services.AddSingleton<Config?>(provider =>
 
 ### JSON Serialization Standards
 
-**CRITICAL**: The project is migrating from Newtonsoft.Json to System.Text.Json:
+**CRITICAL**: The project uses a layered JSON serialization approach:
 
-- ✅ **Azure Functions**: Use `System.Text.Json` for all new code
-- ⚠️ **Legacy Libraries**: Some core libraries still use `Newtonsoft.Json`
-- **Pattern**: Always check existing patterns in the file before choosing serializer
+- ✅ **Azure Functions (UpdateEngine)**: Use `System.Text.Json` for all new HTTP APIs, configuration, and response models
+- ✅ **Core Libraries (microsoft-update-*)**: Continue using `Newtonsoft.Json` for metadata storage, SOAP services, and compatibility
+- **Pattern**: Check existing patterns in the file before choosing serializer
 
 ```csharp
-// Preferred (System.Text.Json)
+// Azure Functions layer (System.Text.Json)
 using System.Text.Json;
 var data = JsonSerializer.Deserialize<T>(json);
 
-// Legacy (still used in core libraries)
+// Core libraries (Newtonsoft.Json for compatibility)
 using Newtonsoft.Json;
 var data = JsonConvert.DeserializeObject<T>(json);
 ```

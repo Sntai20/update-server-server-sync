@@ -28,8 +28,14 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Prerequisites
 
         internal AtLeastOne(IEnumerable<Guid> ids)
         {
-            Simple = new List<Simple>(ids.Select(id => new Prerequisites.Simple(id)));
-            IsCategory = ids.Last().Equals(Guid.Empty);
+            var idsList = ids?.ToList() ?? throw new ArgumentNullException(nameof(ids));
+            if (idsList.Count == 0)
+            {
+                throw new ArgumentException("AtLeastOne prerequisite cannot have empty ids collection", nameof(ids));
+            }
+            
+            Simple = new List<Simple>(idsList.Select(id => new Prerequisites.Simple(id)));
+            IsCategory = idsList.Last().Equals(Guid.Empty);
 
             if (IsCategory)
             {

@@ -10,24 +10,24 @@ Use this library to:
 * Run an update server in ASP.NET Core and serve updates to Windows Update clients
 * **NEW: Run as Azure Functions with .NET 9 support**
 
-## ?? Quick Start
+## 🚀 Quick Start
 
 ```powershell
 # Clone repository
 git clone https://github.com/microsoft/update-server-server-sync
 cd update-server-server-sync
 
-# Build
-dotnet build
+# Build (all projects)
+dotnet build microsoft-update.sln
 
 # Run tests (no infrastructure required!)
 ./scripts/test/Run-InMemoryTests.ps1
 
-# Or run with Azure Functions
-dotnet run --project AppHost
+# Or run with Azure Functions via Aspire
+dotnet run --project AppHost/src/AppHost.csproj
 ```
 
-**?? For detailed instructions, see [QUICK_REFERENCE.md](./QUICK_REFERENCE.md)**
+**📖 For detailed instructions, see [Configuration Guide](./docs/guides/CONFIGURATION_GUIDE.md)**
 
 ## 📂 Repository Organization
 
@@ -47,6 +47,8 @@ This repository is organized as follows:
 ### Essential Guides
 
 - **[Quick Reference](./docs/guides/QUICK_REFERENCE.md)** - Quick start guide for developers
+- **[Configuration Guide](./docs/guides/CONFIGURATION_GUIDE.md)** - Simplified AppConfig approach
+- **[Configuration Migration](./docs/guides/CONFIGURATION_MIGRATION_V2.md)** - Migration from complex configuration
 - **[Storage Configuration](./docs/guides/STORAGE_GUIDE.md)** - Configure Azure Storage or local storage
 - **[Testing Guide](./docs/guides/INMEMORY_TESTING_GUIDE.md)** - In-memory testing (no infrastructure required)
 - **[Migration Summary](./docs/guides/MIGRATION_SUMMARY.md)** - Azure Storage migration guide

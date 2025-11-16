@@ -43,6 +43,7 @@ public static class ConfigurationExtensions
             ContentUrl = config.ContentUrl,
             MaxUpdateCount = config.MaxUpdateCount,
             SupportedCategories = config.SupportedCategories.ToArray(), // Create a copy of the array
+            SupportedLanguages = config.SupportedLanguages.ToArray(), // Create a copy of the array
             SyncConfiguration = config.SyncConfiguration.ToImmutable(),
             StorageConfiguration = config.StorageConfiguration.ToImmutable(),
             FeatureFlags = config.FeatureFlags.ToImmutable(),
@@ -75,7 +76,8 @@ public static class ConfigurationExtensions
             WeeklyMaintenanceSchedule = ParseTimeSpan(functionSchedules.WeeklyMaintenanceSchedule, TimeSpan.FromDays(7)),
             SyncMetadataComprehensiveSchedule = ParseTimeSpan(functionSchedules.SyncMetadataComprehensiveSchedule, TimeSpan.FromHours(24)),
             SyncMetadataCriticalSchedule = ParseTimeSpan(functionSchedules.SyncMetadataCriticalSchedule, TimeSpan.FromHours(4)),
-            SyncContentSchedule = ParseTimeSpan(functionSchedules.SyncContentSchedule, TimeSpan.FromDays(7))
+            SyncContentSchedule = ParseTimeSpan(functionSchedules.SyncContentSchedule, TimeSpan.FromDays(7)),
+            AnomalyDetectionIntervalMinutes = ParseTimeSpan(functionSchedules.AnomalyDetectionSchedule, TimeSpan.FromMinutes(30)).TotalMinutes
         };
     }
 
@@ -120,12 +122,14 @@ public static class ConfigurationExtensions
     /// <param name="useAzureStorageForContent">Whether Azure Storage is being used.</param>
     /// <param name="metadataContainerName">The metadata container name for Azure Storage.</param>
     /// <param name="contentContainerName">The content container name for Azure Storage.</param>
+    /// <param name="contentPathPrefix">The content path prefix for Azure Storage blob paths.</param>
     /// <returns>An immutable storage configuration with the same values.</returns>
     public static StorageConfiguration ToImmutable(this StorageConfigMutable config, 
         bool useAzureStorageForMetadata = false,
         bool useAzureStorageForContent = false,
         string metadataContainerName = "metadata", 
-        string contentContainerName = "content")
+        string contentContainerName = "content",
+        string contentPathPrefix = "")
     {
         return new StorageConfiguration
         {
@@ -136,7 +140,8 @@ public static class ConfigurationExtensions
             UseAzureStorageForMetadata = useAzureStorageForMetadata,
             UseAzureStorageForContent = useAzureStorageForContent,
             MetadataContainerName = metadataContainerName,
-            ContentContainerName = contentContainerName
+            ContentContainerName = contentContainerName,
+            ContentPathPrefix = contentPathPrefix
         };
     }
 
@@ -195,7 +200,8 @@ public static class ConfigurationExtensions
             WeeklyMaintenanceSchedule = config.WeeklyMaintenanceSchedule.ToString(@"d\.hh\:mm\:ss"),
             SyncMetadataComprehensiveSchedule = config.SyncMetadataComprehensiveSchedule.ToString(@"d\.hh\:mm\:ss"),
             SyncMetadataCriticalSchedule = config.SyncMetadataCriticalSchedule.ToString(@"hh\:mm\:ss"),
-            SyncContentSchedule = config.SyncContentSchedule.ToString(@"d\.hh\:mm\:ss")
+            SyncContentSchedule = config.SyncContentSchedule.ToString(@"d\.hh\:mm\:ss"),
+            AnomalyDetectionSchedule = TimeSpan.FromMinutes(config.AnomalyDetectionIntervalMinutes).ToString(@"hh\:mm\:ss")
         };
     }
 
@@ -246,6 +252,8 @@ public static class ConfigurationBuilderExtensions
             MaxUpdateCount = serviceConfig.GetValue<int>("MaxUpdateCount", 1000),
             SupportedCategories = serviceConfig.GetSection("SupportedCategories").Get<string[]>()
                 ?? new[] { "Security Updates", "Critical Updates", "Feature Packs", "Updates", "Drivers" },
+            SupportedLanguages = serviceConfig.GetSection("SupportedLanguages").Get<string[]>()
+                ?? new[] { "en", "en-US", "neutral", "" },
 
             SyncConfiguration = new SyncConfiguration
             {
@@ -265,7 +273,8 @@ public static class ConfigurationBuilderExtensions
                 UseAzureStorageForMetadata = useAzureStorageForMetadata,
                 UseAzureStorageForContent = useAzureStorageForContent,
                 MetadataContainerName = storageConfig["MetadataContainerName"] ?? "metadata",
-                ContentContainerName = storageConfig["ContentContainerName"] ?? "content"
+                ContentContainerName = storageConfig["ContentContainerName"] ?? "content",
+                ContentPathPrefix = storageConfig["ContentPathPrefix"] ?? ""
             },
 
             FeatureFlags = new FeatureFlags
@@ -289,7 +298,8 @@ public static class ConfigurationBuilderExtensions
                 WeeklyMaintenanceSchedule = functionSchedulesConfig["WeeklyMaintenanceSchedule"] ?? "7.00:00:00",
                 SyncMetadataComprehensiveSchedule = functionSchedulesConfig["SyncMetadataComprehensiveSchedule"] ?? "1.00:00:00",
                 SyncMetadataCriticalSchedule = functionSchedulesConfig["SyncMetadataCriticalSchedule"] ?? "04:00:00",
-                SyncContentSchedule = functionSchedulesConfig["SyncContentSchedule"] ?? "7.00:00:00"
+                SyncContentSchedule = functionSchedulesConfig["SyncContentSchedule"] ?? "7.00:00:00",
+                AnomalyDetectionSchedule = functionSchedulesConfig["AnomalyDetectionSchedule"] ?? "00:30:00"
             }
         };
     }

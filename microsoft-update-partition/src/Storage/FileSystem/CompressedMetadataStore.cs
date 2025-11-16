@@ -4,7 +4,7 @@
 using ICSharpCode.SharpZipLib.Zip;
 using Microsoft.PackageGraph.ObjectModel;
 using Microsoft.PackageGraph.Partitions;
-using Newtonsoft.Json;
+using System.Text.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -70,6 +70,10 @@ namespace Microsoft.PackageGraph.Storage.Local
         private static string GetPackageIndex(IPackageIdentity identity)
         {
             // The index is the last 8 bits of the update ID.
+            if (identity.OpenId?.Length == 0)
+            {
+                throw new ArgumentException("Package identity OpenId cannot be empty");
+            }
             return identity.OpenId.Last().ToString();
         }
 
@@ -82,7 +86,7 @@ namespace Microsoft.PackageGraph.Storage.Local
             }
             else
             {
-                throw new Exception("Read not supported");
+                throw new NotSupportedException("Read not supported");
             }
         }
 
@@ -135,7 +139,7 @@ namespace Microsoft.PackageGraph.Storage.Local
         {
             if (OutputFile == null)
             {
-                throw new Exception("Write not supported");
+                throw new NotSupportedException("Write not supported");
             }
 
             lock(WriteLock)
@@ -166,10 +170,10 @@ namespace Microsoft.PackageGraph.Storage.Local
             var filesFilePath = GetPackageFilesPath(package.Id);
             OutputFile.PutNextEntry(new ZipEntry(filesFilePath));
 
-            var serializer = new JsonSerializer();
+            var json = JsonSerializer.Serialize(package.Files);
             using (var textWriter = new StreamWriter(OutputFile, Encoding.UTF8, 4096, true))
             {
-                serializer.Serialize(textWriter, package.Files);
+                textWriter.Write(json);
             }
 
             OutputFile.CloseEntry();
@@ -179,7 +183,7 @@ namespace Microsoft.PackageGraph.Storage.Local
         {
             if (InputFile == null)
             {
-                throw new Exception("Read not supported");
+                throw new NotSupportedException("Read not supported");
             }
 
             if (PartitionRegistration.TryGetPartitionFromPackageId(packageIdentity, out var partitionDefinition) &&
@@ -190,8 +194,13 @@ namespace Microsoft.PackageGraph.Storage.Local
                 {
                     using var filesStream = InputFile.GetInputStream(entryIndex);
                     using var filesReader = new StreamReader(filesStream);
-                    var serializer = new JsonSerializer();
-                    return (serializer.Deserialize(filesReader, typeof(List<T>)) as List<T>);
+                    var jsonText = filesReader.ReadToEnd();
+                    var result = JsonSerializer.Deserialize<List<T>>(jsonText);
+                    if (result == null)
+                    {
+                        throw new InvalidOperationException($"Failed to deserialize List<{typeof(T).Name}> from JSON. Content: {jsonText.Substring(0, Math.Min(100, jsonText.Length))}...");
+                    }
+                    return result;
                 }
             }
 
@@ -254,7 +263,7 @@ namespace Microsoft.PackageGraph.Storage.Local
         {
             if (InputFile == null)
             {
-                throw new Exception("Read not supported");
+                throw new NotSupportedException("Read not supported");
             }
 
             var packagePaths = GetPackagesList();

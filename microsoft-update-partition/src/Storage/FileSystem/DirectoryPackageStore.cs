@@ -4,7 +4,7 @@
 using Microsoft.PackageGraph.ObjectModel;
 using Microsoft.PackageGraph.Partitions;
 using Microsoft.PackageGraph.Storage.Index;
-using Newtonsoft.Json;
+using System.Text.Json;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -95,7 +95,7 @@ namespace Microsoft.PackageGraph.Storage.Local
             {
                 if (mode == FileMode.Open)
                 {
-                    throw new Exception("The store does not exist or is corrupt");
+                    throw new DirectoryNotFoundException($"The store does not exist or is corrupt: {path}");
                 }
 
                 Directory.CreateDirectory(path);
@@ -166,10 +166,15 @@ namespace Microsoft.PackageGraph.Storage.Local
 
         private void ReadToc()
         {
-            using (var tocFileStream = File.OpenText(Path.Combine(TargetPath, TableOfContentsFileName)))
+            using (var tocFileStream = File.OpenRead(Path.Combine(TargetPath, TableOfContentsFileName)))
             {
-                var deserializer = new JsonSerializer();
-                TOC = deserializer.Deserialize(tocFileStream, typeof(TableOfContent)) as TableOfContent;
+                using var tocReader = new StreamReader(tocFileStream);
+                var tocJson = tocReader.ReadToEnd();
+                TOC = JsonSerializer.Deserialize<TableOfContent>(tocJson);
+                if (TOC == null)
+                {
+                    throw new InvalidOperationException("Failed to deserialize TableOfContent - JsonSerializer returned null");
+                }
             }
 
             if (TOC.TocVersion != TableOfContent.CurrentVersion)
@@ -186,9 +191,11 @@ namespace Microsoft.PackageGraph.Storage.Local
 
         private void WriteToc()
         {
-            using var tocFileStream = File.CreateText(Path.Combine(TargetPath, TableOfContentsFileName));
-            var serializer = new JsonSerializer();
-            serializer.Serialize(tocFileStream, TOC);
+            using var tocFileStream = File.Create(Path.Combine(TargetPath, TableOfContentsFileName));
+            using var tocWriter = new StreamWriter(tocFileStream);
+            var tocJson = JsonSerializer.Serialize(TOC);
+            tocWriter.Write(tocJson);
+            tocWriter.Flush();
         }
 
         private void ReadIdentities()
@@ -214,10 +221,15 @@ namespace Microsoft.PackageGraph.Storage.Local
             }
 
             var typesFile = Path.Combine(TargetPath, TypesFileName);
-            using (var typesFileReader = File.OpenText(typesFile))
+            using (var typesFileStream = File.OpenRead(typesFile))
             {
-                var deserializer = new JsonSerializer();
-                _PackageTypeIndex = deserializer.Deserialize(typesFileReader, typeof(Dictionary<int, int>)) as Dictionary<int, int>;
+                using var typesReader = new StreamReader(typesFileStream);
+                var typesJson = typesReader.ReadToEnd();
+                _PackageTypeIndex = JsonSerializer.Deserialize<Dictionary<int, int>>(typesJson);
+                if (_PackageTypeIndex == null)
+                {
+                    throw new InvalidOperationException("Failed to deserialize PackageTypeIndex - JsonSerializer returned null");
+                }
             }
 
             _IdentityToIndexMap = _IndexToIdentityMap.ToDictionary(pair => pair.Value, pair => pair.Key);
@@ -264,7 +276,10 @@ namespace Microsoft.PackageGraph.Storage.Local
         {
             if (IsDirty)
             {
-                DeltaMetadataStores.Last().Flush();
+                if (DeltaMetadataStores.Count > 0)
+                {
+                    DeltaMetadataStores.Last().Flush();
+                }
 
                 WriteToc();
 
@@ -284,16 +299,20 @@ namespace Microsoft.PackageGraph.Storage.Local
                     }
 
                     var partitionIdentitiesFile = Path.Combine(partitionDirectoryPath, IdentitiesFileName);
-                    using var identitiesWriter = File.CreateText(partitionIdentitiesFile);
-                    var serializer = new JsonSerializer();
-                    serializer.Serialize(identitiesWriter, partitionIdentites);
+                    using var identitiesStream = File.Create(partitionIdentitiesFile);
+                    using var identitiesWriter = new StreamWriter(identitiesStream);
+                    var identitiesJson = JsonSerializer.Serialize(partitionIdentites);
+                    identitiesWriter.Write(identitiesJson);
+                    identitiesWriter.Flush();
                 }
 
                 var packageTypesFile = Path.Combine(TargetPath, TypesFileName);
-                using (var typesWriter = File.CreateText(packageTypesFile))
+                using (var typesStream = File.Create(packageTypesFile))
                 {
-                    var serializer = new JsonSerializer();
-                    serializer.Serialize(typesWriter, _PackageTypeIndex);
+                    using var typesWriter = new StreamWriter(typesStream);
+                    var typesJson = JsonSerializer.Serialize(_PackageTypeIndex);
+                    typesWriter.Write(typesJson);
+                    typesWriter.Flush();
                 }
 
                 WriteIndexes();
@@ -330,7 +349,10 @@ namespace Microsoft.PackageGraph.Storage.Local
                 {
                     foreach(var parsedPackage in deltaStore)
                     {
-                        Indexes.IndexPackage(parsedPackage, _IdentityToIndexMap[parsedPackage.Id]);
+                        if (_IdentityToIndexMap.TryGetValue(parsedPackage.Id, out int packageIndex))
+                        {
+                            Indexes.IndexPackage(parsedPackage, packageIndex);
+                        }
 
                         if (progressEvent.Current % 100 == 0)
                         {
@@ -385,7 +407,14 @@ namespace Microsoft.PackageGraph.Storage.Local
                 Indexes.IndexPackage(package, packageIndex);
                 IsIndexDirty = true;
 
-                DeltaMetadataStores.Last().AddPackage(package);
+                if (DeltaMetadataStores.Count > 0)
+                {
+                    DeltaMetadataStores.Last().AddPackage(package);
+                }
+                else
+                {
+                    throw new InvalidOperationException("No DeltaMetadataStores available to add package");
+                }
 
                 PendingPackages.Add(package);
 
@@ -443,7 +472,14 @@ namespace Microsoft.PackageGraph.Storage.Local
 
             if (PartitionRegistration.TryGetPartitionFromPackageId(packageIdentity, out var partitionDefinition))
             {
-                return partitionDefinition.Factory.FromStore(_PackageTypeIndex[packageIndex], packageIdentity, this, this);
+                if (_PackageTypeIndex.TryGetValue(packageIndex, out int packageType))
+                {
+                    return partitionDefinition.Factory.FromStore(packageType, packageIdentity, this, this);
+                }
+                else
+                {
+                    throw new KeyNotFoundException($"Package type not found for index {packageIndex}");
+                }
             }
             else
             {
@@ -480,7 +516,8 @@ namespace Microsoft.PackageGraph.Storage.Local
         {
             if (!_IdentityToIndexMap.TryGetValue(packageIdentity, out int packageIndex))
             {
-                throw new KeyNotFoundException();
+                value = default(T);
+                return false;
             }
 
             return Indexes.TrySimpleKeyLookup(packageIndex, indexName, out value);
@@ -503,7 +540,15 @@ namespace Microsoft.PackageGraph.Storage.Local
         {
             if (Indexes.TryPackageListLookupByCustomKey(key, indexName, out List<int> packageIndex))
             {
-                value = packageIndex.Select(index => _IndexToIdentityMap[index]).ToList();
+                var identities = new List<IPackageIdentity>();
+                foreach (var index in packageIndex)
+                {
+                    if (_IndexToIdentityMap.TryGetValue(index, out var identity))
+                    {
+                        identities.Add(identity);
+                    }
+                }
+                value = identities;
                 return true;
             }
             else
@@ -528,7 +573,8 @@ namespace Microsoft.PackageGraph.Storage.Local
         {
             if (!_IdentityToIndexMap.TryGetValue(packageIdentity, out int packageIndex))
             {
-                throw new KeyNotFoundException();
+                value = null;
+                return false;
             }
 
             return Indexes.TryListKeyLookup<T>(packageIndex, indexName, out value);
@@ -547,6 +593,10 @@ namespace Microsoft.PackageGraph.Storage.Local
             }
 
             var deltaIndex = GetDeltaIndexFromPackageIndex(packageIndex);
+            if (deltaIndex < 0 || deltaIndex >= DeltaMetadataStores.Count)
+            {
+                throw new KeyNotFoundException($"Delta index {deltaIndex} out of bounds for DeltaMetadataStores (count: {DeltaMetadataStores.Count})");
+            }
             return DeltaMetadataStores[deltaIndex].GetMetadata(packageIdentity);
         }
 
@@ -558,6 +608,10 @@ namespace Microsoft.PackageGraph.Storage.Local
             }
 
             var deltaIndex = GetDeltaIndexFromPackageIndex(packageIndex);
+            if (deltaIndex < 0 || deltaIndex >= DeltaMetadataStores.Count)
+            {
+                throw new KeyNotFoundException($"Delta index {deltaIndex} out of bounds for DeltaMetadataStores (count: {DeltaMetadataStores.Count})");
+            }
             return DeltaMetadataStores[deltaIndex].GetFiles<T>(packageIdentity);
         }
 
@@ -579,7 +633,14 @@ namespace Microsoft.PackageGraph.Storage.Local
             {
                 if (PartitionRegistration.TryGetPartitionFromPackageId(packageIdentity, out var partitionDefinition))
                 {
-                    return partitionDefinition.Factory.FromStore(_PackageTypeIndex[packageIndex], packageIdentity, this, this);
+                    if (_PackageTypeIndex.TryGetValue(packageIndex, out int packageType))
+                    {
+                        return partitionDefinition.Factory.FromStore(packageType, packageIdentity, this, this);
+                    }
+                    else
+                    {
+                        throw new KeyNotFoundException($"Package type not found for index {packageIndex}");
+                    }
                 }
                 else
                 {

@@ -7,7 +7,7 @@ using Microsoft.PackageGraph.ObjectModel;
 using Microsoft.PackageGraph.Partitions;
 using Microsoft.PackageGraph.Storage;
 using Microsoft.PackageGraph.Storage.Index;
-using Newtonsoft.Json;
+using System.Text.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -74,10 +74,12 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate
 
         public IEnumerable<KeyValuePair<int, IPackageIdentity>> IdentitiesFromJson(StreamReader jsonStream)
         {
-            var deserializer = new JsonSerializer();
-            var deserializedList = deserializer.Deserialize(
-                jsonStream,
-                typeof(List<KeyValuePair<int, MicrosoftUpdatePackageIdentity>>)) as List<KeyValuePair<int, MicrosoftUpdatePackageIdentity>>;
+            var jsonText = jsonStream.ReadToEnd();
+            var deserializedList = JsonSerializer.Deserialize<List<KeyValuePair<int, MicrosoftUpdatePackageIdentity>>>(jsonText);
+            if (deserializedList == null)
+            {
+                throw new InvalidOperationException($"Failed to deserialize List<KeyValuePair<int, MicrosoftUpdatePackageIdentity>> from JSON. Content: {jsonText.Substring(0, Math.Min(100, jsonText.Length))}...");
+            }
 
             return deserializedList
                 .Select(pair => new KeyValuePair<int, IPackageIdentity>(pair.Key, pair.Value as IPackageIdentity));

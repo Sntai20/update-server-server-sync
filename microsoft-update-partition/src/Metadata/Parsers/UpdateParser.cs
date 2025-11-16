@@ -35,7 +35,7 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Parsers
 
             if (result.Count == 0)
             {
-                throw new Exception("Invalid XML");
+                throw new ArgumentException("Invalid XML - no update ID found");
             }
 
             result.MoveNext();
@@ -51,7 +51,7 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Parsers
 
             if (result.Count == 0)
             {
-                throw new Exception("Invalid XML");
+                throw new ArgumentException("Invalid XML - no update type found");
             }
 
             result.MoveNext();
@@ -70,7 +70,7 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Parsers
 
             if (idResult.Count == 0 || revisionResult.Count == 0)
             {
-                throw new Exception("Invalid XML");
+                throw new ArgumentException("Invalid XML - missing update ID or revision");
             }
 
             revisionResult.MoveNext();
@@ -88,7 +88,7 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Parsers
 
             if (result.Count == 0)
             {
-                throw new Exception("Invalid XML");
+                throw new ArgumentException("Invalid XML - no category information found");
             }
 
             result.MoveNext();

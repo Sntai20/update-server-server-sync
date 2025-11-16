@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 
 namespace Microsoft.PackageGraph.Storage.Index
 {
@@ -36,7 +37,7 @@ namespace Microsoft.PackageGraph.Storage.Index
             }
             else
             {
-                throw new Exception("Index container type not compatible with this index");
+                throw new NotSupportedException("Index container type not compatible with this index");
             }
 
             IndexName = indexName;
@@ -67,7 +68,7 @@ namespace Microsoft.PackageGraph.Storage.Index
         {
             if (_Container == null)
             {
-                throw new Exception("The index was initialized with a non-streamable container");
+                throw new InvalidOperationException("The index was initialized with a non-streamable container");
             }
 
             if (!IsIndexLoaded)
@@ -100,7 +101,7 @@ namespace Microsoft.PackageGraph.Storage.Index
         {
             if (_Container == null)
             {
-                throw new Exception("The index was initialized with a non-streamable container");
+                throw new InvalidOperationException("The index was initialized with a non-streamable container");
             }
 
             lock (this)
@@ -125,7 +126,21 @@ namespace Microsoft.PackageGraph.Storage.Index
                             }
                         }
                     }
-                    catch (Exception) { }
+                    catch (JsonException jsonEx)
+                    {
+                        // JSON format error - log and recreate index
+                        System.Diagnostics.Debug.WriteLine($"JSON error loading ListIndex: {jsonEx.Message}");
+                    }
+                    catch (InvalidOperationException ioEx)
+                    {
+                        // Null deserialization or validation error - log and recreate index
+                        System.Diagnostics.Debug.WriteLine($"Validation error loading ListIndex: {ioEx.Message}");
+                    }
+                    catch (IOException ioEx)
+                    {
+                        // File access error - log and recreate index
+                        System.Diagnostics.Debug.WriteLine($"IO error loading ListIndex: {ioEx.Message}");
+                    }
 
                     if (Index == null)
                     {

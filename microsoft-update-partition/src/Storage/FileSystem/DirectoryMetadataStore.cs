@@ -3,7 +3,7 @@
 
 using Microsoft.PackageGraph.ObjectModel;
 using Microsoft.PackageGraph.Partitions;
-using Newtonsoft.Json;
+using System.Text.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -49,6 +49,10 @@ namespace Microsoft.PackageGraph.Storage.Local
         private static string GetPackageIndex(IPackageIdentity identity)
         {
             // The index is the last 8 bits of the update ID.
+            if (identity.OpenId?.Length == 0)
+            {
+                throw new ArgumentException("Package identity OpenId cannot be empty");
+            }
             return identity.OpenId.Last().ToString();
         }
 
@@ -120,8 +124,8 @@ namespace Microsoft.PackageGraph.Storage.Local
             }
 
             using var filesFile = File.CreateText(filesFilePath);
-            var serializer = new JsonSerializer();
-            serializer.Serialize(filesFile, package.Files);
+            var json = JsonSerializer.Serialize(package.Files);
+            filesFile.Write(json);
         }
 
         public List<T> GetFiles<T>(IPackageIdentity packageIdentity)
@@ -134,8 +138,13 @@ namespace Microsoft.PackageGraph.Storage.Local
                 if (File.Exists(filesPath))
                 {
                     using var filesStream = File.OpenText(filesPath);
-                    var serializer = new JsonSerializer();
-                    return (serializer.Deserialize(filesStream, typeof(List<T>)) as List<T>);
+                    var jsonText = filesStream.ReadToEnd();
+                    var result = JsonSerializer.Deserialize<List<T>>(jsonText);
+                    if (result == null)
+                    {
+                        throw new InvalidOperationException($"Failed to deserialize List<{typeof(T).Name}> from metadata store - JsonSerializer returned null");
+                    }
+                    return result;
                 }
             }
 

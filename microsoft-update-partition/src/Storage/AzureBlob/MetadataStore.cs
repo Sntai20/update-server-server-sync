@@ -7,7 +7,7 @@ using Azure.Storage.Blobs.Models;
 using Azure.Storage.Blobs.Specialized;
 using Microsoft.PackageGraph.ObjectModel;
 using Microsoft.PackageGraph.Partitions;
-using Newtonsoft.Json;
+using System.Text.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -77,7 +77,7 @@ namespace Microsoft.PackageGraph.Storage.Azure
 
             if (startOffset > this.NextAvailableOffset)
             {
-                throw new Exception("Download offset cannot be past the end of the page blob");
+                throw new ArgumentOutOfRangeException(nameof(startOffset), "Download offset cannot be past the end of the page blob");
             }
 
             var fillSize = Math.Max(requiredLength, DownloadCacheSize);
@@ -85,7 +85,7 @@ namespace Microsoft.PackageGraph.Storage.Azure
 
             if (fillSize < requiredLength)
             {
-                throw new Exception("Not enought range avaialable in the metadata blob");
+                throw new InvalidOperationException("Not enough range available in the metadata blob");
             }
 
             this.DownloadCache.Seek(0, SeekOrigin.Begin);
@@ -141,9 +141,11 @@ namespace Microsoft.PackageGraph.Storage.Azure
                 inMemoryFilesList = new GZipStream(new MemoryStream(cachedFileListBuffer), CompressionMode.Decompress);
             }
 
-            using var filesReader = new StreamReader(inMemoryFilesList);
-            var serializer = new JsonSerializer();
-            var filesList = (serializer.Deserialize(filesReader, typeof(List<T>)) as List<T>);
+            var filesList = JsonSerializer.Deserialize<List<T>>(inMemoryFilesList);
+            if (filesList == null)
+            {
+                throw new InvalidOperationException($"Failed to deserialize List<{typeof(T).Name}> - JsonSerializer returned null");
+            }
 
             return filesList;
         }
@@ -152,12 +154,11 @@ namespace Microsoft.PackageGraph.Storage.Azure
 
         private static MemoryStream CreateFileMetadataStream(IPackage package)
         {
-            var serializer = new JsonSerializer();
             var filesMetadata = new MemoryStream();
-            using (var textWriter = new StreamWriter(filesMetadata, Encoding.UTF8, 4096, true))
-            {
-                serializer.Serialize(textWriter, package.Files);
-            }
+            using var writer = new StreamWriter(filesMetadata, leaveOpen: true);
+            var json = JsonSerializer.Serialize(package.Files);
+            writer.Write(json);
+            writer.Flush();
 
             filesMetadata.Seek(0, SeekOrigin.Begin);
             return filesMetadata;

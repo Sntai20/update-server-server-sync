@@ -7,6 +7,7 @@ using Microsoft.PackageGraph.Storage;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 
 namespace Microsoft.PackageGraph.MicrosoftUpdate.Metadata
 {
@@ -83,7 +84,12 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate.Metadata
         /// <returns>A filter for metadata in a updates metadata source</returns>
         public static MetadataFilter FromJson(string source)
         {
-            return Newtonsoft.Json.JsonConvert.DeserializeObject<MetadataFilter>(source);
+            var result = JsonSerializer.Deserialize<MetadataFilter>(source);
+            if (result == null)
+            {
+                throw new InvalidOperationException($"Failed to deserialize MetadataFilter from JSON. Content: {source.Substring(0, Math.Min(100, source.Length))}...");
+            }
+            return result;
         }
 
         /// <summary>
@@ -92,7 +98,7 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate.Metadata
         /// <returns>The JSON string</returns>
         public string ToJson()
         {
-            return Newtonsoft.Json.JsonConvert.SerializeObject(this);
+            return JsonSerializer.Serialize(this);
         }
 
         /// <summary>

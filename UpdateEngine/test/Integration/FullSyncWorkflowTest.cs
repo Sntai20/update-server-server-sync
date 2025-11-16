@@ -8,12 +8,12 @@ using Xunit;
 using Xunit.Abstractions;
 
 [Collection("AspireAppHost")]
-public class FullSyncWorkflowTests
+public class FullSyncWorkflowTest
 {
     private readonly AspireAppHostTestFixture _fixture;
     private readonly ITestOutputHelper _output;
 
-    public FullSyncWorkflowTests(AspireAppHostTestFixture fixture, ITestOutputHelper output)
+    public FullSyncWorkflowTest(AspireAppHostTestFixture fixture, ITestOutputHelper output)
     {
         this._fixture = fixture;
         this._output = output;

@@ -1,6 +1,7 @@
 ﻿using AppHost;
 using Aspire.Hosting;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 
 /// <summary>
 /// Entry point for the .NET Aspire application host that orchestrates the distributed
@@ -10,27 +11,22 @@ using Microsoft.Extensions.Configuration;
 var builder = DistributedApplication.CreateBuilder(args);
 
 /// <summary>
-/// Configures Azurite storage emulator with fixed ports for blob, queue, and table services.
-/// Uses consistent port assignments to ensure reliable local development and testing environments.
+/// Configures Azure Storage for the appropriate environment.
+/// - Development: Uses Azurite storage emulator with dynamic ports
+/// - Production: Uses real Azure Storage with connection strings from configuration
 /// </summary>
-var storage = builder
-    .AddAzureStorage("Storage")
-    .RunAsEmulator(emulator => emulator
-        .WithArgs("--skipApiVersionCheck"));
+var storage = builder.Environment.EnvironmentName == Environments.Development
+    ? builder.AddAzureStorage("Storage").RunAsEmulator()
+    : builder.AddAzureStorage("Storage");
 
 // Check if Service Bus should be enabled (disable for minimal testing)
 var enableServiceBus = builder.Configuration.GetValue<bool>("Features:EnableScheduledSync", false);
 
 /// <summary>
-/// Builds service configuration from application settings, including storage paths,
-/// service URLs, and operational parameters.
-/// </summary>
-var serviceConfiguration = ConfigurationHelper.BuildServiceConfiguration(builder.Configuration);
-
-/// <summary>
 /// Configures the UpdateEngine Azure Functions project with dependencies.
 /// Service Bus and queues are conditionally included based on configuration.
 /// Waits for storage to be ready to prevent worker process crashes during startup.
+/// Uses simplified configuration approach with direct property binding.
 /// </summary>
 var updateFunctions = builder.AddAzureFunctionsProject<Projects.UpdateEngine>("UpdateEngine")
     .WithExternalHttpEndpoints()
@@ -65,12 +61,9 @@ if (enableServiceBus)
 /// Applies service configuration and storage settings to the Azure Functions environment,
 /// including metadata store paths, content store paths, and service endpoint URLs.
 /// Storage directories/containers are created automatically during Functions startup via DI.
+/// Uses simplified configuration approach without complex transformations.
 /// </summary>
-ConfigurationHelper.ConfigureUpdateFunctions(
-    updateFunctions,
-    serviceConfiguration,
-    builder.Configuration.GetSection("Storage"),
-    builder.Configuration.GetSection("AzureWebJobs"));
+SimpleConfigurationHelper.ConfigureUpdateFunctions(updateFunctions, builder.Configuration);
 
 var app = builder.Build();
 

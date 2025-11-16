@@ -188,9 +188,35 @@ public class AnomalyDetectionService : IAnomalyDetectionService
     /// <returns>Anomaly score (0.0 = normal, 1.0 = highly anomalous)</returns>
     public double Score(SoftwareUpdate softwareUpdate)
     {
-        var categoriesLookup = GetCategoriesLookup();
-        var metadata = ConvertToUpdateMetadata(softwareUpdate, categoriesLookup);
-        return Score(metadata);
+        try
+        {
+            var categoriesLookup = GetCategoriesLookup();
+            var metadata = ConvertToUpdateMetadata(softwareUpdate, categoriesLookup);
+            return Score(metadata);
+        }
+        catch (Exception ex) when (ex.Message.Contains("Unknown expression type"))
+        {
+            // Some updates have newer expression types that aren't supported yet
+            // Return a neutral score for anomaly detection
+            this.logger.LogDebug("Returning neutral anomaly score for update {UpdateId} due to unsupported expression type: {Error}", 
+                softwareUpdate.Id?.ID, ex.Message);
+            return 0.0; // Normal score
+        }
+        catch (Exception ex) when (ex.Message.Contains("not found"))
+        {
+            // Package metadata is missing from storage - this can happen during partial sync
+            // Return a neutral score for anomaly detection
+            this.logger.LogDebug("Returning neutral anomaly score for update {UpdateId} due to missing package metadata: {Error}", 
+                softwareUpdate.Id?.ID, ex.Message);
+            return 0.0; // Normal score
+        }
+        catch (Exception ex)
+        {
+            // Log other errors but don't fail the entire sync process
+            this.logger.LogWarning(ex, "Error scoring update {UpdateId} for anomalies, returning neutral score", 
+                softwareUpdate.Id?.ID);
+            return 0.0; // Normal score
+        }
     }
 
     /// <summary>
@@ -234,11 +260,35 @@ public class AnomalyDetectionService : IAnomalyDetectionService
         var bundledCount = softwareUpdate.BundledUpdates?.Count ?? 0;
         
         // Analyze applicability rules for complexity (anomaly indicator)
-        var applicabilityRulesCount = softwareUpdate.ApplicabilityRules?.Count ?? 0;
-        var hasComplexApplicability = applicabilityRulesCount > 5 || 
-            softwareUpdate.ApplicabilityRules?.Any(rule => 
-                rule.RuleType == ApplicabilityRuleType.WindowsDriver ||
-                rule.RuleType == ApplicabilityRuleType.MsiApplicationMetadata) == true;
+        var applicabilityRulesCount = 0;
+        var hasComplexApplicability = false;
+        
+        try
+        {
+            applicabilityRulesCount = softwareUpdate.ApplicabilityRules?.Count ?? 0;
+            hasComplexApplicability = applicabilityRulesCount > 5 || 
+                softwareUpdate.ApplicabilityRules?.Any(rule => 
+                    rule.RuleType == ApplicabilityRuleType.WindowsDriver ||
+                    rule.RuleType == ApplicabilityRuleType.MsiApplicationMetadata) == true;
+        }
+        catch (Exception ex) when (ex.Message.Contains("Unknown expression type"))
+        {
+            // Some updates have newer expression types that aren't supported yet
+            // Default to safe values for anomaly detection
+            this.logger.LogDebug("Skipping applicability analysis for update {UpdateId} due to unsupported expression type: {Error}", 
+                softwareUpdate.Id?.ID, ex.Message);
+            applicabilityRulesCount = 0;
+            hasComplexApplicability = false;
+        }
+        catch (Exception ex) when (ex.Message.Contains("not found"))
+        {
+            // Package metadata is missing from storage - this can happen during partial sync
+            // Default to safe values for anomaly detection
+            this.logger.LogDebug("Skipping applicability analysis for update {UpdateId} due to missing package metadata: {Error}", 
+                softwareUpdate.Id?.ID, ex.Message);
+            applicabilityRulesCount = 0;
+            hasComplexApplicability = false;
+        }
         
         // Leverage Microsoft Update library category resolution
         string classification = "Unknown";

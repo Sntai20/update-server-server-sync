@@ -29,6 +29,7 @@ namespace Microsoft.PackageGraph.Storage.Azure
         private const long BlockSize = 64 * 1024 * 1024;
 
         readonly BlobContainerClient ParentContainer;
+        readonly string PathPrefix;
 
         /// <summary>
         /// List of pending downloads
@@ -48,9 +49,10 @@ namespace Microsoft.PackageGraph.Storage.Azure
         long _DownloadedSize;
         int _QueuedCount;
 
-        private BlobContentStore(BlobContainerClient contentContainer)
+        private BlobContentStore(BlobContainerClient contentContainer, string pathPrefix = "")
         {
             this.ParentContainer = contentContainer;
+            this.PathPrefix = pathPrefix;
         }
 
         /// <summary>
@@ -58,13 +60,14 @@ namespace Microsoft.PackageGraph.Storage.Azure
         /// </summary>
         /// <param name="client">The Azure Blob service client to use</param>
         /// <param name="containerName">The container name where to store update content</param>
+        /// <param name="pathPrefix">Optional path prefix for organizing blobs within the container</param>
         /// <returns></returns>
-        public static BlobContentStore OpenOrCreate(BlobServiceClient client, string containerName)
+        public static BlobContentStore OpenOrCreate(BlobServiceClient client, string containerName, string pathPrefix = "")
         {
             var container = client.GetBlobContainerClient(containerName);
             container.CreateIfNotExists();
 
-            return new BlobContentStore(container);
+            return new BlobContentStore(container, pathPrefix);
         }
 
         /// <inheritdoc cref="IContentStore.Download(IEnumerable{IContentFile}, CancellationToken)"/>
@@ -121,9 +124,9 @@ namespace Microsoft.PackageGraph.Storage.Azure
                         break;
                     }
 
-                    if ((ulong)fileSizeOnServer != file.Size)
+                    if (fileSizeOnServer != (long)file.Size)
                     {
-                        throw new Exception($"Mismatch in file size. Expected {file.Size}, server has {fileSizeOnServer}");
+                        throw new InvalidDataException($"Mismatch in file size. Expected {file.Size}, server has {fileSizeOnServer}");
                     }
 
                     int startBlock = 0;
@@ -161,11 +164,17 @@ namespace Microsoft.PackageGraph.Storage.Azure
                             using var response = client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancelToken).GetAwaiter().GetResult();
                             if (!response.IsSuccessStatusCode)
                             {
-                                throw new Exception($"Failed to download block from {file.Source}: {response.ReasonPhrase}");
+                                throw new HttpRequestException($"Failed to download block from {file.Source}: {response.ReasonPhrase}");
                             }
 
-                            using var blockStream = response.Content.ReadAsStream(cancelToken);
-                            fileBlob.StageBlock(blockId, blockStream);
+                            using var httpStream = response.Content.ReadAsStream(cancelToken);
+                            
+                            // Buffer the stream content to support Length property for Azure Blob staging
+                            using var bufferedStream = new MemoryStream();
+                            httpStream.CopyTo(bufferedStream);
+                            bufferedStream.Position = 0; // Reset position for reading
+                            
+                            fileBlob.StageBlock(blockId, bufferedStream);
                         }
 
                         blockIdList.Add(blockId);
@@ -208,7 +217,7 @@ namespace Microsoft.PackageGraph.Storage.Azure
                 using var headResponse = client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).GetAwaiter().GetResult();
                 if (!headResponse.IsSuccessStatusCode)
                 {
-                    throw new Exception($"Failed to get HEAD of update from {url}: {headResponse.ReasonPhrase}");
+                    throw new HttpRequestException($"Failed to get HEAD of update from {url}: {headResponse.ReasonPhrase}");
                 }
 
                 fileSizeOnServer = headResponse.Content.Headers.ContentLength.Value;
@@ -234,7 +243,7 @@ namespace Microsoft.PackageGraph.Storage.Azure
             }
             else
             {
-                throw new Exception("The requested file is not available");
+                throw new FileNotFoundException("The requested file is not available");
             }
         }
 
@@ -245,7 +254,14 @@ namespace Microsoft.PackageGraph.Storage.Azure
 
         private BlockBlobClient GetBlobForFile(IContentFile updateFile)
         {
-            return this.ParentContainer.GetBlockBlobClient(updateFile.Digest.HexString.ToLower());
+            var blobName = string.IsNullOrEmpty(this.PathPrefix) 
+                ? updateFile.Digest.HexString.ToLower()
+                : $"{this.PathPrefix.TrimEnd('/')}/{updateFile.Digest.HexString.ToLower()}";
+            
+            // Debug logging to track blob path construction
+            Console.WriteLine($"[BlobContentStore] Creating blob path: '{blobName}' (PathPrefix: '{this.PathPrefix}', Hash: '{updateFile.Digest.HexString}')");
+            
+            return this.ParentContainer.GetBlockBlobClient(blobName);
         }
 
         /// <inheritdoc cref="IContentStore.GetUri(IContentFile)"/>

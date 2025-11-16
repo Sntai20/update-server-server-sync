@@ -2,13 +2,12 @@
 // Licensed under the MIT License.
 
 using Microsoft.PackageGraph.ObjectModel;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
 using System;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json.Serialization;
 
 namespace Microsoft.PackageGraph.MicrosoftUpdate.Metadata
 {
@@ -21,18 +20,18 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate.Metadata
         /// Gets the ID part of the identity
         /// </summary>
         /// <value>GUID identity</value>
-        [JsonProperty]
+        [JsonPropertyName("id")]
         public Guid ID { get; private set; }
 
         /// <summary>
         /// Gets the revision part of the identity
         /// </summary>
         /// <value>Revision integer</value>
-        [JsonProperty]
+        [JsonPropertyName("revision")]
         public int Revision { get; private set; }
 
         /// <inheritdoc cref="IPackageIdentity.Partition"/>
-        [JsonProperty]
+        [JsonPropertyName("partition")]
         public string Partition => MicrosoftUpdatePartitionRegistration.MicrosoftUpdatePartitionName;
 
         /// <inheritdoc cref="IPackageIdentity.OpenId"/>
@@ -98,9 +97,15 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate.Metadata
         /// </summary>
         private void GenerateQuickLookupKeys()
         {
-            var idBytes = ID.ToByteArray().Select(b => (ulong)b).ToList();
-            Key1 = (idBytes[0] << 56) | (idBytes[1] << 48) | (idBytes[2] << 40) | (idBytes[3] << 32) | (idBytes[4] << 24) | (idBytes[5] << 16) | (idBytes[6] << 8) | idBytes[7];
-            Key2 = (idBytes[8] << 56) | (idBytes[9] << 48) | (idBytes[10] << 40) | (idBytes[11] << 32) | (idBytes[12] << 24) | (idBytes[13] << 16) | (idBytes[14] << 8) | idBytes[15];
+            var idBytes = ID.ToByteArray();
+            if (idBytes.Length != 16)
+            {
+                throw new ArgumentException($"Invalid GUID byte array length: {idBytes.Length}, expected 16 bytes");
+            }
+            
+            var ulongBytes = idBytes.Select(b => (ulong)b).ToArray();
+            Key1 = (ulongBytes[0] << 56) | (ulongBytes[1] << 48) | (ulongBytes[2] << 40) | (ulongBytes[3] << 32) | (ulongBytes[4] << 24) | (ulongBytes[5] << 16) | (ulongBytes[6] << 8) | ulongBytes[7];
+            Key2 = (ulongBytes[8] << 56) | (ulongBytes[9] << 48) | (ulongBytes[10] << 40) | (ulongBytes[11] << 32) | (ulongBytes[12] << 24) | (ulongBytes[13] << 16) | (ulongBytes[14] << 8) | ulongBytes[15];
             Key3 = Revision;
         }
 

@@ -42,7 +42,7 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Parsers
 
                 if (atLeastUpdates.Count == 0)
                 {
-                    throw new Exception("The list of prerequisites was empty");
+                    throw new ArgumentException("The list of prerequisites was empty");
                 }
 
                 parsedPrerequisites.Add(new AtLeastOne(atLeastUpdates, isCategory));

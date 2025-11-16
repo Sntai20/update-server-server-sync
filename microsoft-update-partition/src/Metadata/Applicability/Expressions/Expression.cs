@@ -1,8 +1,8 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
+using System.Text.Json.Serialization;
+using System.Text.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,26 +19,26 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Applicability
         /// <summary>
         /// List expression attributes; attributes are key-value pairs
         /// </summary>
-        [JsonProperty]
+        [JsonPropertyName("attributes")]
         public List<ExpressionToken> Attributes { get; private set; }
 
         /// <summary>
         /// List of sub-expressions of this expression
         /// </summary>
-        [JsonProperty]
+        [JsonPropertyName("subExpressions")]
         public List<Expression> SubExpressions { get; private set; }
 
         /// <summary>
         /// List of sub-groups in this expression
         /// </summary>
-        [JsonProperty]
+        [JsonPropertyName("subGroups")]
         public List<ExpressionGroup> SubGroups { get; private set; }
 
         /// <summary>
         /// Expression type
         /// </summary>
-        [JsonProperty]
-        [JsonConverter(typeof(StringEnumConverter))]
+        [JsonPropertyName("expressionType")]
+        [JsonConverter(typeof(JsonStringEnumConverter))]
         public ExpressionType ExpressionType { get; private set; }
 
         [JsonConstructor]
@@ -54,7 +54,11 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Applicability
                 throw new Exception("Unknown expression type: " + expressionNavigator.Name);
             }
 
-            this.ExpressionType = KnownExpressionDefinitions.NameToTypeMap[expressionNavigator.Name];
+            if (!KnownExpressionDefinitions.NameToTypeMap.TryGetValue(expressionNavigator.Name, out var expressionType))
+            {
+                throw new Exception("Unknown expression type mapping: " + expressionNavigator.Name);
+            }
+            this.ExpressionType = expressionType;
 
             Attributes = new List<ExpressionToken>();
 
@@ -62,7 +66,10 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Applicability
             attributesQuery.SetContext(namespaceManager);
             var attributesQueryResult = expressionNavigator.Evaluate(attributesQuery) as XPathNodeIterator;
 
-            var tokens = KnownExpressionDefinitions.NameToDefinitionMap[expressionNavigator.Name];
+            if (!KnownExpressionDefinitions.NameToDefinitionMap.TryGetValue(expressionNavigator.Name, out var tokens))
+            {
+                throw new Exception("Unknown expression definition mapping: " + expressionNavigator.Name);
+            }
             while (attributesQueryResult.MoveNext())
             {
                 var matchingToken = tokens.FirstOrDefault(t => t.Key.Equals(attributesQueryResult.Current.Name));
