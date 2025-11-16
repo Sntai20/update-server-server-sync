@@ -82,7 +82,7 @@ namespace Microsoft.PackageGraph.Storage.Local
             }
             else
             {
-                throw new Exception("Read not supported");
+                throw new NotSupportedException("Read not supported");
             }
         }
 
@@ -135,7 +135,7 @@ namespace Microsoft.PackageGraph.Storage.Local
         {
             if (OutputFile == null)
             {
-                throw new Exception("Write not supported");
+                throw new NotSupportedException("Write not supported");
             }
 
             lock(WriteLock)
@@ -179,7 +179,7 @@ namespace Microsoft.PackageGraph.Storage.Local
         {
             if (InputFile == null)
             {
-                throw new Exception("Read not supported");
+                throw new NotSupportedException("Read not supported");
             }
 
             if (PartitionRegistration.TryGetPartitionFromPackageId(packageIdentity, out var partitionDefinition) &&
@@ -191,7 +191,12 @@ namespace Microsoft.PackageGraph.Storage.Local
                     using var filesStream = InputFile.GetInputStream(entryIndex);
                     using var filesReader = new StreamReader(filesStream);
                     var jsonText = filesReader.ReadToEnd();
-                    return JsonSerializer.Deserialize<List<T>>(jsonText);
+                    var result = JsonSerializer.Deserialize<List<T>>(jsonText);
+                    if (result == null)
+                    {
+                        throw new InvalidOperationException($"Failed to deserialize List<{typeof(T).Name}> from JSON. Content: {jsonText.Substring(0, Math.Min(100, jsonText.Length))}...");
+                    }
+                    return result;
                 }
             }
 
@@ -254,7 +259,7 @@ namespace Microsoft.PackageGraph.Storage.Local
         {
             if (InputFile == null)
             {
-                throw new Exception("Read not supported");
+                throw new NotSupportedException("Read not supported");
             }
 
             var packagePaths = GetPackagesList();

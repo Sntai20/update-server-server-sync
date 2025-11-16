@@ -38,7 +38,7 @@ namespace Microsoft.PackageGraph.Storage.Local
             }
             else
             {
-                throw new Exception($"No supported hashing algorithms found for update file {updateFile.FileName}");
+                throw new NotSupportedException($"No supported hashing algorithms found for update file {updateFile.FileName}");
             }
 
             readAheadBuffer = new byte[bufferSize];

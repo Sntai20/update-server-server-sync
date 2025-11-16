@@ -13,7 +13,19 @@ namespace Microsoft.PackageGraph.Storage.Index
         {
             using var sr = new StreamReader(inputStream);
             var json = sr.ReadToEnd();
-            return JsonSerializer.Deserialize<T>(json)!;
+            
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                throw new InvalidOperationException($"Empty or whitespace JSON content when deserializing type {typeof(T).Name}");
+            }
+            
+            var result = JsonSerializer.Deserialize<T>(json);
+            if (result == null)
+            {
+                throw new InvalidOperationException($"JsonSerializer.Deserialize returned null for type {typeof(T).Name}. JSON content: {json.Substring(0, Math.Min(100, json.Length))}...");
+            }
+            
+            return result;
         }
 
         public static void SerializeIndexToStream<T>(Stream destinationStream, T index)

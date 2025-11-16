@@ -52,8 +52,19 @@ namespace Microsoft.PackageGraph.Storage.Local
                 indexContainer.InputFile = new ZipFile(source, false);
                 indexContainer.ReadTableOfContents();
             }
-            catch(Exception)
+            catch (JsonException jsonEx)
             {
+                // JSON format error - likely due to Newtonsoft.Json vs System.Text.Json format differences
+                throw new JsonException($"JSON deserialization failed in ZipStreamIndexContainer: {jsonEx.Message}", jsonEx);
+            }
+            catch (InvalidOperationException ioEx)
+            {
+                // Null deserialization results
+                throw new InvalidOperationException($"Null result error in ZipStreamIndexContainer: {ioEx.Message}", ioEx);
+            }
+            catch(Exception ex)
+            {
+                // For non-JSON errors, maintain original behavior
                 indexContainer.Status = IndexContainerStatus.Corrupt;
                 indexContainer.ResetIndex();
                 indexContainer.InputFile = null;
@@ -127,7 +138,10 @@ namespace Microsoft.PackageGraph.Storage.Local
             TOC.ContainedIndexes = Indexes.Select(index => index.Value.Definition).ToList();
 
             compressor.PutNextEntry(new ZipEntry(TocFileName));
-            JsonSerializer.Serialize(compressor, TOC);
+            using var compressorWriter = new StreamWriter(compressor, leaveOpen: true);
+            var tocJson = JsonSerializer.Serialize(TOC);
+            compressorWriter.Write(tocJson);
+            compressorWriter.Flush();
             compressor.CloseEntry();
         }
 
@@ -152,7 +166,13 @@ namespace Microsoft.PackageGraph.Storage.Local
             }
 
             var tocEntry = InputFile.GetInputStream(entryIndex);
-            var toc = JsonSerializer.Deserialize<IndexTableOfContents>(tocEntry);
+            using var tocReader = new StreamReader(tocEntry);
+            var tocJson = tocReader.ReadToEnd();
+            var toc = JsonSerializer.Deserialize<IndexTableOfContents>(tocJson);
+            if (toc == null)
+            {
+                throw new InvalidOperationException("Failed to deserialize IndexTableOfContents - JsonSerializer returned null");
+            }
             if (toc.Version == IndexTableOfContents.CurrentVersion)
             {
                 var registeredIndexes = GetRegisteredIndexes();

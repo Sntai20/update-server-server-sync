@@ -84,7 +84,12 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate.Metadata
         /// <returns>A filter for metadata in a updates metadata source</returns>
         public static MetadataFilter FromJson(string source)
         {
-            return JsonSerializer.Deserialize<MetadataFilter>(source);
+            var result = JsonSerializer.Deserialize<MetadataFilter>(source);
+            if (result == null)
+            {
+                throw new InvalidOperationException($"Failed to deserialize MetadataFilter from JSON. Content: {source.Substring(0, Math.Min(100, source.Length))}...");
+            }
+            return result;
         }
 
         /// <summary>

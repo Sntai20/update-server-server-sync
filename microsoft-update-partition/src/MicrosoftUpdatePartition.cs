@@ -76,10 +76,13 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate
         {
             var jsonText = jsonStream.ReadToEnd();
             var deserializedList = JsonSerializer.Deserialize<List<KeyValuePair<int, MicrosoftUpdatePackageIdentity>>>(jsonText);
+            if (deserializedList == null)
+            {
+                throw new InvalidOperationException($"Failed to deserialize List<KeyValuePair<int, MicrosoftUpdatePackageIdentity>> from JSON. Content: {jsonText.Substring(0, Math.Min(100, jsonText.Length))}...");
+            }
 
-            return deserializedList?
-                .Select(pair => new KeyValuePair<int, IPackageIdentity>(pair.Key, pair.Value as IPackageIdentity)) ?? 
-                Enumerable.Empty<KeyValuePair<int, IPackageIdentity>>();
+            return deserializedList
+                .Select(pair => new KeyValuePair<int, IPackageIdentity>(pair.Key, pair.Value as IPackageIdentity));
         }
 
         public IPackageIdentity IdentityFromString(string packageIdentityString)

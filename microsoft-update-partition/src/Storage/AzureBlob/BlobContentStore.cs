@@ -121,9 +121,9 @@ namespace Microsoft.PackageGraph.Storage.Azure
                         break;
                     }
 
-                    if ((ulong)fileSizeOnServer != file.Size)
+                    if (fileSizeOnServer != (long)file.Size)
                     {
-                        throw new Exception($"Mismatch in file size. Expected {file.Size}, server has {fileSizeOnServer}");
+                        throw new InvalidDataException($"Mismatch in file size. Expected {file.Size}, server has {fileSizeOnServer}");
                     }
 
                     int startBlock = 0;
@@ -161,7 +161,7 @@ namespace Microsoft.PackageGraph.Storage.Azure
                             using var response = client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancelToken).GetAwaiter().GetResult();
                             if (!response.IsSuccessStatusCode)
                             {
-                                throw new Exception($"Failed to download block from {file.Source}: {response.ReasonPhrase}");
+                                throw new HttpRequestException($"Failed to download block from {file.Source}: {response.ReasonPhrase}");
                             }
 
                             using var httpStream = response.Content.ReadAsStream(cancelToken);
@@ -214,7 +214,7 @@ namespace Microsoft.PackageGraph.Storage.Azure
                 using var headResponse = client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).GetAwaiter().GetResult();
                 if (!headResponse.IsSuccessStatusCode)
                 {
-                    throw new Exception($"Failed to get HEAD of update from {url}: {headResponse.ReasonPhrase}");
+                    throw new HttpRequestException($"Failed to get HEAD of update from {url}: {headResponse.ReasonPhrase}");
                 }
 
                 fileSizeOnServer = headResponse.Content.Headers.ContentLength.Value;
@@ -240,7 +240,7 @@ namespace Microsoft.PackageGraph.Storage.Azure
             }
             else
             {
-                throw new Exception("The requested file is not available");
+                throw new FileNotFoundException("The requested file is not available");
             }
         }
 

@@ -87,11 +87,15 @@ namespace Microsoft.PackageGraph.Storage.Azure
                         using var jsonReader = new StreamReader(zipStream, Encoding.UTF8);
                         var jsonText = jsonReader.ReadToEnd();
                         var deserializedIntries = JsonSerializer.Deserialize<List<PackageStoreEntry>>(jsonText);
-                        deserializedIntries?.ForEach(entry =>
+                        if (deserializedIntries == null)
+                        {
+                            throw new InvalidOperationException($"Failed to deserialize List<PackageStoreEntry> from JSON. Content: {jsonText.Substring(0, Math.Min(100, jsonText.Length))}...");
+                        }
+                        deserializedIntries.ForEach(entry =>
            {
                if (!PartitionRegistration.TryGetPartition(entry.PartitionName, out var partitionDefinition))
                {
-                   throw new Exception("Unknown package partition");
+                   throw new InvalidOperationException($"Unknown package partition: {entry.PartitionName}");
                }
 
                var packageIdentity = partitionDefinition.Factory.IdentityFromString(entry.PackageId);
@@ -119,7 +123,7 @@ namespace Microsoft.PackageGraph.Storage.Azure
             {
                 if (mode == AzurePackageStoreInitializeMode.FailOnIndexCorruption)
                 {
-                    throw new Exception("Mismatch between package type and identity indexes");
+                    throw new InvalidDataException("Mismatch between package type and identity indexes");
                 }
                 else if (mode == AzurePackageStoreInitializeMode.ResetOnIndexCorruption)
                 {
@@ -182,14 +186,14 @@ namespace Microsoft.PackageGraph.Storage.Azure
                 var insertIndex = this._IdentityToIndexMap.Count;
                 if (!this._IdentityToIndexMap.TryAdd(package.Id, insertIndex))
                 {
-                    throw new Exception("package already exists");
+                    throw new InvalidOperationException("package already exists");
                 }
 
                 this._IndexToIdentityMap.Add(insertIndex, package.Id);
 
                 if (!PartitionRegistration.TryGetPartitionFromPackage(package, out var partitionDefinition))
                 {
-                    throw new Exception($"Cannot find partition {package.Id.Partition}");
+                    throw new ArgumentException($"Cannot find partition {package.Id.Partition}", nameof(package));
                 }
 
                 var packageType = partitionDefinition.Factory.GetPackageType(package);
@@ -245,7 +249,7 @@ namespace Microsoft.PackageGraph.Storage.Azure
 
                     if (currentEtag != this.ConcurrencyEtag)
                     {
-                        throw new Exception("Package store index changed unexpectedly.");
+                        throw new InvalidOperationException("Package store index changed unexpectedly.");
                     }
 
                     var commitId = GetCommitIdForPackages(this.PendingIdentities.Select(p => p.PackageId).ToList());

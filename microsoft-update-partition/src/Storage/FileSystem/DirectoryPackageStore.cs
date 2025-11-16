@@ -95,7 +95,7 @@ namespace Microsoft.PackageGraph.Storage.Local
             {
                 if (mode == FileMode.Open)
                 {
-                    throw new Exception("The store does not exist or is corrupt");
+                    throw new DirectoryNotFoundException($"The store does not exist or is corrupt: {path}");
                 }
 
                 Directory.CreateDirectory(path);
@@ -168,7 +168,13 @@ namespace Microsoft.PackageGraph.Storage.Local
         {
             using (var tocFileStream = File.OpenRead(Path.Combine(TargetPath, TableOfContentsFileName)))
             {
-                TOC = JsonSerializer.Deserialize<TableOfContent>(tocFileStream);
+                using var tocReader = new StreamReader(tocFileStream);
+                var tocJson = tocReader.ReadToEnd();
+                TOC = JsonSerializer.Deserialize<TableOfContent>(tocJson);
+                if (TOC == null)
+                {
+                    throw new InvalidOperationException("Failed to deserialize TableOfContent - JsonSerializer returned null");
+                }
             }
 
             if (TOC.TocVersion != TableOfContent.CurrentVersion)
@@ -186,7 +192,10 @@ namespace Microsoft.PackageGraph.Storage.Local
         private void WriteToc()
         {
             using var tocFileStream = File.Create(Path.Combine(TargetPath, TableOfContentsFileName));
-            JsonSerializer.Serialize(tocFileStream, TOC);
+            using var tocWriter = new StreamWriter(tocFileStream);
+            var tocJson = JsonSerializer.Serialize(TOC);
+            tocWriter.Write(tocJson);
+            tocWriter.Flush();
         }
 
         private void ReadIdentities()
@@ -214,7 +223,13 @@ namespace Microsoft.PackageGraph.Storage.Local
             var typesFile = Path.Combine(TargetPath, TypesFileName);
             using (var typesFileStream = File.OpenRead(typesFile))
             {
-                _PackageTypeIndex = JsonSerializer.Deserialize<Dictionary<int, int>>(typesFileStream);
+                using var typesReader = new StreamReader(typesFileStream);
+                var typesJson = typesReader.ReadToEnd();
+                _PackageTypeIndex = JsonSerializer.Deserialize<Dictionary<int, int>>(typesJson);
+                if (_PackageTypeIndex == null)
+                {
+                    throw new InvalidOperationException("Failed to deserialize PackageTypeIndex - JsonSerializer returned null");
+                }
             }
 
             _IdentityToIndexMap = _IndexToIdentityMap.ToDictionary(pair => pair.Value, pair => pair.Key);
@@ -282,13 +297,19 @@ namespace Microsoft.PackageGraph.Storage.Local
 
                     var partitionIdentitiesFile = Path.Combine(partitionDirectoryPath, IdentitiesFileName);
                     using var identitiesStream = File.Create(partitionIdentitiesFile);
-                    JsonSerializer.Serialize(identitiesStream, partitionIdentites);
+                    using var identitiesWriter = new StreamWriter(identitiesStream);
+                    var identitiesJson = JsonSerializer.Serialize(partitionIdentites);
+                    identitiesWriter.Write(identitiesJson);
+                    identitiesWriter.Flush();
                 }
 
                 var packageTypesFile = Path.Combine(TargetPath, TypesFileName);
                 using (var typesStream = File.Create(packageTypesFile))
                 {
-                    JsonSerializer.Serialize(typesStream, _PackageTypeIndex);
+                    using var typesWriter = new StreamWriter(typesStream);
+                    var typesJson = JsonSerializer.Serialize(_PackageTypeIndex);
+                    typesWriter.Write(typesJson);
+                    typesWriter.Flush();
                 }
 
                 WriteIndexes();

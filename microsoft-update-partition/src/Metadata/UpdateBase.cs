@@ -358,7 +358,7 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate.Metadata
                     }
                     else
                     {
-                        throw new Exception($"Unexpected category type {categoryType}");
+                        throw new NotSupportedException($"Unexpected category type {categoryType}");
                     }
                     break;
 
@@ -371,7 +371,7 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate.Metadata
                     break;
 
                 default:
-                    throw new Exception($"Unexpected update type: {updateType}");
+                    throw new NotSupportedException($"Unexpected update type: {updateType}");
             }
 
             createdUpdate._MetadataSource = metadataStore;
@@ -424,7 +424,7 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate.Metadata
                     }
                     else
                     {
-                        throw new Exception($"Unexpected category type {categoryType}");
+                        throw new NotSupportedException($"Unexpected category type {categoryType}");
                     }
                     break;
 
@@ -437,7 +437,7 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate.Metadata
                     break;
 
                 default:
-                    throw new Exception($"Unexpected update type: {updateType}");
+                    throw new NotSupportedException($"Unexpected update type: {updateType}");
             }
 
             createdUpdate.MergeFileInformation(navigator, manager, filesCollection);
@@ -453,7 +453,7 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate.Metadata
                 StoredPackageType.MicrosoftUpdateClassification => new ClassificationCategory(id, metadataLookup, metadataSource),
                 StoredPackageType.MicrosoftUpdateDriver => new DriverUpdate(id, metadataLookup, metadataSource),
                 StoredPackageType.MicrosoftUpdateSoftware => new SoftwareUpdate(id, metadataLookup, metadataSource),
-                _ => throw new Exception($"Unexpected update type: {updateType}"),
+                _ => throw new NotSupportedException($"Unexpected update type: {updateType}"),
             };
         }
 
@@ -495,7 +495,7 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate.Metadata
 
             if (filesCollection == null)
             {
-                throw new Exception($"Update {_Id} has unresolved files");
+                throw new InvalidOperationException($"Update {_Id} has unresolved files");
             }
 
             foreach (var file in _Files.OfType<UpdateFile>())
@@ -511,7 +511,7 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate.Metadata
 
                 if (file.Urls.Count == 0)
                 {
-                    throw new Exception($"Update {_Id} has unresolved file {file.Digest.DigestBase64}");
+                    throw new InvalidOperationException($"Update {_Id} has unresolved file {file.Digest.DigestBase64}");
                 }
             }
 

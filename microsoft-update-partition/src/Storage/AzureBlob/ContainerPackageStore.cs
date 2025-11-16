@@ -55,11 +55,6 @@ namespace Microsoft.PackageGraph.Storage.Azure
 
         private ContainerPackageStore(BlobContainerClient container, AzurePackageStoreInitializeMode mode)
         {
-            if (!container.Exists())
-            {
-                throw new Exception("Container does not exist");
-            }
-
             this.ParentContainer = container;
 
             this.Identities = new IdentitiesIndex(container, mode);
@@ -83,7 +78,7 @@ namespace Microsoft.PackageGraph.Storage.Azure
             {
                 if (mode == AzurePackageStoreInitializeMode.FailOnIndexCorruption)
                 {
-                    throw new Exception($"The underlying metadata store does not contain all indexed packages from the store. Missing: {missingMetadata.Count}");
+                    throw new InvalidDataException($"The underlying metadata store does not contain all indexed packages from the store. Missing: {missingMetadata.Count}");
                 }
                 else if (mode == AzurePackageStoreInitializeMode.ResetOnIndexCorruption)
                 {
@@ -165,7 +160,7 @@ namespace Microsoft.PackageGraph.Storage.Azure
             }
             else
             {
-                throw new Exception($"Package {packageIdentity} not found");
+                throw new KeyNotFoundException($"Package {packageIdentity} not found");
             }
         }
 
@@ -217,7 +212,7 @@ namespace Microsoft.PackageGraph.Storage.Azure
             }
             else
             {
-                throw new Exception($"Package {packageIdentity} not found");
+                throw new KeyNotFoundException($"Package {packageIdentity} not found");
             }
         }
 
@@ -320,9 +315,9 @@ namespace Microsoft.PackageGraph.Storage.Azure
 
         public IPackage GetPackage(IPackageIdentity packageIdentity)
         {
-            if (!this.Identities.TryGetPackageType(packageIdentity, out int packageType))
+            if (!this.Identities.TryGetPackageType(packageIdentity, out var packageType))
             {
-                throw new Exception($"Package type is not available for package {packageIdentity}");
+                throw new InvalidOperationException($"Package type is not available for package {packageIdentity}");
             }
 
             if (!PartitionRegistration.TryGetPartition(packageIdentity.Partition, out var partition))

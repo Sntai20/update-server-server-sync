@@ -44,7 +44,7 @@ namespace Microsoft.PackageGraph.Storage.Local
 
             if (sectionLength > _UnderlyingStream.Length - startOffset)
             {
-                throw new Exception("Section length is larger than the length of the stream");
+                throw new ArgumentException("Section length is larger than the length of the stream");
             }
 
         }

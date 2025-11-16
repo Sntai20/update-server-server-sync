@@ -135,7 +135,12 @@ namespace Microsoft.PackageGraph.Storage.Local
                 {
                     using var filesStream = File.OpenText(filesPath);
                     var jsonText = filesStream.ReadToEnd();
-                    return JsonSerializer.Deserialize<List<T>>(jsonText);
+                    var result = JsonSerializer.Deserialize<List<T>>(jsonText);
+                    if (result == null)
+                    {
+                        throw new InvalidOperationException($"Failed to deserialize List<{typeof(T).Name}> from metadata store - JsonSerializer returned null");
+                    }
+                    return result;
                 }
             }
 

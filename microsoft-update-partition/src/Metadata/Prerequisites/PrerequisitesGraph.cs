@@ -60,7 +60,7 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Prerequisites
                     }
                     else
                     {
-                        throw new Exception("Unknown prerequisite type");
+                        throw new NotSupportedException("Unknown prerequisite type");
                     }
                 });
 

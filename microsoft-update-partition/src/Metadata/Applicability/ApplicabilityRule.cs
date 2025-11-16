@@ -95,7 +95,7 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Applicability
 
 
                     default:
-                        throw new Exception("Unknown rule: " + applicabilityRulesQueryResult.Current.Name);
+                        throw new NotSupportedException("Unknown rule: " + applicabilityRulesQueryResult.Current.Name);
                 }
             }
 
@@ -107,7 +107,7 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Applicability
             var returnList = new List<ApplicabilityRule>();
             if (!metadataNavigator.HasChildren)
             {
-                throw new Exception("Expected child nodes with metadata; got none");
+                throw new ArgumentException("Expected child nodes with metadata; got none");
             }
 
             var applicabilityRulesQueryResult = metadataNavigator.SelectChildren(XPathNodeType.Element);
