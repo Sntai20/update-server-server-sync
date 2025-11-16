@@ -1,22 +1,19 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Options;
-using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Azure;
 using System.Text.Json;
+using Aspire.Hosting;
+using Aspire.Hosting.Azure;
+using Microsoft.Extensions.Configuration;
 
 namespace AppHost;
 
 /// <summary>
-/// Simplified configuration helper for the Microsoft Update Server-Server Sync application.
-/// Uses the IOptions pattern for clean, testable configuration management.
+/// Simplified configuration helper for mapping AppConfig to Azure Functions environment variables.
 /// </summary>
 public static class SimpleConfigurationHelper
 {
     /// <summary>
-    /// Configures environment variables for the Azure Functions project resource.
     /// Maps configuration sections directly to environment variables without complex transformations.
     /// </summary>
     /// <param name="functions">The Azure Functions project resource builder to configure.</param>
@@ -25,47 +22,37 @@ public static class SimpleConfigurationHelper
         IResourceBuilder<AzureFunctionsProjectResource> functions,
         IConfiguration configuration)
     {
-        // Bind storage options
-        var storage = new Configuration.StorageOptions();
-        configuration.GetSection(Configuration.StorageOptions.SectionName).Bind(storage);
-
-        // Bind server options  
-        var server = new Configuration.UpdateServerOptions();
-        configuration.GetSection(Configuration.UpdateServerOptions.SectionName).Bind(server);
-
-        // Bind function schedules
-        var schedules = new Configuration.FunctionScheduleOptions();
-        configuration.GetSection(Configuration.FunctionScheduleOptions.SectionName).Bind(schedules);
+        // Bind simplified configuration
+        var appConfig = new Configuration.AppConfig();
+        configuration.Bind(appConfig);
 
         // Set storage environment variables
         functions
-            .WithEnvironment("UseAzureStorageForMetadata", storage.UseAzureStorageForMetadata.ToString())
-            .WithEnvironment("UseAzureStorageForContent", storage.UseAzureStorageForContent.ToString())
-            .WithEnvironment("MetadataContainerName", storage.MetadataContainerName)
-            .WithEnvironment("ContentContainerName", storage.ContentContainerName)
-            .WithEnvironment("MetadataStorePath", storage.MetadataPath)
-            .WithEnvironment("ContentStorePath", storage.ContentPath);
+            .WithEnvironment("UseAzureStorageForMetadata", appConfig.UseAzureStorageForMetadata.ToString())
+            .WithEnvironment("UseAzureStorageForContent", appConfig.UseAzureStorageForContent.ToString())
+            .WithEnvironment("MetadataContainerName", appConfig.MetadataContainerName)
+            .WithEnvironment("ContentContainerName", appConfig.ContentContainerName)
+            .WithEnvironment("MetadataPath", appConfig.MetadataPath)
+            .WithEnvironment("ContentPath", appConfig.ContentPath);
 
         // Set service configuration as JSON (for backward compatibility)
         var serviceConfig = new
         {
-            ServiceUrl = server.ServiceUrl,
-            ContentUrl = server.ContentUrl,
-            MaxUpdateCount = server.MaxUpdateCount,
-            SupportedCategories = server.SupportedCategories,
-            SupportedLanguages = server.SupportedLanguages
+            ServiceUrl = appConfig.ServiceUrl,
+            ContentUrl = appConfig.ContentUrl,
+            MaxUpdateCount = appConfig.MaxUpdateCount
         };
 
         functions.WithEnvironment("ServiceConfigurationJson", JsonSerializer.Serialize(serviceConfig));
 
-        // Set function schedules for timer triggers
+        // Set function schedules for timer triggers (with defaults)
         functions
-            .WithEnvironment("SyncCriticalSchedule", schedules.SyncCritical)
-            .WithEnvironment("SyncComprehensiveSchedule", schedules.SyncComprehensive)
-            .WithEnvironment("SyncContentSchedule", schedules.SyncContent)
-            .WithEnvironment("ScheduledHealthCheckSchedule", schedules.HealthCheck)
-            .WithEnvironment("WeeklyMaintenanceSchedule", schedules.WeeklyMaintenance)
-            .WithEnvironment("AnomalyDetectionSchedule", schedules.AnomalyDetection);
+            .WithEnvironment("SyncCriticalSchedule", appConfig.SyncCriticalSchedule)
+            .WithEnvironment("SyncComprehensiveSchedule", appConfig.SyncComprehensiveSchedule)
+            .WithEnvironment("SyncContentSchedule", appConfig.SyncContentSchedule)
+            .WithEnvironment("ScheduledHealthCheckSchedule", appConfig.HealthCheckSchedule)
+            .WithEnvironment("WeeklyMaintenanceSchedule", appConfig.WeeklyMaintenanceSchedule)
+            .WithEnvironment("AnomalyDetectionSchedule", appConfig.AnomalyDetectionSchedule);
 
         // Set connection strings if provided
         SetConnectionStringIfExists(functions, configuration, "MetadataStorageConnection");

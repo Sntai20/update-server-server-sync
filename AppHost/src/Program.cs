@@ -7,8 +7,23 @@ using Microsoft.Extensions.Hosting;
 /// Entry point for the .NET Aspire application host that orchestrates the distributed
 /// Microsoft Update Server-Server Sync application, including Azure Functions, storage emulators,
 /// and service bus infrastructure.
+/// 
+/// Configuration Best Practices Implementation:
+/// - Uses strongly typed configuration classes with validation
+/// - Supports multiple configuration sources (appsettings, environment, user secrets)
+/// - Environment-specific configuration files
+/// - Secure handling of sensitive data
 /// </summary>
 var builder = DistributedApplication.CreateBuilder(args);
+
+// Configure additional configuration sources following best practices
+builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
+    .AddEnvironmentVariables()
+    .AddUserSecrets<Program>(optional: true);  // For local development secrets
+
+// Validate configuration at startup
+ValidateConfiguration(builder.Configuration);
 
 /// <summary>
 /// Configures Azure Storage for the appropriate environment.
@@ -68,3 +83,50 @@ SimpleConfigurationHelper.ConfigureUpdateFunctions(updateFunctions, builder.Conf
 var app = builder.Build();
 
 app.Run();
+
+/// <summary>
+/// Validates critical configuration settings at startup to catch errors early.
+/// Implements configuration validation best practice.
+/// </summary>
+/// <param name="configuration">The application configuration to validate.</param>
+static void ValidateConfiguration(IConfiguration configuration)
+{
+    // Validate UpdateServer configuration
+    var updateServer = configuration.GetSection("UpdateServer");
+    if (string.IsNullOrWhiteSpace(updateServer["ServiceUrl"]))
+        throw new InvalidOperationException("UpdateServer:ServiceUrl is required");
+    
+    if (string.IsNullOrWhiteSpace(updateServer["ContentUrl"]))
+        throw new InvalidOperationException("UpdateServer:ContentUrl is required");
+        
+    if (!int.TryParse(updateServer["MaxUpdateCount"], out var maxCount) || maxCount <= 0)
+        throw new InvalidOperationException("UpdateServer:MaxUpdateCount must be a positive integer");
+
+    // Validate Storage configuration  
+    var storage = configuration.GetSection("Storage");
+    if (string.IsNullOrWhiteSpace(storage["MetadataPath"]))
+        throw new InvalidOperationException("Storage:MetadataPath is required");
+        
+    if (string.IsNullOrWhiteSpace(storage["ContentPath"]))
+        throw new InvalidOperationException("Storage:ContentPath is required");
+
+    // Validate FunctionSchedules configuration
+    var schedules = configuration.GetSection("FunctionSchedules");
+    ValidateTimeSpanFormat(schedules["SyncCritical"], "FunctionSchedules:SyncCritical");
+    ValidateTimeSpanFormat(schedules["SyncComprehensive"], "FunctionSchedules:SyncComprehensive");
+    ValidateTimeSpanFormat(schedules["HealthCheck"], "FunctionSchedules:HealthCheck");
+}
+
+/// <summary>
+/// Validates that a configuration value is a valid TimeSpan format.
+/// </summary>
+/// <param name="value">The value to validate.</param>
+/// <param name="configKey">The configuration key for error reporting.</param>
+static void ValidateTimeSpanFormat(string? value, string configKey)
+{
+    if (string.IsNullOrWhiteSpace(value))
+        throw new InvalidOperationException($"{configKey} is required");
+        
+    if (!TimeSpan.TryParse(value, out _))
+        throw new InvalidOperationException($"{configKey} must be a valid TimeSpan format (e.g., '02:00:00')");
+}
