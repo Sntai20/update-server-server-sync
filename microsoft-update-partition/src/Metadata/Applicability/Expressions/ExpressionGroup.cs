@@ -55,7 +55,11 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Applicability
 
         internal static ExpressionGroup FromXml(XPathNavigator ruleMetadataNavigator, XmlNamespaceManager namespaceManager)
         {
-            ExpressionGroup newGroup = new(GroupNameToTypeMap[ruleMetadataNavigator.Name]);
+            if (!GroupNameToTypeMap.TryGetValue(ruleMetadataNavigator.Name, out var groupType))
+            {
+                throw new Exception("Unknown expression group type: " + ruleMetadataNavigator.Name);
+            }
+            ExpressionGroup newGroup = new(groupType);
 
             var groupExpressions = ruleMetadataNavigator.SelectChildren(XPathNodeType.Element);
             while (groupExpressions.MoveNext())

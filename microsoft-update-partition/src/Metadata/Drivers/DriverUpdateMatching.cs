@@ -142,10 +142,10 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Drivers
             // Build the hardware ID dictionary
             for (int i = 0; i < driverMetadata.Count; i++)
             {
-                if (HardwareIdMap.ContainsKey(driverMetadata[i].HardwareID))
+                if (HardwareIdMap.TryGetValue(driverMetadata[i].HardwareID, out List<int> existingList))
                 {
                     // Save the metadata index that corresponds to the HW ID
-                    HardwareIdMap[driverMetadata[i].HardwareID].Add(startIndexInMetadataStore + i);
+                    existingList.Add(startIndexInMetadataStore + i);
                 }
                 else
                 {
@@ -358,9 +358,9 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Drivers
         {
             List<int> matchedDriverMetadataIndexes = new();
 
-            if (HardwareIdMap.ContainsKey(hardwareId))
+            if (HardwareIdMap.TryGetValue(hardwareId, out List<int> driverIndexes))
             {
-                matchedDriverMetadataIndexes.AddRange(HardwareIdMap[hardwareId]);
+                matchedDriverMetadataIndexes.AddRange(driverIndexes);
             }
 
             return matchedDriverMetadataIndexes;

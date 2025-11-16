@@ -54,7 +54,11 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Applicability
                 throw new Exception("Unknown expression type: " + expressionNavigator.Name);
             }
 
-            this.ExpressionType = KnownExpressionDefinitions.NameToTypeMap[expressionNavigator.Name];
+            if (!KnownExpressionDefinitions.NameToTypeMap.TryGetValue(expressionNavigator.Name, out var expressionType))
+            {
+                throw new Exception("Unknown expression type mapping: " + expressionNavigator.Name);
+            }
+            this.ExpressionType = expressionType;
 
             Attributes = new List<ExpressionToken>();
 
@@ -62,7 +66,10 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Applicability
             attributesQuery.SetContext(namespaceManager);
             var attributesQueryResult = expressionNavigator.Evaluate(attributesQuery) as XPathNodeIterator;
 
-            var tokens = KnownExpressionDefinitions.NameToDefinitionMap[expressionNavigator.Name];
+            if (!KnownExpressionDefinitions.NameToDefinitionMap.TryGetValue(expressionNavigator.Name, out var tokens))
+            {
+                throw new Exception("Unknown expression definition mapping: " + expressionNavigator.Name);
+            }
             while (attributesQueryResult.MoveNext())
             {
                 var matchingToken = tokens.FirstOrDefault(t => t.Key.Equals(attributesQueryResult.Current.Name));
