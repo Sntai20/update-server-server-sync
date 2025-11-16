@@ -43,7 +43,6 @@
         <PackageVersion Include="Microsoft.Extensions.Options" Version="9.0.11" />
         <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.0.0" />
         <PackageVersion Include="Moq" Version="4.20.72" />
-        <PackageVersion Include="Newtonsoft.Json" Version="13.0.4" />
         <PackageVersion Include="SharpZipLib" Version="1.4.2" />
         <PackageVersion Include="SoapCore" Version="1.2.1.11" />
         <PackageVersion Include="StyleCop.Analyzers" Version="1.2.0-beta.435" />

@@ -7,7 +7,7 @@ using Azure.Storage.Blobs.Specialized;
 using Microsoft.PackageGraph.ObjectModel;
 using Microsoft.PackageGraph.Partitions;
 using Microsoft.PackageGraph.Storage.Index;
-using Newtonsoft.Json;
+using System.Text.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -115,9 +115,7 @@ namespace Microsoft.PackageGraph.Storage.Azure
 
                 var tocBlob = this.ParentContainer.GetBlockBlobClient(TocBlobName);
                 using var tocStream = tocBlob.OpenWrite(overwrite: true);
-                using var tocWriter = new StreamWriter(tocStream, Encoding.UTF8, 4096, true);
-                var serializer = new JsonSerializer();
-                serializer.Serialize(tocWriter, this.TOC);
+                JsonSerializer.Serialize(tocStream, this.TOC);
             }
         }
 
@@ -148,13 +146,11 @@ namespace Microsoft.PackageGraph.Storage.Azure
             }
 
             using var blobReadStream = tocBlob.OpenRead();
-            using var blobReader = new StreamReader(blobReadStream);
-            var jsonSerializer = new JsonSerializer();
             IndexTableOfContents toc;
 
             try
             {
-                toc = jsonSerializer.Deserialize(blobReader, typeof(IndexTableOfContents)) as IndexTableOfContents;
+                toc = JsonSerializer.Deserialize<IndexTableOfContents>(blobReadStream);
                 if (toc.Version != IndexTableOfContents.CurrentVersion)
                 {
                     toc = null;

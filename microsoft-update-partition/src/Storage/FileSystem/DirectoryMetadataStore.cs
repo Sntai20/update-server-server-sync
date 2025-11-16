@@ -3,7 +3,7 @@
 
 using Microsoft.PackageGraph.ObjectModel;
 using Microsoft.PackageGraph.Partitions;
-using Newtonsoft.Json;
+using System.Text.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -120,8 +120,8 @@ namespace Microsoft.PackageGraph.Storage.Local
             }
 
             using var filesFile = File.CreateText(filesFilePath);
-            var serializer = new JsonSerializer();
-            serializer.Serialize(filesFile, package.Files);
+            var json = JsonSerializer.Serialize(package.Files);
+            filesFile.Write(json);
         }
 
         public List<T> GetFiles<T>(IPackageIdentity packageIdentity)
@@ -134,8 +134,8 @@ namespace Microsoft.PackageGraph.Storage.Local
                 if (File.Exists(filesPath))
                 {
                     using var filesStream = File.OpenText(filesPath);
-                    var serializer = new JsonSerializer();
-                    return (serializer.Deserialize(filesStream, typeof(List<T>)) as List<T>);
+                    var jsonText = filesStream.ReadToEnd();
+                    return JsonSerializer.Deserialize<List<T>>(jsonText);
                 }
             }
 

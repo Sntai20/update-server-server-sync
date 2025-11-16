@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 using Microsoft.PackageGraph.Partitions;
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 
 namespace Microsoft.PackageGraph.Storage.Index
 {

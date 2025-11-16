@@ -5,9 +5,9 @@ namespace UpdateEngineTest.Integration;
 
 using FluentAssertions;
 using UpdateEngineTest.Infrastructure;
-using Newtonsoft.Json;
 using System.Net;
 using System.Text;
+using System.Text.Json;
 using Xunit;
 
 /// <summary>
@@ -176,7 +176,7 @@ public class CompleteSystemIntegrationTest
             UpstreamEndpoint = "https://sws.update.microsoft.com"
         };
         var configContent = new StringContent(
-            JsonConvert.SerializeObject(configRequest), 
+            JsonSerializer.Serialize(configRequest), 
             Encoding.UTF8, 
             "application/json");
         
@@ -194,7 +194,7 @@ public class CompleteSystemIntegrationTest
             MaxCategories = 10
         };
         var categoriesContent = new StringContent(
-            JsonConvert.SerializeObject(categoriesRequest), 
+            JsonSerializer.Serialize(categoriesRequest), 
             Encoding.UTF8, 
             "application/json");
         
@@ -212,7 +212,7 @@ public class CompleteSystemIntegrationTest
             SkipSuperseded = true
         };
         var updatesContent = new StringContent(
-            JsonConvert.SerializeObject(updatesRequest), 
+            JsonSerializer.Serialize(updatesRequest), 
             Encoding.UTF8, 
             "application/json");
         
@@ -226,7 +226,7 @@ public class CompleteSystemIntegrationTest
             StorePath = "./store"
         };
         var reindexContent = new StringContent(
-            JsonConvert.SerializeObject(reindexRequest), 
+            JsonSerializer.Serialize(reindexRequest), 
             Encoding.UTF8, 
             "application/json");
         
@@ -381,7 +381,7 @@ public class CompleteSystemIntegrationTest
     private async Task<HttpResponseMessage> CreateMetadataRequest(string endpoint, object requestData)
     {
         var url = await _fixture.GetFunctionUrl(endpoint);
-        var json = JsonConvert.SerializeObject(requestData);
+        var json = JsonSerializer.Serialize(requestData);
         return await _fixture.HttpClient.PostAsync(url, 
             new StringContent(json, Encoding.UTF8, "application/json"));
     }

@@ -3,7 +3,7 @@
 
 namespace Microsoft.PackageGraph.MicrosoftUpdate.Source
 {
-    using Newtonsoft.Json;
+    using System.Text.Json.Serialization;
 
     /// <summary>
     /// Identifies an Upstream Update Server.
@@ -24,7 +24,7 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate.Source
         /// <value>
         /// Absolute URI string to upstream server.
         /// </value>
-        [Newtonsoft.Json.JsonProperty]
+        [JsonPropertyName("uri")]
         public readonly string URI;
 
         /// <summary>

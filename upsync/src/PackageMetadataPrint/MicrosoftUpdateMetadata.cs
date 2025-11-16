@@ -6,7 +6,8 @@ using Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Content;
 using Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Handlers;
 using Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Prerequisites;
 using Microsoft.PackageGraph.Storage;
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
+using System.Text.Json;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Metrics;
@@ -81,12 +82,8 @@ namespace Microsoft.PackageGraph.Utilitites.Upsync
 
                     using (var targetJsonFile = File.Create(options.JsonOutPath))
                     {
-                        var serializer = JsonSerializer.Create(new JsonSerializerSettings() { Formatting = Formatting.Indented });
-                        using (var jsonWriter = new StreamWriter(targetJsonFile))
-                        {
-                            serializer.Serialize(jsonWriter, packagesList);
-                        }
-
+                        var serializerOptions = new JsonSerializerOptions { WriteIndented = true };
+                        JsonSerializer.Serialize(targetJsonFile, packagesList, serializerOptions);
                     }
 
                     Console.WriteLine($"Query result saved to {options.JsonOutPath}.");

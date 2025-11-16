@@ -4,7 +4,7 @@
 using Microsoft.PackageGraph.ObjectModel;
 using Microsoft.PackageGraph.Partitions;
 using Microsoft.PackageGraph.Storage.Index;
-using Newtonsoft.Json;
+using System.Text.Json;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -166,10 +166,9 @@ namespace Microsoft.PackageGraph.Storage.Local
 
         private void ReadToc()
         {
-            using (var tocFileStream = File.OpenText(Path.Combine(TargetPath, TableOfContentsFileName)))
+            using (var tocFileStream = File.OpenRead(Path.Combine(TargetPath, TableOfContentsFileName)))
             {
-                var deserializer = new JsonSerializer();
-                TOC = deserializer.Deserialize(tocFileStream, typeof(TableOfContent)) as TableOfContent;
+                TOC = JsonSerializer.Deserialize<TableOfContent>(tocFileStream);
             }
 
             if (TOC.TocVersion != TableOfContent.CurrentVersion)
@@ -186,9 +185,8 @@ namespace Microsoft.PackageGraph.Storage.Local
 
         private void WriteToc()
         {
-            using var tocFileStream = File.CreateText(Path.Combine(TargetPath, TableOfContentsFileName));
-            var serializer = new JsonSerializer();
-            serializer.Serialize(tocFileStream, TOC);
+            using var tocFileStream = File.Create(Path.Combine(TargetPath, TableOfContentsFileName));
+            JsonSerializer.Serialize(tocFileStream, TOC);
         }
 
         private void ReadIdentities()
@@ -214,10 +212,9 @@ namespace Microsoft.PackageGraph.Storage.Local
             }
 
             var typesFile = Path.Combine(TargetPath, TypesFileName);
-            using (var typesFileReader = File.OpenText(typesFile))
+            using (var typesFileStream = File.OpenRead(typesFile))
             {
-                var deserializer = new JsonSerializer();
-                _PackageTypeIndex = deserializer.Deserialize(typesFileReader, typeof(Dictionary<int, int>)) as Dictionary<int, int>;
+                _PackageTypeIndex = JsonSerializer.Deserialize<Dictionary<int, int>>(typesFileStream);
             }
 
             _IdentityToIndexMap = _IndexToIdentityMap.ToDictionary(pair => pair.Value, pair => pair.Key);
@@ -284,16 +281,14 @@ namespace Microsoft.PackageGraph.Storage.Local
                     }
 
                     var partitionIdentitiesFile = Path.Combine(partitionDirectoryPath, IdentitiesFileName);
-                    using var identitiesWriter = File.CreateText(partitionIdentitiesFile);
-                    var serializer = new JsonSerializer();
-                    serializer.Serialize(identitiesWriter, partitionIdentites);
+                    using var identitiesStream = File.Create(partitionIdentitiesFile);
+                    JsonSerializer.Serialize(identitiesStream, partitionIdentites);
                 }
 
                 var packageTypesFile = Path.Combine(TargetPath, TypesFileName);
-                using (var typesWriter = File.CreateText(packageTypesFile))
+                using (var typesStream = File.Create(packageTypesFile))
                 {
-                    var serializer = new JsonSerializer();
-                    serializer.Serialize(typesWriter, _PackageTypeIndex);
+                    JsonSerializer.Serialize(typesStream, _PackageTypeIndex);
                 }
 
                 WriteIndexes();

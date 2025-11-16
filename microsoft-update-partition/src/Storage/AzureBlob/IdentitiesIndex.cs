@@ -7,7 +7,7 @@ using Azure.Storage.Blobs.Models;
 using Azure.Storage.Blobs.Specialized;
 using Microsoft.PackageGraph.ObjectModel;
 using Microsoft.PackageGraph.Partitions;
-using Newtonsoft.Json;
+using System.Text.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -85,9 +85,9 @@ namespace Microsoft.PackageGraph.Storage.Azure
                     {
                         zipStream.IsStreamOwner = false;
                         using var jsonReader = new StreamReader(zipStream, Encoding.UTF8);
-                        var jsonDeserializer = new JsonSerializer();
-                        var deserializedIntries = jsonDeserializer.Deserialize(jsonReader, typeof(List<PackageStoreEntry>)) as List<PackageStoreEntry>;
-                        deserializedIntries.ForEach(entry =>
+                        var jsonText = jsonReader.ReadToEnd();
+                        var deserializedIntries = JsonSerializer.Deserialize<List<PackageStoreEntry>>(jsonText);
+                        deserializedIntries?.ForEach(entry =>
            {
                if (!PartitionRegistration.TryGetPartition(entry.PartitionName, out var partitionDefinition))
                {
@@ -222,7 +222,7 @@ namespace Microsoft.PackageGraph.Storage.Azure
             {
                 if (this.PendingIdentities.Count > 0)
                 {
-                    var pendingIdentitiesJson = JsonConvert.SerializeObject(this.PendingIdentities);
+                    var pendingIdentitiesJson = JsonSerializer.Serialize(this.PendingIdentities);
                     using var pendingIdentitiesStream = new MemoryStream();
                     using (var compressor = new GZipOutputStream(pendingIdentitiesStream))
                     {

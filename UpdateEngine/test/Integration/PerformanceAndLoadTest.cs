@@ -5,10 +5,11 @@ namespace UpdateEngineTest.Integration;
 
 using FluentAssertions;
 using UpdateEngineTest.Infrastructure;
-using Newtonsoft.Json;
+using System.Text.Json;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Net;
+using System.Net.Http.Headers;
 using System.Text;
 using Xunit;
 
@@ -38,7 +39,7 @@ public class PerformanceAndLoadTest
         {
             UpstreamEndpoint = "https://sws.update.microsoft.com"
         };
-        var requestJson = JsonConvert.SerializeObject(request);
+        var requestJson = JsonSerializer.Serialize(request);
 
         var tasks = new List<Task<(HttpResponseMessage Response, long ElapsedMs)>>();
         var stopwatch = new Stopwatch();
@@ -48,7 +49,7 @@ public class PerformanceAndLoadTest
         {
             tasks.Add(TimedRequest(async () =>
             {
-                var content = new StringContent(requestJson, Encoding.UTF8, "application/json");
+                var content = new StringContent(requestJson, Encoding.UTF8, MediaTypeHeaderValue.Parse("application/json"));
                 return await _fixture.HttpClient.PostAsync(configUrl, content);
             }));
         }
@@ -223,11 +224,11 @@ public class PerformanceAndLoadTest
             ProductsFilter = new[] { "Windows 10", "Windows 11" },
             ClassificationsFilter = new[] { "Security Updates" }
         };
-        var requestJson = JsonConvert.SerializeObject(request);
+        var requestJson = JsonSerializer.Serialize(request);
 
         // Act
         var stopwatch = Stopwatch.StartNew();
-        var content = new StringContent(requestJson, Encoding.UTF8, "application/json");
+        var content = new StringContent(requestJson, Encoding.UTF8, MediaTypeHeaderValue.Parse("application/json"));
         var response = await _fixture.HttpClient.PostAsync(updatesUrl, content);
         stopwatch.Stop();
 
@@ -248,17 +249,17 @@ public class PerformanceAndLoadTest
         {
             UpstreamEndpoint = "https://sws.update.microsoft.com"
         };
-        var validRequestJson = JsonConvert.SerializeObject(validRequest);
+        var validRequestJson = JsonSerializer.Serialize(validRequest);
 
         // Act - Send invalid request followed by valid requests
-        var invalidContent = new StringContent("invalid json", Encoding.UTF8, "application/json");
+        var invalidContent = new StringContent("invalid json", Encoding.UTF8, MediaTypeHeaderValue.Parse("application/json"));
         var invalidResponse = await _fixture.HttpClient.PostAsync(configUrl, invalidContent);
         
         // Follow up with multiple valid requests to test recovery
         var recoveryTasks = new List<Task<HttpResponseMessage>>();
         for (int i = 0; i < 5; i++)
         {
-            var validContent = new StringContent(validRequestJson, Encoding.UTF8, "application/json");
+            var validContent = new StringContent(validRequestJson, Encoding.UTF8, MediaTypeHeaderValue.Parse("application/json"));
             recoveryTasks.Add(_fixture.HttpClient.PostAsync(configUrl, validContent));
         }
 
@@ -337,7 +338,7 @@ public class PerformanceAndLoadTest
             else
             {
                 var request = new { UpstreamEndpoint = "https://sws.update.microsoft.com" };
-                var content = new StringContent(JsonConvert.SerializeObject(request), Encoding.UTF8, "application/json");
+                var content = new StringContent(JsonSerializer.Serialize(request), Encoding.UTF8, MediaTypeHeaderValue.Parse("application/json"));
                 return await _fixture.HttpClient.PostAsync(url, content);
             }
         });
@@ -381,7 +382,7 @@ public class PerformanceAndLoadTest
                 UpstreamEndpoint = "https://sws.update.microsoft.com",
                 MaxCategories = 5 
             };
-            var content = new StringContent(JsonConvert.SerializeObject(request), Encoding.UTF8, "application/json");
+            var content = new StringContent(JsonSerializer.Serialize(request), Encoding.UTF8, "application/json");
             return await _fixture.HttpClient.PostAsync(url, content);
         });
         

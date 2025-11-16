@@ -4,7 +4,7 @@
 using ICSharpCode.SharpZipLib.Zip;
 using Microsoft.PackageGraph.ObjectModel;
 using Microsoft.PackageGraph.Partitions;
-using Newtonsoft.Json;
+using System.Text.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -166,10 +166,10 @@ namespace Microsoft.PackageGraph.Storage.Local
             var filesFilePath = GetPackageFilesPath(package.Id);
             OutputFile.PutNextEntry(new ZipEntry(filesFilePath));
 
-            var serializer = new JsonSerializer();
+            var json = JsonSerializer.Serialize(package.Files);
             using (var textWriter = new StreamWriter(OutputFile, Encoding.UTF8, 4096, true))
             {
-                serializer.Serialize(textWriter, package.Files);
+                textWriter.Write(json);
             }
 
             OutputFile.CloseEntry();
@@ -190,8 +190,8 @@ namespace Microsoft.PackageGraph.Storage.Local
                 {
                     using var filesStream = InputFile.GetInputStream(entryIndex);
                     using var filesReader = new StreamReader(filesStream);
-                    var serializer = new JsonSerializer();
-                    return (serializer.Deserialize(filesReader, typeof(List<T>)) as List<T>);
+                    var jsonText = filesReader.ReadToEnd();
+                    return JsonSerializer.Deserialize<List<T>>(jsonText);
                 }
             }
 
