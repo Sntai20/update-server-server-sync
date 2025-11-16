@@ -5,13 +5,13 @@
         <NoWarn>$(NoWarn);NU1507</NoWarn>
     </PropertyGroup>
     <ItemGroup>
-        <PackageVersion Include="Aspire.Hosting.AppHost" Version="9.5.2" />
-        <PackageVersion Include="Aspire.Hosting.Azure.Functions" Version="9.5.2-preview.1.25522.3" />
-        <PackageVersion Include="Aspire.Hosting.Azure.Storage" Version="9.5.2" />
-        <PackageVersion Include="Aspire.Hosting.Azure.ServiceBus" Version="9.5.2" />
-        <PackageVersion Include="Aspire.Hosting.Testing" Version="9.5.2" />
+        <PackageVersion Include="Aspire.Hosting.AppHost" Version="13.0.0" />
+        <PackageVersion Include="Aspire.Hosting.Azure.Functions" Version="13.0.0-preview.1.25560.3" />
+        <PackageVersion Include="Aspire.Hosting.Azure.Storage" Version="13.0.0" />
+        <PackageVersion Include="Aspire.Hosting.Azure.ServiceBus" Version="13.0.0" />
+        <PackageVersion Include="Aspire.Hosting.Testing" Version="13.0.0" />
         <PackageVersion Include="Azure.Storage.Blobs" Version="12.26.0" />
-        <PackageVersion Include="Azure.Storage.Queues" Version="12.23.0" />
+        <PackageVersion Include="Azure.Storage.Queues" Version="12.24.0" />
         <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="9.0.10" />
         <PackageVersion Include="Microsoft.Azure.Functions.Worker" Version="2.2.0" />
         <PackageVersion Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.0.5" />
@@ -30,17 +30,17 @@
         <PackageVersion Include="Microsoft.AspNetCore.Hosting" Version="2.3.0" />
         <PackageVersion Include="Microsoft.AspNetCore.Mvc" Version="2.3.0" />
         <PackageVersion Include="Microsoft.Azure.Storage.Blob" Version="11.2.3" />
-        <PackageVersion Include="Microsoft.Extensions.Configuration" Version="9.0.10" />
-        <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.10" />
-        <PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="9.0.10" />
-        <PackageVersion Include="Microsoft.Extensions.Configuration.CommandLine" Version="9.0.10" />
-        <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="9.0.10" />
-        <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="9.0.10" />
-        <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="9.0.10" />
-        <PackageVersion Include="Microsoft.Extensions.Hosting" Version="9.0.10" />
-        <PackageVersion Include="Microsoft.Extensions.Http" Version="9.0.10" />
-        <PackageVersion Include="Microsoft.Extensions.Logging" Version="9.0.10" />
-        <PackageVersion Include="Microsoft.Extensions.Options" Version="9.0.10" />
+        <PackageVersion Include="Microsoft.Extensions.Configuration" Version="9.0.11" />
+        <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.11" />
+        <PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="9.0.11" />
+        <PackageVersion Include="Microsoft.Extensions.Configuration.CommandLine" Version="9.0.11" />
+        <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="9.0.11" />
+        <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="9.0.11" />
+        <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="9.0.11" />
+        <PackageVersion Include="Microsoft.Extensions.Hosting" Version="9.0.11" />
+        <PackageVersion Include="Microsoft.Extensions.Http" Version="9.0.11" />
+        <PackageVersion Include="Microsoft.Extensions.Logging" Version="9.0.11" />
+        <PackageVersion Include="Microsoft.Extensions.Options" Version="9.0.11" />
         <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.0.0" />
         <PackageVersion Include="Moq" Version="4.20.72" />
         <PackageVersion Include="Newtonsoft.Json" Version="13.0.4" />
