@@ -17,9 +17,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../microsoft-update-endpoints/src/microsoft-update-endpoints.csproj" />
-    <ProjectReference Include="../microsoft-update-partition/src/microsoft-update-partition.csproj" />
-    <ProjectReference Include="../microsoft-update-upstream-source/src/microsoft-update-upstream-source.csproj" />
+    <ProjectReference Include="../../microsoft-update-endpoints/src/microsoft-update-endpoints.csproj" />
+    <ProjectReference Include="../../microsoft-update-partition/src/microsoft-update-partition.csproj" />
+    <ProjectReference Include="../../microsoft-update-upstream-source/src/microsoft-update-upstream-source.csproj" />
   </ItemGroup>
 
   <ItemGroup>
