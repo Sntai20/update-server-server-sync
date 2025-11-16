@@ -2,13 +2,8 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net6.0</TargetFramework>
     <RootNamespace>Microsoft.PackageGraph.Utilitites.Upsync</RootNamespace>
     <AssemblyName>upsync</AssemblyName>
-    <Company>upsync</Company>
-    <Authors>upsync</Authors>
-    <Description></Description>
-    <BaseOutputPath>..\..\..\out\upsync</BaseOutputPath>
     <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
     <FileVersion>3.0.3.0</FileVersion>
     <AssemblyVersion>3.0.3.0</AssemblyVersion>
@@ -16,15 +11,15 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="CommandLineParser" Version="2.9.1" />
-    <PackageReference Include="Microsoft.AspNetCore.Hosting" Version="2.2.7" />
-    <PackageReference Include="Microsoft.Azure.Storage.Blob" Version="11.2.3" />
+    <PackageReference Include="CommandLineParser" />
+    <PackageReference Include="Microsoft.AspNetCore.Hosting" />
+    <PackageReference Include="Azure.Storage.Blobs" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\microsoft-update-endpoints\microsoft-update-endpoints.csproj" />
-    <ProjectReference Include="..\..\microsoft-update-partition\microsoft-update-partition.csproj" />
-    <ProjectReference Include="..\..\microsoft-update-upstream-package-source\microsoft-update-upstream-source.csproj" />
+    <ProjectReference Include="../microsoft-update-endpoints/src/microsoft-update-endpoints.csproj" />
+    <ProjectReference Include="../microsoft-update-partition/src/microsoft-update-partition.csproj" />
+    <ProjectReference Include="../microsoft-update-upstream-source/src/microsoft-update-upstream-source.csproj" />
   </ItemGroup>
 
   <ItemGroup>

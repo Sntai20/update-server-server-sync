@@ -1,8 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using Microsoft.Azure.Storage;
-using Microsoft.Azure.Storage.Blob;
+using Azure.Storage.Blobs;
 using System.Linq;
 using System.Threading;
 using System;
@@ -130,14 +129,16 @@ namespace Microsoft.PackageGraph.Utilitites.Upsync
                         return null;
                     }
 
-                    if (!CloudStorageAccount.TryParse(options.ContentStoreConnectionString, out var storageAccount))
+                    try 
                     {
-                        ConsoleOutput.WriteRed("Invalid connection string");
+                        var blobServiceClient = new BlobServiceClient(options.ContentStoreConnectionString);
+                        return Storage.Azure.BlobContentStore.OpenOrCreate(blobServiceClient, options.ContentPath);
+                    }
+                    catch (Exception ex)
+                    {
+                        ConsoleOutput.WriteRed($"Invalid connection string: {ex.Message}");
                         return null;
                     }
-
-                    var blobClient = storageAccount.CreateCloudBlobClient();
-                    return Storage.Azure.BlobContentStore.OpenOrCreate(blobClient, options.ContentPath);
 
                 default:
                     ConsoleOutput.WriteRed("Content store type not supported.");

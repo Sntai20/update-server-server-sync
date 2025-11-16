@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 using System;
-using Microsoft.Azure.Storage.Blob;
+using Azure.Storage.Blobs;
 using Microsoft.PackageGraph.Storage;
 using Microsoft.PackageGraph.Storage.Local;
 using System.IO;
@@ -152,18 +152,21 @@ namespace Microsoft.PackageGraph.Utilitites.Upsync
             {
                 if (string.IsNullOrEmpty(sourceOptions.StoreConnectionString))
                 {
-                    var azureContainer = new CloudBlobContainer(new Uri(sourceOptions.Path));
-                    return Microsoft.PackageGraph.Storage.Azure.PackageStore.Open(azureContainer);
-                }
-                else if (Azure.Storage.CloudStorageAccount.TryParse(sourceOptions.StoreConnectionString, out var storageAccount))
-                {
-                    var blobClient = storageAccount.CreateCloudBlobClient();
-                    return Microsoft.PackageGraph.Storage.Azure.PackageStore.Open(blobClient, sourceOptions.Path);
+                    var containerClient = new BlobContainerClient(new Uri(sourceOptions.Path));
+                    return Microsoft.PackageGraph.Storage.Azure.PackageStore.Open(containerClient);
                 }
                 else
                 {
-                    ConsoleOutput.WriteRed($"The connection string is invalid: {sourceOptions.StoreConnectionString}");
-                    return null;
+                    try 
+                    {
+                        var blobServiceClient = new BlobServiceClient(sourceOptions.StoreConnectionString);
+                        return Microsoft.PackageGraph.Storage.Azure.PackageStore.Open(blobServiceClient, sourceOptions.Path);
+                    }
+                    catch (Exception ex)
+                    {
+                        ConsoleOutput.WriteRed($"Invalid connection string: {ex.Message}");
+                        return null;
+                    }
                 }
             }
             else
@@ -217,14 +220,14 @@ namespace Microsoft.PackageGraph.Utilitites.Upsync
                     return null;
                 }
 
-                if (Azure.Storage.CloudStorageAccount.TryParse(sourceOptions.StoreConnectionString, out var storageAccount))
+                try 
                 {
-                    var blobClient = storageAccount.CreateCloudBlobClient();
-                    return Microsoft.PackageGraph.Storage.Azure.PackageStore.OpenOrCreate(blobClient, sourceOptions.Path);
+                    var blobServiceClient = new BlobServiceClient(sourceOptions.StoreConnectionString);
+                    return Microsoft.PackageGraph.Storage.Azure.PackageStore.OpenOrCreate(blobServiceClient, sourceOptions.Path);
                 }
-                else
+                catch (Exception ex)
                 {
-                    ConsoleOutput.WriteRed($"The connection string is invalid: {sourceOptions.StoreConnectionString}");
+                    ConsoleOutput.WriteRed($"Invalid connection string: {ex.Message}");
                     return null;
                 }
             }
