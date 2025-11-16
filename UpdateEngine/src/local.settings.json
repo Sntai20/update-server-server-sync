@@ -7,23 +7,47 @@
     // Development: Empty means use AppHost/Aspire provided storage
     "AzureWebJobsStorage": "",
     
-    // Development settings - only used when no Azure connection is available
-    "UseLocalStorageForMetadata": "false",
-    "UseLocalStorageForContent": "false", 
-    "MetadataStorePath": "../../store",
-    "ContentStorePath": "../../content",
+    // Backward compatibility: Support legacy ServiceConfigurationJson during migration
+    "ServiceConfigurationJson": "{\"ServiceUrl\":\"http://localhost:7071\",\"SupportsContentDownload\":false,\"MaxUpdateCount\":100}"
+  },
+  "UpdateServer": {
+    "ServiceUrl": "http://localhost:7071",
+    "ContentUrl": "http://localhost:7071/api/content",
+    "MaxUpdateCount": 100,
+    "SupportedCategories": ["Security Updates", "Critical Updates"]
+  },
+  "Storage": {
+    "MetadataPath": "../../store",
+    "ContentPath": "../../content",
+    "UseAzureStorageForMetadata": false,
+    "UseAzureStorageForContent": false,
     "MetadataContainerName": "data",
     "ContentContainerName": "data",
-    
-    "ServiceConfigurationJson": "{\"ServiceUrl\":\"http://localhost:7071\",\"SupportsContentDownload\":false,\"MaxUpdateCount\":100}",
-    
-    // Development schedules - fast for testing
-    "SyncMetadataCriticalSchedule": "00:02:00",
-    "SyncMetadataComprehensiveSchedule": "00:05:00",
-    "SyncContentSchedule": "00:03:00",
-    "ScheduledHealthCheckSchedule": "00:01:00",
-    "AnomalyDetectionSchedule": "00:02:00",
-    
-    "ContentHttpRoot": "http://localhost:7071/api/content/"
+    "ReindexOnStartup": false
+  },
+  "FunctionSchedules": {
+    "SyncCritical": "00:02:00",
+    "SyncComprehensive": "00:05:00",
+    "SyncContent": "00:03:00",
+    "HealthCheck": "00:01:00",
+    "WeeklyMaintenance": "14.00:00:00",
+    "AnomalyDetection": "00:02:00"
+  },
+  "Features": {
+    "EnableContentSync": true,
+    "EnableDriverMatching": false,
+    "EnableHealthMonitoring": true,
+    "EnableMetadataExport": false,
+    "EnableScheduledSync": true,
+    "ReindexOnStartup": false,
+    "EnableAnomalyDetection": true
+  },
+  "Sync": {
+    "CriticalUpdatesIntervalHours": 2,
+    "ComprehensiveUpdatesIntervalHours": 5,
+    "ContentSyncIntervalHours": 3,
+    "HealthCheckIntervalMinutes": 1,
+    "MaintenanceIntervalHours": 336,
+    "AnomalyDetectionIntervalMinutes": 2
   }
 }

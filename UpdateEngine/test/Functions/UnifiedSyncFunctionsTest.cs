@@ -32,7 +32,6 @@ public class UnifiedSyncFunctionsTest
     private readonly Mock<IContentStore> _mockContentStore;
     private readonly Mock<IAnomalyDetectionService> _mockAnomalyDetectionService;
     private readonly Mock<IMetadataStore> _mockMetadataStore;
-    private readonly Mock<IOptions<ServiceConfigurationMutable>> _mockConfig;
     private readonly UnifiedSyncFunctions _functions;
     private readonly UnifiedSyncFunctions _functionsWithAnomaly;
 
@@ -43,8 +42,6 @@ public class UnifiedSyncFunctionsTest
         this._mockContentStore = new Mock<IContentStore>();
         this._mockAnomalyDetectionService = new Mock<IAnomalyDetectionService>();
         this._mockMetadataStore = new Mock<IMetadataStore>();
-        this._mockConfig = new Mock<IOptions<ServiceConfigurationMutable>>();
-        this._mockConfig.Setup(x => x.Value).Returns(new ServiceConfigurationMutable());
 
         // Functions without anomaly detection (existing tests)
         this._functions = new UnifiedSyncFunctions(

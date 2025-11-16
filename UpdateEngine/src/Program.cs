@@ -9,6 +9,7 @@ using Microsoft.PackageGraph.Storage;
 using Configuration;
 using System.Text.Json;
 using UpdateEngine.Services;
+using Microsoft.Extensions.Options;
 
 var hostBuilder = new HostBuilder()
     .ConfigureFunctionsWebApplication()
@@ -30,13 +31,22 @@ static void ConfigureLogging(HostBuilderContext context)
 {
     var tempLogger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger("Startup");
 
-    tempLogger.LogInformation("=== Storage Configuration ===");
-    tempLogger.LogInformation("UseAzureStorageForMetadata: {UseAzureStorageForMetadata}", context.Configuration["UseAzureStorageForMetadata"]);
-    tempLogger.LogInformation("UseAzureStorageForContent: {UseAzureStorageForContent}", context.Configuration["UseAzureStorageForContent"]);
-    tempLogger.LogInformation("MetadataStorePath: {MetadataStorePath}", context.Configuration["MetadataStorePath"]);
-    tempLogger.LogInformation("ContentStorePath: {ContentStorePath}", context.Configuration["ContentStorePath"]);
-    tempLogger.LogInformation("MetadataContainerName: {ContainerName}", context.Configuration["MetadataContainerName"]);
-    tempLogger.LogInformation("ContentContainerName: {ContainerName}", context.Configuration["ContentContainerName"]);
+    tempLogger.LogInformation("=== UpdateEngine Configuration ===");
+    
+    // Log UpdateServer configuration
+    var updateServerSection = context.Configuration.GetSection(UpdateServerOptions.SectionName);
+    tempLogger.LogInformation("ServiceUrl: {ServiceUrl}", updateServerSection["ServiceUrl"]);
+    tempLogger.LogInformation("ContentUrl: {ContentUrl}", updateServerSection["ContentUrl"]);
+    tempLogger.LogInformation("MaxUpdateCount: {MaxUpdateCount}", updateServerSection["MaxUpdateCount"]);
+    
+    // Log Storage configuration
+    var storageSection = context.Configuration.GetSection(StorageOptions.SectionName);
+    tempLogger.LogInformation("UseAzureStorageForMetadata: {UseAzureStorageForMetadata}", storageSection["UseAzureStorageForMetadata"]);
+    tempLogger.LogInformation("UseAzureStorageForContent: {UseAzureStorageForContent}", storageSection["UseAzureStorageForContent"]);
+    tempLogger.LogInformation("MetadataPath: {MetadataPath}", storageSection["MetadataPath"]);
+    tempLogger.LogInformation("ContentPath: {ContentPath}", storageSection["ContentPath"]);
+    tempLogger.LogInformation("MetadataContainerName: {ContainerName}", storageSection["MetadataContainerName"]);
+    tempLogger.LogInformation("ContentContainerName: {ContainerName}", storageSection["ContentContainerName"]);
 
     tempLogger.LogInformation("=== Connection Strings ===");
     foreach (var connStr in context.Configuration.GetSection("ConnectionStrings").GetChildren())
@@ -63,20 +73,25 @@ static void ConfigureJsonSerialization(IServiceCollection services)
 
 static void ConfigureServices(IServiceCollection services, IConfiguration configuration)
 {
+    // Configure simplified options pattern
+    services.Configure<UpdateServerOptions>(configuration.GetSection(UpdateServerOptions.SectionName));
+    services.Configure<StorageOptions>(configuration.GetSection(StorageOptions.SectionName));
+    services.Configure<FunctionScheduleOptions>(configuration.GetSection(FunctionScheduleOptions.SectionName));
+    services.Configure<FeatureOptions>(configuration.GetSection(FeatureOptions.SectionName));
+    services.Configure<SyncOptions>(configuration.GetSection(SyncOptions.SectionName));
+    
+    // Backward compatibility: Support legacy ServiceConfigurationJson for smooth migration
     var serviceProvider = services.BuildServiceProvider();
     var jsonOptions = serviceProvider.GetRequiredService<JsonSerializerOptions>();
-
     var configJson = configuration["ServiceConfigurationJson"];
     if (!string.IsNullOrEmpty(configJson))
     {
-        var config = JsonSerializer.Deserialize<ServiceConfigurationMutable>(configJson, jsonOptions);
-        if (config != null)
+        var legacyConfig = JsonSerializer.Deserialize<ServiceConfigurationMutable>(configJson, jsonOptions);
+        if (legacyConfig != null)
         {
-            services.AddSingleton(config);
+            services.AddSingleton(legacyConfig);
         }
     }
-
-    services.Configure<ServiceConfigurationMutable>(configuration.GetSection("ServiceConfiguration"));
     
     // Register Microsoft Update services - this handles ALL storage setup
     services.AddMicrosoftUpdateServices(configuration);

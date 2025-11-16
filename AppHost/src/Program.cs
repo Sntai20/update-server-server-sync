@@ -24,14 +24,15 @@ var enableServiceBus = builder.Configuration.GetValue<bool>("Features:EnableSche
 
 /// <summary>
 /// Builds service configuration from application settings, including storage paths,
-/// service URLs, and operational parameters.
+/// service URLs, and operational parameters. Now uses simplified configuration approach.
 /// </summary>
-var serviceConfiguration = ConfigurationHelper.BuildServiceConfiguration(builder.Configuration);
+// Configuration is now handled directly by the simplified helper - no complex transformations needed
 
 /// <summary>
 /// Configures the UpdateEngine Azure Functions project with dependencies.
 /// Service Bus and queues are conditionally included based on configuration.
 /// Waits for storage to be ready to prevent worker process crashes during startup.
+/// Uses simplified configuration approach with direct property binding.
 /// </summary>
 var updateFunctions = builder.AddAzureFunctionsProject<Projects.UpdateEngine>("UpdateEngine")
     .WithExternalHttpEndpoints()
@@ -66,12 +67,9 @@ if (enableServiceBus)
 /// Applies service configuration and storage settings to the Azure Functions environment,
 /// including metadata store paths, content store paths, and service endpoint URLs.
 /// Storage directories/containers are created automatically during Functions startup via DI.
+/// Uses simplified configuration approach without complex transformations.
 /// </summary>
-ConfigurationHelper.ConfigureUpdateFunctions(
-    updateFunctions,
-    serviceConfiguration,
-    builder.Configuration.GetSection("Storage"),
-    builder.Configuration.GetSection("AzureWebJobs"));
+SimpleConfigurationHelper.ConfigureUpdateFunctions(updateFunctions, builder.Configuration);
 
 var app = builder.Build();
 

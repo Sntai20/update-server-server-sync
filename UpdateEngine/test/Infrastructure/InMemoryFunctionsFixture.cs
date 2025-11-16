@@ -54,7 +54,46 @@ public class InMemoryFunctionsFixture : IAsyncLifetime
         // Using a factory that returns null to satisfy the nullability constraint
         services.AddSingleton<IContentStore?>(sp => null as IContentStore);
 
-        // Add service configuration
+        // Add simplified configuration options
+        services.Configure<UpdateServerOptions>(options =>
+        {
+            options.ServiceUrl = "http://localhost:7071";
+            options.ContentUrl = "http://localhost:7071/api/content";
+            options.MaxUpdateCount = 1000;
+            options.SupportedCategories = new[] { "Security Updates", "Critical Updates" };
+        });
+        
+        services.Configure<StorageOptions>(options =>
+        {
+            options.MetadataPath = "./store";
+            options.ContentPath = "./content";
+            options.UseAzureStorageForMetadata = false;
+            options.UseAzureStorageForContent = false;
+            options.MetadataContainerName = "data";
+            options.ContentContainerName = "data";
+            options.ReindexOnStartup = false;
+        });
+        
+        services.Configure<FeatureOptions>(options =>
+        {
+            options.EnableScheduledSync = true;
+            options.EnableContentSync = false;
+            options.EnableHealthMonitoring = true;
+            options.EnableMetadataExport = false;
+            options.EnableDriverMatching = false;
+            options.EnableAnomalyDetection = false;
+        });
+        
+        services.Configure<SyncOptions>(options =>
+        {
+            options.CriticalUpdatesIntervalHours = 24;
+            options.ComprehensiveUpdatesIntervalHours = 168;
+            options.ContentSyncIntervalHours = 1;
+            options.MaintenanceIntervalHours = 720;
+            options.HealthCheckIntervalMinutes = 60;
+        });
+
+        // Backward compatibility: Add legacy ServiceConfiguration for tests that still need it
         services.AddSingleton(new ServiceConfigurationMutable
         {
             ServiceUrl = "http://localhost:7071",
