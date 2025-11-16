@@ -72,19 +72,21 @@ update-server-server-sync/
 | [src/documentation/docfx-config/api/index.md](./src/documentation/docfx-config/api/index.md) | API reference | ? Keep |
 | [src/documentation/docfx-config/examples/*.md](./src/documentation/docfx-config/examples/) | Code examples | ? Keep |
 
-## ?? Current Scripts
+## ✅ Current Scripts Structure
 
-### Root Level Scripts
+### Organized Scripts
 
-| Script | Purpose | Status |
-|--------|---------|--------|
-| [configure-storage.ps1](./configure-storage.ps1) | Configure storage | ?? Move to scripts/setup/ |
-| [Fix-WCF-ServiceReferences.ps1](./Fix-WCF-ServiceReferences.ps1) | Fix WCF references | ?? Move to scripts/maintenance/ |
-| [Regenerate-WCF-Net9-OfflineFirst.ps1](./Regenerate-WCF-Net9-OfflineFirst.ps1) | Regenerate WCF (offline) | ?? Move to scripts/maintenance/ |
-| [Regenerate-WCF-Net9.ps1](./Regenerate-WCF-Net9.ps1) | Regenerate WCF (online) | ?? Move to scripts/maintenance/ |
-| [Run-InMemoryTests.ps1](./Run-InMemoryTests.ps1) | Run in-memory tests | ?? Move to scripts/test/ |
-| [test-startup.ps1](./test-startup.ps1) | Test startup | ?? Move to scripts/test/ |
-| [validate-build.ps1](./validate-build.ps1) | Validate build | ?? Move to scripts/build/ |
+All scripts have been moved to the `scripts/` folder with proper categorization:
+
+| Script | Purpose | Location |
+|--------|---------|----------|
+| [Configure-Storage.ps1](../../scripts/setup/Configure-Storage.ps1) | Configure storage | `scripts/setup/` |
+| [Fix-WCF-ServiceReferences.ps1](../../scripts/maintenance/Fix-WCF-ServiceReferences.ps1) | Fix WCF references | `scripts/maintenance/` |
+| [Regenerate-WCF-Net9-OfflineFirst.ps1](../../scripts/maintenance/Regenerate-WCF-Net9-OfflineFirst.ps1) | Regenerate WCF (offline) | `scripts/maintenance/` |
+| [Regenerate-WCF-Net9.ps1](../../scripts/maintenance/Regenerate-WCF-Net9.ps1) | Regenerate WCF (online) | `scripts/maintenance/` |
+| [Run-InMemoryTests.ps1](../../scripts/test/Run-InMemoryTests.ps1) | Run in-memory tests | `scripts/test/` |
+| [test-startup.ps1](../../scripts/test/test-startup.ps1) | Test startup | `scripts/test/` |
+| [Validate-Build.ps1](../../scripts/build/Validate-Build.ps1) | Validate build | `scripts/build/` |
 
 ### AppHost Scripts
 
@@ -162,22 +164,22 @@ update-server-server-sync/
 
 | Task | Script |
 |------|--------|
-| Configure Storage | `./configure-storage.ps1` |
-| Run Tests | `./Run-InMemoryTests.ps1` |
-| Validate Build | `./validate-build.ps1` |
-| Test Sync | `./AppHost/Test-SyncWithDiagnostics.ps1` |
+| Configure Storage | `./scripts/setup/Configure-Storage.ps1` |
+| Run Tests | `./scripts/test/Run-InMemoryTests.ps1` |
+| Validate Build | `./scripts/build/Validate-Build.ps1` |
+| Test Sync | `./AppHost/src/Test-SyncWithDiagnostics.ps1` |
 
-## ?? Migration Status
+## ✅ Migration Status
 
 - [x] Documentation audit complete
 - [x] Script audit complete
-- [ ] New directory structure created
-- [ ] Files moved to new locations
-- [ ] References updated
-- [ ] Old locations deprecated
-- [ ] CI/CD updated
+- [x] New directory structure created
+- [x] Files moved to new locations
+- [x] References updated
+- [x] Old locations deprecated
+- [x] CI/CD updated
 
-## ?? Notes
+## ✅ Notes
 
 - **Do NOT delete files until all references are updated**
 - **Test all scripts after moving**
