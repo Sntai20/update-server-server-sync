@@ -143,7 +143,11 @@ namespace Microsoft.PackageGraph.Storage.Azure
 
         public PackageStoreEntry GetStoreEntry(int packageIndex)
         {
-            return this.StoreEntries[packageIndex];
+            if (this.StoreEntries.TryGetValue(packageIndex, out PackageStoreEntry entry))
+            {
+                return entry;
+            }
+            throw new KeyNotFoundException($"Store entry not found for package index: {packageIndex}");
         }
 
         public bool TryGetPackageType(IPackageIdentity packageIdentity, out int packageType)
@@ -166,12 +170,20 @@ namespace Microsoft.PackageGraph.Storage.Azure
 
         public int GetPackageIndex(IPackageIdentity packageIdentity)
         {
-            return this._IdentityToIndexMap[packageIdentity];
+            if (this._IdentityToIndexMap.TryGetValue(packageIdentity, out int index))
+            {
+                return index;
+            }
+            throw new KeyNotFoundException($"Package identity not found: {packageIdentity}");
         }
 
         public IPackageIdentity GetPackageIdentity(int index)
         {
-            return this._IndexToIdentityMap[index];
+            if (this._IndexToIdentityMap.TryGetValue(index, out IPackageIdentity identity))
+            {
+                return identity;
+            }
+            throw new KeyNotFoundException($"Package index not found: {index}");
         }
 
         public bool TryGetPackageIdentity(int index, out IPackageIdentity packageIdentity)

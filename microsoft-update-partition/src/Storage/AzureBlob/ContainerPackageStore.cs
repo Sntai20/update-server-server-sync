@@ -64,7 +64,9 @@ namespace Microsoft.PackageGraph.Storage.Azure
 
             var indexedIdentities = this.Identities.Identities.Select(identity => identity.OpenIdHex).ToList();
 
-            var metadataIndexedIdentities = this.IndexContainer.GetListOfMetadataIndexedPackages().Select(index => this.Identities.GetPackageIdentity(index)).Select(identity => identity.OpenIdHex);
+            var metadataIndexedIdentities = this.IndexContainer.GetListOfMetadataIndexedPackages()
+                .Where(index => this.Identities.TryGetPackageIdentity(index, out var identity))
+                .Select(index => { this.Identities.TryGetPackageIdentity(index, out var identity); return identity.OpenIdHex; });
             var notMetadataIndexedIdentities = indexedIdentities.Except(metadataIndexedIdentities).ToList();
             if (notMetadataIndexedIdentities.Count > 0)
             {
@@ -370,7 +372,8 @@ namespace Microsoft.PackageGraph.Storage.Azure
         {
             if (!this.Identities.TryGetPackageIndex(packageIdentity, out int packageIndex))
             {
-                throw new KeyNotFoundException();
+                value = default(T);
+                return false;
             }
 
             return this.IndexContainer.TrySimpleKeyLookup(packageIndex, indexName, out value);
@@ -393,7 +396,15 @@ namespace Microsoft.PackageGraph.Storage.Azure
         {
             if (this.IndexContainer.TryPackageListLookupByCustomKey(key, indexName, out List<int> packageIndex))
             {
-                value = packageIndex.Select(index => this.Identities.GetPackageIdentity(index)).ToList();
+                var identities = new List<IPackageIdentity>();
+                foreach (var index in packageIndex)
+                {
+                    if (this.Identities.TryGetPackageIdentity(index, out var identity))
+                    {
+                        identities.Add(identity);
+                    }
+                }
+                value = identities;
                 return true;
             }
             else
@@ -407,7 +418,8 @@ namespace Microsoft.PackageGraph.Storage.Azure
         {
             if (!this.Identities.TryGetPackageIndex(packageIdentity, out int packageIndex))
             {
-                throw new KeyNotFoundException();
+                value = null;
+                return false;
             }
 
             return this.IndexContainer.TryListKeyLookup<T>(packageIndex, indexName, out value);
@@ -434,12 +446,17 @@ namespace Microsoft.PackageGraph.Storage.Azure
 
                 for (int packageIndex = 0; packageIndex <= this.Identities.Entries.Max(e => e.PackageIndex); packageIndex++)
                 {
-                    var packageIdentity = this.Identities.GetPackageIdentity(packageIndex);
+                    if (!this.Identities.TryGetPackageIdentity(packageIndex, out var packageIdentity))
+                        continue;
+                    
                     var packageStream = this.Metadata.GetMetadata(this.Identities.GetStoreEntry(packageIndex));
                     if (PartitionRegistration.TryGetPartition(packageIdentity.Partition, out var partitionDefinition))
                     {
                         var parsedPackage = partitionDefinition.Factory.FromStream(packageStream, this);
-                        this.IndexContainer.IndexPackage(parsedPackage, this.Identities.GetPackageIndex(packageIdentity));
+                        if (this.Identities.TryGetPackageIndex(packageIdentity, out int validPackageIndex))
+                        {
+                            this.IndexContainer.IndexPackage(parsedPackage, validPackageIndex);
+                        }
                     }
                     else
                     {

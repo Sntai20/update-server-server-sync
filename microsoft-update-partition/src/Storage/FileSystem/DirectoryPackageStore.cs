@@ -276,7 +276,10 @@ namespace Microsoft.PackageGraph.Storage.Local
         {
             if (IsDirty)
             {
-                DeltaMetadataStores.Last().Flush();
+                if (DeltaMetadataStores.Count > 0)
+                {
+                    DeltaMetadataStores.Last().Flush();
+                }
 
                 WriteToc();
 
@@ -346,7 +349,10 @@ namespace Microsoft.PackageGraph.Storage.Local
                 {
                     foreach(var parsedPackage in deltaStore)
                     {
-                        Indexes.IndexPackage(parsedPackage, _IdentityToIndexMap[parsedPackage.Id]);
+                        if (_IdentityToIndexMap.TryGetValue(parsedPackage.Id, out int packageIndex))
+                        {
+                            Indexes.IndexPackage(parsedPackage, packageIndex);
+                        }
 
                         if (progressEvent.Current % 100 == 0)
                         {
@@ -401,7 +407,14 @@ namespace Microsoft.PackageGraph.Storage.Local
                 Indexes.IndexPackage(package, packageIndex);
                 IsIndexDirty = true;
 
-                DeltaMetadataStores.Last().AddPackage(package);
+                if (DeltaMetadataStores.Count > 0)
+                {
+                    DeltaMetadataStores.Last().AddPackage(package);
+                }
+                else
+                {
+                    throw new InvalidOperationException("No DeltaMetadataStores available to add package");
+                }
 
                 PendingPackages.Add(package);
 
@@ -459,7 +472,14 @@ namespace Microsoft.PackageGraph.Storage.Local
 
             if (PartitionRegistration.TryGetPartitionFromPackageId(packageIdentity, out var partitionDefinition))
             {
-                return partitionDefinition.Factory.FromStore(_PackageTypeIndex[packageIndex], packageIdentity, this, this);
+                if (_PackageTypeIndex.TryGetValue(packageIndex, out int packageType))
+                {
+                    return partitionDefinition.Factory.FromStore(packageType, packageIdentity, this, this);
+                }
+                else
+                {
+                    throw new KeyNotFoundException($"Package type not found for index {packageIndex}");
+                }
             }
             else
             {
@@ -496,7 +516,8 @@ namespace Microsoft.PackageGraph.Storage.Local
         {
             if (!_IdentityToIndexMap.TryGetValue(packageIdentity, out int packageIndex))
             {
-                throw new KeyNotFoundException();
+                value = default(T);
+                return false;
             }
 
             return Indexes.TrySimpleKeyLookup(packageIndex, indexName, out value);
@@ -519,7 +540,15 @@ namespace Microsoft.PackageGraph.Storage.Local
         {
             if (Indexes.TryPackageListLookupByCustomKey(key, indexName, out List<int> packageIndex))
             {
-                value = packageIndex.Select(index => _IndexToIdentityMap[index]).ToList();
+                var identities = new List<IPackageIdentity>();
+                foreach (var index in packageIndex)
+                {
+                    if (_IndexToIdentityMap.TryGetValue(index, out var identity))
+                    {
+                        identities.Add(identity);
+                    }
+                }
+                value = identities;
                 return true;
             }
             else
@@ -544,7 +573,8 @@ namespace Microsoft.PackageGraph.Storage.Local
         {
             if (!_IdentityToIndexMap.TryGetValue(packageIdentity, out int packageIndex))
             {
-                throw new KeyNotFoundException();
+                value = null;
+                return false;
             }
 
             return Indexes.TryListKeyLookup<T>(packageIndex, indexName, out value);
@@ -563,6 +593,10 @@ namespace Microsoft.PackageGraph.Storage.Local
             }
 
             var deltaIndex = GetDeltaIndexFromPackageIndex(packageIndex);
+            if (deltaIndex < 0 || deltaIndex >= DeltaMetadataStores.Count)
+            {
+                throw new KeyNotFoundException($"Delta index {deltaIndex} out of bounds for DeltaMetadataStores (count: {DeltaMetadataStores.Count})");
+            }
             return DeltaMetadataStores[deltaIndex].GetMetadata(packageIdentity);
         }
 
@@ -574,6 +608,10 @@ namespace Microsoft.PackageGraph.Storage.Local
             }
 
             var deltaIndex = GetDeltaIndexFromPackageIndex(packageIndex);
+            if (deltaIndex < 0 || deltaIndex >= DeltaMetadataStores.Count)
+            {
+                throw new KeyNotFoundException($"Delta index {deltaIndex} out of bounds for DeltaMetadataStores (count: {DeltaMetadataStores.Count})");
+            }
             return DeltaMetadataStores[deltaIndex].GetFiles<T>(packageIdentity);
         }
 
@@ -595,7 +633,14 @@ namespace Microsoft.PackageGraph.Storage.Local
             {
                 if (PartitionRegistration.TryGetPartitionFromPackageId(packageIdentity, out var partitionDefinition))
                 {
-                    return partitionDefinition.Factory.FromStore(_PackageTypeIndex[packageIndex], packageIdentity, this, this);
+                    if (_PackageTypeIndex.TryGetValue(packageIndex, out int packageType))
+                    {
+                        return partitionDefinition.Factory.FromStore(packageType, packageIdentity, this, this);
+                    }
+                    else
+                    {
+                        throw new KeyNotFoundException($"Package type not found for index {packageIndex}");
+                    }
                 }
                 else
                 {

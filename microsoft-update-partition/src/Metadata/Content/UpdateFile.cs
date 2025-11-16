@@ -70,7 +70,7 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Content
         /// </summary>
         /// <value>Content file digest.</value>
         [JsonIgnore]
-        public IContentFileDigest Digest => Digests.First();
+        public IContentFileDigest Digest => Digests.Count > 0 ? Digests.First() : throw new InvalidOperationException("No digests available for this update file");
 
         /// <summary>
         /// Create a new UpdateFile

@@ -115,7 +115,7 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate.Metadata
                 .SelectMany(atLeastOne => atLeastOne.Simple)
                 .Select(simple => simple.UpdateId)
                 .Where(simple => knownCategories.Contains(simple))
-                .Select(simple => knownCategories[simple].First())
+                .SelectMany(simple => knownCategories[simple].Take(1))
                 .ToList();
         }
 

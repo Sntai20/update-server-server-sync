@@ -292,7 +292,8 @@ namespace Microsoft.PackageGraph.Utilitites.Upsync
                 foreach (var supersedingUpdate in softwareUpdate.IsSupersededBy.OfType<MicrosoftUpdatePackageIdentity>())
                 {
                     Console.WriteLine($"            {supersedingUpdate}");
-                    Console.WriteLine($"              {updatesLookup[supersedingUpdate.ID].First().Title}");
+                    var supersedingTitle = updatesLookup[supersedingUpdate.ID].Take(1).FirstOrDefault()?.Title ?? "[Title not found]";
+                    Console.WriteLine($"              {supersedingTitle}");
                     Console.WriteLine();
                 }
             }
@@ -305,7 +306,8 @@ namespace Microsoft.PackageGraph.Utilitites.Upsync
                     Console.WriteLine($"            {supersededGuid}");
                     if (updatesLookup.Contains(supersededGuid))
                     {
-                        Console.WriteLine($"              {updatesLookup[supersededGuid].First().Title}");
+                        var supersededTitle = updatesLookup[supersededGuid].Take(1).FirstOrDefault()?.Title ?? "[Title not found]";
+                        Console.WriteLine($"              {supersededTitle}");
                     }
                     else
                     {
@@ -408,7 +410,8 @@ namespace Microsoft.PackageGraph.Utilitites.Upsync
 
                             if (updatesLookup.Contains(subPrereq.UpdateId))
                             {
-                                Console.WriteLine("            *              {0}", updatesLookup[subPrereq.UpdateId].First().Title);
+                                var prereqTitle = updatesLookup[subPrereq.UpdateId].Take(1).FirstOrDefault()?.Title ?? "[Title not found]";
+                                Console.WriteLine("            *              {0}", prereqTitle);
                             }
                         }
 
@@ -419,7 +422,8 @@ namespace Microsoft.PackageGraph.Utilitites.Upsync
                         Console.WriteLine("            ID          : {0}", simple.UpdateId);
                         if (updatesLookup.Contains(simple.UpdateId))
                         {
-                            Console.WriteLine("                          {0}", updatesLookup[simple.UpdateId].First().Title);
+                            var simpleTitle = updatesLookup[simple.UpdateId].Take(1).FirstOrDefault()?.Title ?? "[Title not found]";
+                            Console.WriteLine("                          {0}", simpleTitle);
                         }
                     }
                 }
