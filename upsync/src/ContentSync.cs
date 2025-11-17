@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
 using Azure.Storage.Blobs;
@@ -54,6 +54,14 @@ namespace Microsoft.PackageGraph.Utilitites.Upsync
 
             CancellationTokenSource cancelTokenSource = new();
             contentStore.Progress += ContentStore_Progress;
+            filesToDownload = filesToDownload.Distinct().ToList();
+
+            Console.WriteLine($"Sync {filesToDownload.Count} files, {filesToDownload.Sum(f => (long)f.Size)} bytes. Continue? (y/n)");
+            if (Console.ReadKey().Key != ConsoleKey.Y)
+            {
+                return;
+            }
+
             contentStore.Download(filesToDownload, cancelTokenSource.Token);
         }
 
@@ -129,21 +137,30 @@ namespace Microsoft.PackageGraph.Utilitites.Upsync
                         return null;
                     }
 
-                    try 
+                    try
                     {
                         var blobServiceClient = new BlobServiceClient(options.ContentStoreConnectionString);
                         return Storage.Azure.BlobContentStore.OpenOrCreate(blobServiceClient, options.ContentPath);
                     }
-                    catch (Exception ex)
+                    catch (ArgumentException ex)
                     {
-                        ConsoleOutput.WriteRed($"Invalid connection string: {ex.Message}");
+                        ConsoleOutput.WriteRed($"Invalid connection string (argument error): {ex.Message}");
+                        return null;
+                    }
+                    catch (FormatException ex)
+                    {
+                        ConsoleOutput.WriteRed($"Invalid connection string (format error): {ex.Message}");
+                        return null;
+                    }
+                    catch (Azure.RequestFailedException ex)
+                    {
+                        ConsoleOutput.WriteRed($"Azure request failed: {ex.Message}");
                         return null;
                     }
 
                 default:
                     ConsoleOutput.WriteRed("Content store type not supported.");
                     return null;
-
             }
         }
     }

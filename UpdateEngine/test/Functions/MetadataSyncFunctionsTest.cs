@@ -15,8 +15,10 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using Xunit;
+
 using Microsoft.PackageGraph.Storage;
 using Microsoft.PackageGraph.MicrosoftUpdate.Source;
+using Microsoft.Extensions.Configuration;
 
 /// <summary>
 /// Tests for unified sync functions - updated to use UnifiedSyncFunctions.
@@ -41,7 +43,6 @@ public class MetadataSyncFunctionsTest
             PropertyNameCaseInsensitive = true,
             WriteIndented = true 
         };
-
         this.functions = new UnifiedSyncFunctions(
             this.loggerMock.Object,
             this.syncServiceMock.Object,

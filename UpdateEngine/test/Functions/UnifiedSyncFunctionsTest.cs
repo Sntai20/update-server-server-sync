@@ -9,6 +9,7 @@ using Microsoft.PackageGraph.Storage;
 using Microsoft.PackageGraph.MicrosoftUpdate.Source;
 using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
 using UpdateEngine.Services;
+
 using UpdateEngine.Models;
 using Moq;
 using System.Net;
@@ -17,6 +18,7 @@ using System.Text.Json;
 using UpdateEngine.Functions;
 using Xunit;
 using Configuration;
+using Microsoft.Extensions.Configuration;
 
 namespace UpdateEngineTest.Functions;
 
