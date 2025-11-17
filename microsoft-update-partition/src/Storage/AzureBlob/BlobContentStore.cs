@@ -249,7 +249,11 @@ namespace Microsoft.PackageGraph.Storage.Azure
 
         private BlockBlobClient GetBlobMarkerForFile(IContentFile updateFile)
         {
-            return this.ParentContainer.GetBlockBlobClient(updateFile.Digest.HexString.ToLower() + ".complete");
+            var markerName = string.IsNullOrEmpty(this.PathPrefix) 
+                ? updateFile.Digest.HexString.ToLower() + ".complete"
+                : $"{this.PathPrefix.TrimEnd('/')}/{updateFile.Digest.HexString.ToLower()}.complete";
+                
+            return this.ParentContainer.GetBlockBlobClient(markerName);
         }
 
         private BlockBlobClient GetBlobForFile(IContentFile updateFile)

@@ -18,7 +18,9 @@ var hostBuilder = new HostBuilder()
         ConfigureJsonSerialization(services);
         
         // Configure shared configuration from Configuration project
-        services.AddSharedAppConfiguration(context.HostingEnvironment.EnvironmentName, context.Configuration);
+        services.AddSharedAppConfiguration(
+            context.HostingEnvironment.EnvironmentName,
+            context.Configuration);
         
         ConfigureStorageServices(services, context.Configuration);
     });
@@ -36,10 +38,20 @@ static void ConfigureLogging(HostBuilderContext context)
 
     tempLogger.LogInformation("=== UpdateEngine Configuration ===");
     tempLogger.LogInformation("ServiceUrl: {ServiceUrl}", context.Configuration["ServiceUrl"]);
-    tempLogger.LogInformation("MetadataPath: {MetadataPath}", context.Configuration["MetadataPath"]);
-    tempLogger.LogInformation("ContentPath: {ContentPath}", context.Configuration["ContentPath"]);
     tempLogger.LogInformation("UseAzureStorageForMetadata: {UseAzureStorageForMetadata}", context.Configuration["UseAzureStorageForMetadata"]);
     tempLogger.LogInformation("UseAzureStorageForContent: {UseAzureStorageForContent}", context.Configuration["UseAzureStorageForContent"]);
+
+    var useAzureStorageForMetadata = context.Configuration.GetValue<bool>("UseAzureStorageForMetadata");
+    if (!useAzureStorageForMetadata)
+    {
+        tempLogger.LogInformation("MetadataPath: {MetadataPath}", context.Configuration["MetadataPath"]);
+    }
+
+    var useAzureStorageForContent = context.Configuration.GetValue<bool>("UseAzureStorageForContent");
+    if (!useAzureStorageForContent)
+    {
+        tempLogger.LogInformation("ContentPath: {ContentPath}", context.Configuration["ContentPath"]);
+    }
 }
 
 static void ConfigureStorageServices(IServiceCollection services, IConfiguration configuration)

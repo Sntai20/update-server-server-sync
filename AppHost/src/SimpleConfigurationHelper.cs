@@ -28,8 +28,6 @@ public static class SimpleConfigurationHelper
 
         // Set storage environment variables
         functions
-            .WithEnvironment("ServiceUrl", appConfig.ServiceUrl)
-            .WithEnvironment("ContentUrl", appConfig.ContentUrl)
             .WithEnvironment("MaxUpdateCount", appConfig.MaxUpdateCount.ToString())
             .WithEnvironment("UseAzureStorageForMetadata", appConfig.UseAzureStorageForMetadata.ToString())
             .WithEnvironment("UseAzureStorageForContent", appConfig.UseAzureStorageForContent.ToString())
@@ -44,11 +42,13 @@ public static class SimpleConfigurationHelper
             .WithEnvironment("EnableMetrics", appConfig.EnableMetrics.ToString())
             .WithEnvironment("EnableCaching", appConfig.EnableCaching.ToString());
 
-        // Set service configuration as JSON (for backward compatibility)
+        // Set service configuration as JSON 
+        // Note: ServiceUrl and ContentUrl will be dynamically resolved by Aspire at runtime
+        // For local development, these will use the dynamically assigned ports
         var serviceConfig = new
         {
-            ServiceUrl = appConfig.ServiceUrl,
-            ContentUrl = appConfig.ContentUrl,
+            ServiceUrl = appConfig.ServiceUrl, // Fallback for non-Aspire scenarios
+            ContentUrl = appConfig.ContentUrl,   // Fallback for non-Aspire scenarios  
             MaxUpdateCount = appConfig.MaxUpdateCount
         };
 

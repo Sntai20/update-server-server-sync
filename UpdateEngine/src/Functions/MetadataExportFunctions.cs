@@ -233,12 +233,11 @@ public class MetadataExportFunctions
 
             // Get container configuration
             var containerName = this.configuration["MetadataContainerName"] ?? "data";
-            var pathPrefix = this.configuration["ContentPathPrefix"] ?? "";
             
             // Create CSV export
             var csvData = this.GenerateSyncSummaryCsv();
             var fileName = $"sync-summary-{DateTime.UtcNow:yyyy-MM-dd-HH-mm-ss}.csv";
-            var blobPath = string.IsNullOrEmpty(pathPrefix) ? $"reports/{fileName}" : $"{pathPrefix.TrimEnd('/')}/reports/{fileName}";
+            var blobPath = $"reports/{fileName}";  // Reports go to data/reports (container root level)
 
             // Upload to blob storage
             var containerClient = this.blobServiceClient.GetBlobContainerClient(containerName);
