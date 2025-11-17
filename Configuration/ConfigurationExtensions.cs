@@ -2,305 +2,237 @@
 // Licensed under the MIT License.
 
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using System;
+using System.IO;
+using System.Reflection;
 
 namespace Configuration;
 
 /// <summary>
-/// Extension methods for converting between immutable and mutable configuration types.
+/// Extension methods for registering and configuring AppConfig in dependency injection.
+/// Provides centralized configuration management for all environments.
 /// </summary>
-public static class ConfigurationExtensions
+public static class ConfigurationServiceExtensions
 {
     /// <summary>
-    /// Converts an immutable ServiceConfiguration record to a mutable ServiceConfigurationMutable class.
+    /// Adds AppConfig to the service collection, binding from IConfiguration.
+    /// This is the main method for configuring the application from appsettings.json files.
     /// </summary>
-    /// <param name="config">The immutable service configuration.</param>
-    /// <returns>A mutable service configuration with the same values.</returns>
-    public static ServiceConfigurationMutable ToMutable(this ServiceConfiguration config)
+    /// <param name="services">The service collection</param>
+    /// <param name="configuration">The configuration source (usually from appsettings.json)</param>
+    /// <returns>The service collection for chaining</returns>
+    public static IServiceCollection AddAppConfiguration(this IServiceCollection services, IConfiguration configuration)
     {
-        return new ServiceConfigurationMutable
-        {
-            ServiceUrl = config.ServiceUrl,
-            ContentUrl = config.ContentUrl,
-            MaxUpdateCount = config.MaxUpdateCount,
-            SupportedCategories = config.SupportedCategories.ToArray(), // Create a copy of the array
-            SyncConfiguration = config.SyncConfiguration.ToMutable(config.FunctionSchedules),
-            StorageConfiguration = config.StorageConfiguration.ToMutable(),
-            FeatureFlags = config.FeatureFlags.ToMutable()
-        };
+        // Bind the configuration directly to AppConfig
+        var appConfig = new AppConfig();
+        configuration.Bind(appConfig);
+
+        // Validate the configuration
+        appConfig.Validate();
+
+        // Register as singleton
+        services.AddSingleton(appConfig);
+
+        return services;
     }
 
     /// <summary>
-    /// Converts a mutable ServiceConfigurationMutable class to an immutable ServiceConfiguration record.
+    /// Adds AppConfig with shared configuration loading from Configuration project.
+    /// Loads shared base settings, then applies environment-specific overrides.
     /// </summary>
-    /// <param name="config">The mutable service configuration.</param>
-    /// <param name="functionSchedules">The function schedules to include in the immutable configuration.</param>
-    /// <returns>An immutable service configuration with the same values.</returns>
-    public static ServiceConfiguration ToImmutable(this ServiceConfigurationMutable config, FunctionSchedules functionSchedules)
+    /// <param name="services">The service collection</param>
+    /// <param name="environment">The current environment (Development, Production, etc.)</param>
+    /// <param name="additionalConfiguration">Optional additional configuration to apply</param>
+    /// <returns>The service collection for chaining</returns>
+    public static IServiceCollection AddSharedAppConfiguration(this IServiceCollection services, string environment, IConfiguration? additionalConfiguration = null)
     {
-        return new ServiceConfiguration
-        {
-            ServiceUrl = config.ServiceUrl,
-            ContentUrl = config.ContentUrl,
-            MaxUpdateCount = config.MaxUpdateCount,
-            SupportedCategories = config.SupportedCategories.ToArray(), // Create a copy of the array
-            SupportedLanguages = config.SupportedLanguages.ToArray(), // Create a copy of the array
-            SyncConfiguration = config.SyncConfiguration.ToImmutable(),
-            StorageConfiguration = config.StorageConfiguration.ToImmutable(),
-            FeatureFlags = config.FeatureFlags.ToImmutable(),
-            FunctionSchedules = functionSchedules
-        };
-    }
+        var configBuilder = new ConfigurationBuilder();
 
-    /// <summary>
-    /// Converts an immutable SyncConfiguration record to a mutable SyncConfigMutable class.
-    /// </summary>
-    /// <param name="config">The immutable sync configuration.</param>
-    /// <param name="functionSchedules">The function schedules to parse into TimeSpan values.</param>
-    /// <returns>A mutable sync configuration with the same values and parsed TimeSpan schedules.</returns>
-    public static SyncConfigMutable ToMutable(this SyncConfiguration config, FunctionSchedules functionSchedules)
-    {
-        return new SyncConfigMutable
-        {
-            CriticalUpdatesIntervalHours = config.CriticalUpdatesIntervalHours,
-            ComprehensiveUpdatesIntervalHours = config.ComprehensiveUpdatesIntervalHours,
-            ContentSyncIntervalHours = config.ContentSyncIntervalHours,
-            MaintenanceIntervalHours = config.MaintenanceIntervalHours,
-            HealthCheckIntervalMinutes = config.HealthCheckIntervalMinutes,
-            
-            // Parse TimeSpan schedules from string values
-            HourlyHealthCheckSchedule = ParseTimeSpan(functionSchedules.HourlyHealthCheckSchedule, TimeSpan.FromHours(1)),
-            DailyCriticalSyncSchedule = ParseTimeSpan(functionSchedules.DailyCriticalSyncSchedule, TimeSpan.FromHours(24)),
-            WeeklyComprehensiveSyncSchedule = ParseTimeSpan(functionSchedules.WeeklyComprehensiveSyncSchedule, TimeSpan.FromDays(7)),
-            MonthlyMaintenanceSchedule = ParseTimeSpan(functionSchedules.MonthlyMaintenanceSchedule, TimeSpan.FromDays(30)),
-            ScheduledHealthCheckSchedule = ParseTimeSpan(functionSchedules.ScheduledHealthCheckSchedule, TimeSpan.FromHours(1)),
-            WeeklyMaintenanceSchedule = ParseTimeSpan(functionSchedules.WeeklyMaintenanceSchedule, TimeSpan.FromDays(7)),
-            SyncMetadataComprehensiveSchedule = ParseTimeSpan(functionSchedules.SyncMetadataComprehensiveSchedule, TimeSpan.FromHours(24)),
-            SyncMetadataCriticalSchedule = ParseTimeSpan(functionSchedules.SyncMetadataCriticalSchedule, TimeSpan.FromHours(4)),
-            SyncContentSchedule = ParseTimeSpan(functionSchedules.SyncContentSchedule, TimeSpan.FromDays(7)),
-            AnomalyDetectionIntervalMinutes = ParseTimeSpan(functionSchedules.AnomalyDetectionSchedule, TimeSpan.FromMinutes(30)).TotalMinutes
-        };
-    }
+        // Get the path to the Configuration project's shared settings
+        var configurationAssembly = Assembly.GetAssembly(typeof(AppConfig));
+        var configDirectory = Path.GetDirectoryName(configurationAssembly?.Location) ?? throw new InvalidOperationException("Cannot locate Configuration assembly");
+        var sharedPath = Path.Combine(configDirectory, "shared");
 
-    /// <summary>
-    /// Converts a mutable SyncConfigMutable class to an immutable SyncConfiguration record.
-    /// </summary>
-    /// <param name="config">The mutable sync configuration.</param>
-    /// <returns>An immutable sync configuration with the same values.</returns>
-    public static SyncConfiguration ToImmutable(this SyncConfigMutable config)
-    {
-        return new SyncConfiguration
+        // Load defaults first (base configuration)
+        var defaultsPath = Path.Combine(sharedPath, "appsettings.defaults.json");
+        if (File.Exists(defaultsPath))
         {
-            CriticalUpdatesIntervalHours = config.CriticalUpdatesIntervalHours,
-            ComprehensiveUpdatesIntervalHours = config.ComprehensiveUpdatesIntervalHours,
-            ContentSyncIntervalHours = config.ContentSyncIntervalHours,
-            MaintenanceIntervalHours = config.MaintenanceIntervalHours,
-            HealthCheckIntervalMinutes = config.HealthCheckIntervalMinutes
-        };
-    }
-
-    /// <summary>
-    /// Converts an immutable StorageConfiguration record to a mutable StorageConfigMutable class.
-    /// </summary>
-    /// <param name="config">The immutable storage configuration.</param>
-    /// <returns>A mutable storage configuration with the same values.</returns>
-    public static StorageConfigMutable ToMutable(this StorageConfiguration config)
-    {
-        return new StorageConfigMutable
-        {
-            MetadataStorePath = config.MetadataStorePath,
-            ContentStorePath = config.ContentStorePath,
-            EnableContentStorage = config.EnableContentStorage,
-            ReindexOnStartup = config.ReindexOnStartup
-        };
-    }
-
-    /// <summary>
-    /// Converts a mutable StorageConfigMutable class to an immutable StorageConfiguration record.
-    /// </summary>
-    /// <param name="config">The mutable storage configuration.</param>
-    /// <param name="useAzureStorageForMetadata">Whether Azure Storage is being used.</param>
-    /// <param name="useAzureStorageForContent">Whether Azure Storage is being used.</param>
-    /// <param name="metadataContainerName">The metadata container name for Azure Storage.</param>
-    /// <param name="contentContainerName">The content container name for Azure Storage.</param>
-    /// <param name="contentPathPrefix">The content path prefix for Azure Storage blob paths.</param>
-    /// <returns>An immutable storage configuration with the same values.</returns>
-    public static StorageConfiguration ToImmutable(this StorageConfigMutable config, 
-        bool useAzureStorageForMetadata = false,
-        bool useAzureStorageForContent = false,
-        string metadataContainerName = "metadata", 
-        string contentContainerName = "content",
-        string contentPathPrefix = "")
-    {
-        return new StorageConfiguration
-        {
-            MetadataStorePath = config.MetadataStorePath,
-            ContentStorePath = config.ContentStorePath,
-            EnableContentStorage = config.EnableContentStorage,
-            ReindexOnStartup = config.ReindexOnStartup,
-            UseAzureStorageForMetadata = useAzureStorageForMetadata,
-            UseAzureStorageForContent = useAzureStorageForContent,
-            MetadataContainerName = metadataContainerName,
-            ContentContainerName = contentContainerName,
-            ContentPathPrefix = contentPathPrefix
-        };
-    }
-
-    /// <summary>
-    /// Converts an immutable FeatureFlags record to a mutable FeatureConfigMutable class.
-    /// </summary>
-    /// <param name="config">The immutable feature flags.</param>
-    /// <returns>A mutable feature configuration with the same values.</returns>
-    public static FeatureConfigMutable ToMutable(this FeatureFlags config)
-    {
-        return new FeatureConfigMutable
-        {
-            EnableScheduledSync = config.EnableScheduledSync,
-            EnableContentSync = config.EnableContentSync,
-            EnableHealthMonitoring = config.EnableHealthMonitoring,
-            EnableMetadataExport = config.EnableMetadataExport,
-            EnableDriverMatching = config.EnableDriverMatching
-        };
-    }
-
-    /// <summary>
-    /// Converts a mutable FeatureConfigMutable class to an immutable FeatureFlags record.
-    /// </summary>
-    /// <param name="config">The mutable feature configuration.</param>
-    /// <param name="useAzureStorageForMetadata">Whether Azure Storage is being used.</param>
-    /// <param name="useAzureStorageForContent">Whether Azure Storage is being used.</param>
-    /// <returns>An immutable feature flags with the same values.</returns>
-    public static FeatureFlags ToImmutable(this FeatureConfigMutable config, bool useAzureStorageForMetadata = false, bool useAzureStorageForContent = false)
-    {
-        return new FeatureFlags
-        {
-            UseAzureStorageForMetadata = useAzureStorageForMetadata,
-            UseAzureStorageForContent = useAzureStorageForContent,
-            EnableScheduledSync = config.EnableScheduledSync,
-            EnableContentSync = config.EnableContentSync,
-            EnableHealthMonitoring = config.EnableHealthMonitoring,
-            EnableMetadataExport = config.EnableMetadataExport,
-            EnableDriverMatching = config.EnableDriverMatching
-        };
-    }
-
-    /// <summary>
-    /// Creates a FunctionSchedules record from TimeSpan values in a mutable sync configuration.
-    /// </summary>
-    /// <param name="config">The mutable sync configuration containing TimeSpan schedules.</param>
-    /// <returns>A FunctionSchedules record with string representations of the TimeSpan values.</returns>
-    public static FunctionSchedules ToFunctionSchedules(this SyncConfigMutable config)
-    {
-        return new FunctionSchedules
-        {
-            HourlyHealthCheckSchedule = config.HourlyHealthCheckSchedule.ToString(@"hh\:mm\:ss"),
-            DailyCriticalSyncSchedule = config.DailyCriticalSyncSchedule.ToString(@"d\.hh\:mm\:ss"),
-            WeeklyComprehensiveSyncSchedule = config.WeeklyComprehensiveSyncSchedule.ToString(@"d\.hh\:mm\:ss"),
-            MonthlyMaintenanceSchedule = config.MonthlyMaintenanceSchedule.ToString(@"d\.hh\:mm\:ss"),
-            ScheduledHealthCheckSchedule = config.ScheduledHealthCheckSchedule.ToString(@"hh\:mm\:ss"),
-            WeeklyMaintenanceSchedule = config.WeeklyMaintenanceSchedule.ToString(@"d\.hh\:mm\:ss"),
-            SyncMetadataComprehensiveSchedule = config.SyncMetadataComprehensiveSchedule.ToString(@"d\.hh\:mm\:ss"),
-            SyncMetadataCriticalSchedule = config.SyncMetadataCriticalSchedule.ToString(@"hh\:mm\:ss"),
-            SyncContentSchedule = config.SyncContentSchedule.ToString(@"d\.hh\:mm\:ss"),
-            AnomalyDetectionSchedule = TimeSpan.FromMinutes(config.AnomalyDetectionIntervalMinutes).ToString(@"hh\:mm\:ss")
-        };
-    }
-
-    /// <summary>
-    /// Parses a TimeSpan from a string value with a fallback default value.
-    /// </summary>
-    /// <param name="value">The string value to parse.</param>
-    /// <param name="defaultValue">The default value to use if parsing fails.</param>
-    /// <returns>The parsed TimeSpan or the default value.</returns>
-    private static TimeSpan ParseTimeSpan(string value, TimeSpan defaultValue)
-    {
-        if (TimeSpan.TryParse(value, out var result))
-        {
-            return result;
+            configBuilder.AddJsonFile(defaultsPath, optional: false, reloadOnChange: false);
         }
-        return defaultValue;
+
+        // Load environment-specific shared configuration
+        var sharedEnvPath = Path.Combine(sharedPath, $"appsettings.{environment}.json");
+        if (File.Exists(sharedEnvPath))
+        {
+            configBuilder.AddJsonFile(sharedEnvPath, optional: true, reloadOnChange: false);
+        }
+
+        // Add any additional configuration (project-specific overrides)
+        if (additionalConfiguration != null)
+        {
+            configBuilder.AddConfiguration(additionalConfiguration);
+        }
+
+        var configuration = configBuilder.Build();
+
+        // Bind to AppConfig and register
+        var appConfig = new AppConfig();
+        configuration.Bind(appConfig);
+        appConfig.Validate();
+
+        services.AddSingleton(appConfig);
+
+        return services;
+    }
+
+    /// <summary>
+    /// Adds AppConfig to the service collection with a pre-configured instance.
+    /// Useful for testing or when configuration comes from sources other than appsettings.json.
+    /// </summary>
+    /// <param name="services">The service collection</param>
+    /// <param name="appConfig">The pre-configured AppConfig instance</param>
+    /// <returns>The service collection for chaining</returns>
+    public static IServiceCollection AddAppConfiguration(this IServiceCollection services, AppConfig appConfig)
+    {
+        appConfig.Validate();
+        services.AddSingleton(appConfig);
+        return services;
+    }
+
+    /// <summary>
+    /// Adds AppConfig to the service collection using a configuration delegate.
+    /// Useful for programmatic configuration.
+    /// </summary>
+    /// <param name="services">The service collection</param>
+    /// <param name="configureOptions">The configuration delegate</param>
+    /// <returns>The service collection for chaining</returns>
+    public static IServiceCollection AddAppConfiguration(this IServiceCollection services, Action<AppConfig> configureOptions)
+    {
+        var appConfig = new AppConfig();
+        configureOptions(appConfig);
+
+        appConfig.Validate();
+        services.AddSingleton(appConfig);
+
+        return services;
     }
 }
 
 /// <summary>
-/// Extension methods for building configuration from IConfiguration sources.
+/// Extension methods for working with AppConfig instances.
 /// </summary>
-public static class ConfigurationBuilderExtensions
+public static class AppConfigExtensions
 {
     /// <summary>
-    /// Builds a ServiceConfiguration from IConfiguration settings.
+    /// Converts a schedule string to a TimeSpan.
+    /// Supports formats like "02:00:00" and "1.02:00:00".
     /// </summary>
-    /// <param name="configuration">The configuration source.</param>
-    /// <returns>A fully populated ServiceConfiguration.</returns>
-    public static ServiceConfiguration BuildServiceConfiguration(this IConfiguration configuration)
+    /// <param name="scheduleString">The schedule string</param>
+    /// <returns>The parsed TimeSpan</returns>
+    public static TimeSpan ParseSchedule(this string scheduleString)
     {
-        var storageConfig = configuration.GetSection("Storage");
-        var serviceConfig = configuration.GetSection("Service");
-        var syncConfig = configuration.GetSection("Sync");
-        var featuresConfig = configuration.GetSection("Features");
-        var functionSchedulesConfig = configuration.GetSection("FunctionSchedules");
+        if (string.IsNullOrWhiteSpace(scheduleString))
+            throw new ArgumentException("Schedule string cannot be null or empty", nameof(scheduleString));
 
-        var useAzureStorageForMetadata = storageConfig.GetValue<bool>("UseAzureStorageForMetadata");
-        var useAzureStorageForContent = storageConfig.GetValue<bool>("UseAzureStorageForContent");
-        var metadataStorePath = storageConfig["MetadataStorePath"] ?? "./store";
-        var contentStorePath = storageConfig["ContentStorePath"] ?? "./content";
-        var serviceUrl = serviceConfig["ServiceUrl"] ?? "http://localhost:7071";
+        if (TimeSpan.TryParse(scheduleString, out var timeSpan))
+            return timeSpan;
 
-        return new ServiceConfiguration
+        throw new ArgumentException($"Invalid schedule format: {scheduleString}", nameof(scheduleString));
+    }
+
+    /// <summary>
+    /// Gets the effective metadata storage type based on configuration.
+    /// </summary>
+    /// <param name="config">The AppConfig instance</param>
+    /// <returns>The storage type description</returns>
+    public static string GetMetadataStorageType(this AppConfig config)
+    {
+        return config.UseAzureStorageForMetadata ? "Azure Blob Storage" : "Local File System";
+    }
+
+    /// <summary>
+    /// Gets the effective content storage type based on configuration.
+    /// </summary>
+    /// <param name="config">The AppConfig instance</param>
+    /// <returns>The storage type description</returns>
+    public static string GetContentStorageType(this AppConfig config)
+    {
+        return config.UseAzureStorageForContent ? "Azure Blob Storage" : "Local File System";
+    }
+
+    /// <summary>
+    /// Creates a summary of the current configuration for logging/debugging.
+    /// </summary>
+    /// <param name="config">The AppConfig instance</param>
+    /// <returns>A formatted configuration summary</returns>
+    public static string GetConfigurationSummary(this AppConfig config)
+    {
+        return $@"Microsoft Update Server Configuration:
+  Service URL: {config.ServiceUrl}
+  Content URL: {config.ContentUrl}
+  Max Updates: {config.MaxUpdateCount}
+  Categories: {string.Join(", ", config.SupportedCategories)}
+  Languages: {string.Join(", ", config.SupportedLanguages)}
+  
+  Storage:
+    Metadata: {config.GetMetadataStorageType()} ({config.MetadataPath})
+    Content: {config.GetContentStorageType()} ({config.ContentPath})
+    Metadata Container: {config.MetadataContainerName}
+    Content Container: {config.ContentContainerName}
+    Reindex on Startup: {config.ReindexOnStartup}
+  
+  Schedules:
+    Critical Sync: {config.SyncCriticalSchedule}
+    Comprehensive Sync: {config.SyncComprehensiveSchedule}
+    Content Sync: {config.SyncContentSchedule}
+    Health Check: {config.ScheduledHealthCheckSchedule}
+    Maintenance: {config.MaintenanceSchedule}
+    Weekly Maintenance: {config.WeeklyMaintenanceSchedule}
+    Anomaly Detection: {config.AnomalyDetectionSchedule}
+  
+  Features:
+    Scheduled Sync: {config.EnableScheduledSync}
+    Detailed Logging: {config.EnableDetailedLogging}
+    Metrics: {config.EnableMetrics}
+    Caching: {config.EnableCaching}";
+    }
+}
+
+/// <summary>
+/// Extension methods for IConfigurationBuilder to add shared configuration files.
+/// </summary>
+public static class SharedConfigurationExtensions
+{
+    /// <summary>
+    /// Adds shared configuration files from the Configuration project to the configuration builder.
+    /// Loads: defaults -> shared overrides -> environment-specific overrides.
+    /// </summary>
+    /// <param name="builder">The configuration builder</param>
+    /// <returns>The configuration builder for chaining</returns>
+    public static IConfigurationBuilder AddSharedAppConfiguration(this IConfigurationBuilder builder)
+    {
+        // Get the Configuration assembly location
+        var configAssembly = typeof(ConfigurationServiceExtensions).Assembly;
+        var baseDirectory = Path.GetDirectoryName(configAssembly.Location)
+            ?? throw new InvalidOperationException("Could not determine assembly directory");
+
+        var sharedPath = Path.Combine(baseDirectory, "shared");
+
+        // Load configuration files in order: defaults -> shared overrides -> environment overrides  
+        var defaultsPath = Path.Combine(sharedPath, "appsettings.defaults.json");
+        if (File.Exists(defaultsPath))
         {
-            ServiceUrl = serviceUrl,
-            ContentUrl = $"{serviceUrl}/api/content",
-            MaxUpdateCount = serviceConfig.GetValue<int>("MaxUpdateCount", 1000),
-            SupportedCategories = serviceConfig.GetSection("SupportedCategories").Get<string[]>()
-                ?? new[] { "Security Updates", "Critical Updates", "Feature Packs", "Updates", "Drivers" },
-            SupportedLanguages = serviceConfig.GetSection("SupportedLanguages").Get<string[]>()
-                ?? new[] { "en", "en-US", "neutral", "" },
+            builder.AddJsonFile(defaultsPath, optional: false, reloadOnChange: true);
+        }
 
-            SyncConfiguration = new SyncConfiguration
-            {
-                CriticalUpdatesIntervalHours = syncConfig.GetValue<int>("CriticalUpdatesIntervalHours", 4),
-                ComprehensiveUpdatesIntervalHours = syncConfig.GetValue<int>("ComprehensiveUpdatesIntervalHours", 24),
-                ContentSyncIntervalHours = syncConfig.GetValue<int>("ContentSyncIntervalHours", 168),
-                MaintenanceIntervalHours = syncConfig.GetValue<int>("MaintenanceIntervalHours", 168),
-                HealthCheckIntervalMinutes = syncConfig.GetValue<int>("HealthCheckIntervalMinutes", 60)
-            },
+        var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Development";
+        var environmentFile = Path.Combine(sharedPath, $"appsettings.{environment}.json");
+        if (File.Exists(environmentFile))
+        {
+            builder.AddJsonFile(environmentFile, optional: true, reloadOnChange: true);
+        }
 
-            StorageConfiguration = new StorageConfiguration
-            {
-                MetadataStorePath = metadataStorePath,
-                ContentStorePath = contentStorePath,
-                EnableContentStorage = !string.IsNullOrEmpty(contentStorePath),
-                ReindexOnStartup = featuresConfig.GetValue<bool>("ReindexOnStartup", false),
-                UseAzureStorageForMetadata = useAzureStorageForMetadata,
-                UseAzureStorageForContent = useAzureStorageForContent,
-                MetadataContainerName = storageConfig["MetadataContainerName"] ?? "metadata",
-                ContentContainerName = storageConfig["ContentContainerName"] ?? "content",
-                ContentPathPrefix = storageConfig["ContentPathPrefix"] ?? ""
-            },
-
-            FeatureFlags = new FeatureFlags
-            {
-                UseAzureStorageForMetadata = useAzureStorageForMetadata,
-                UseAzureStorageForContent = useAzureStorageForContent,
-                EnableScheduledSync = featuresConfig.GetValue<bool>("EnableScheduledSync", true),
-                EnableContentSync = featuresConfig.GetValue<bool>("EnableContentSync", true),
-                EnableHealthMonitoring = featuresConfig.GetValue<bool>("EnableHealthMonitoring", true),
-                EnableMetadataExport = featuresConfig.GetValue<bool>("EnableMetadataExport", true),
-                EnableDriverMatching = featuresConfig.GetValue<bool>("EnableDriverMatching", true)
-            },
-
-            FunctionSchedules = new FunctionSchedules
-            {
-                HourlyHealthCheckSchedule = functionSchedulesConfig["HourlyHealthCheckSchedule"] ?? "01:00:00",
-                DailyCriticalSyncSchedule = functionSchedulesConfig["DailyCriticalSyncSchedule"] ?? "1.00:00:00",
-                WeeklyComprehensiveSyncSchedule = functionSchedulesConfig["WeeklyComprehensiveSyncSchedule"] ?? "7.00:00:00",
-                MonthlyMaintenanceSchedule = functionSchedulesConfig["MonthlyMaintenanceSchedule"] ?? "30.00:00:00",
-                ScheduledHealthCheckSchedule = functionSchedulesConfig["ScheduledHealthCheckSchedule"] ?? "01:00:00",
-                WeeklyMaintenanceSchedule = functionSchedulesConfig["WeeklyMaintenanceSchedule"] ?? "7.00:00:00",
-                SyncMetadataComprehensiveSchedule = functionSchedulesConfig["SyncMetadataComprehensiveSchedule"] ?? "1.00:00:00",
-                SyncMetadataCriticalSchedule = functionSchedulesConfig["SyncMetadataCriticalSchedule"] ?? "04:00:00",
-                SyncContentSchedule = functionSchedulesConfig["SyncContentSchedule"] ?? "7.00:00:00",
-                AnomalyDetectionSchedule = functionSchedulesConfig["AnomalyDetectionSchedule"] ?? "00:30:00"
-            }
-        };
+        return builder;
     }
 }

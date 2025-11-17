@@ -5,8 +5,8 @@ namespace UpdateEngineTest.Functions;
 
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using UpdateEngine.Functions;
 using UpdateEngine.Services;
 using Configuration;
@@ -28,6 +28,7 @@ public class MetadataSyncFunctionsTest
     private readonly Mock<ILogger<UnifiedSyncFunctions>> loggerMock;
     private readonly Mock<ISyncService> syncServiceMock;
     private readonly Mock<IContentStore> contentStoreMock;
+    private readonly Mock<IConfiguration> configurationMock;
     private readonly JsonSerializerOptions jsonOptions;
     private readonly UnifiedSyncFunctions functions;
 
@@ -36,18 +37,17 @@ public class MetadataSyncFunctionsTest
         this.loggerMock = new Mock<ILogger<UnifiedSyncFunctions>>();
         this.syncServiceMock = new Mock<ISyncService>();
         this.contentStoreMock = new Mock<IContentStore>();
+        this.configurationMock = new Mock<IConfiguration>();
         this.jsonOptions = new JsonSerializerOptions 
         { 
             PropertyNameCaseInsensitive = true,
             WriteIndented = true 
         };
-        var mockConfiguration = new Mock<IConfiguration>();
-
         this.functions = new UnifiedSyncFunctions(
             this.loggerMock.Object,
             this.syncServiceMock.Object,
             this.jsonOptions,
-            mockConfiguration.Object,
+            this.configurationMock.Object,
             this.contentStoreMock.Object);
     }
 

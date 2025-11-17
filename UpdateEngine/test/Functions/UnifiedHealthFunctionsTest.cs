@@ -191,7 +191,7 @@ public class UnifiedHealthFunctionsTest
             x => x.Log(
                 LogLevel.Information,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("System health check passed")),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("System health check passed")),
                 It.IsAny<Exception>(),
                 It.Is<Func<It.IsAnyType, Exception?, string>>((v, t) => true)),
             Times.Once);
@@ -221,7 +221,7 @@ public class UnifiedHealthFunctionsTest
             x => x.Log(
                 LogLevel.Warning,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("System health issues detected")),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("System health issues detected")),
                 It.IsAny<Exception>(),
                 It.Is<Func<It.IsAnyType, Exception?, string>>((v, t) => true)),
             Times.Once);

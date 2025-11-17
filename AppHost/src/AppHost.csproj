@@ -6,6 +6,7 @@
     <OutputType>Exe</OutputType>
     <IsAspireHost>true</IsAspireHost>
     <Platforms>x64</Platforms>
+    <UserSecretsId>aspire-apphost-update-server</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

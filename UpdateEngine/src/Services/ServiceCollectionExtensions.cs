@@ -20,6 +20,7 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddMicrosoftUpdateServices(this IServiceCollection services, IConfiguration configuration)
     {
+        RegisterJsonSerialization(services);
         RegisterMetadataStore(services, configuration);
         RegisterContentStore(services, configuration);
         RegisterBlobServiceClient(services, configuration);
@@ -36,12 +37,12 @@ public static class ServiceCollectionExtensions
         {
             var logger = provider.GetRequiredService<ILogger<IMetadataStore>>();
             
-            // Production-first: Default to Azure Storage unless explicitly disabled
-            var useLocalStorage = bool.Parse(configuration["UseLocalStorageForMetadata"] ?? "false");
+            // Check configuration for Azure storage usage
+            var useAzureStorage = bool.Parse(configuration["UseAzureStorageForMetadata"] ?? "true");
 
             IMetadataStore store;
 
-            if (!useLocalStorage)
+            if (useAzureStorage)
             {
                 // Azure Blob Storage for metadata (production default)
                 var connectionString = configuration.GetConnectionString("MetadataStorageConnection")
@@ -51,7 +52,7 @@ public static class ServiceCollectionExtensions
                         "Azure storage connection string not found. Set 'MetadataStorageConnection' connection string, " +
                         "'AzureWebJobsStorage', or 'AZURE_STORAGE_CONNECTION_STRING' configuration value.");
 
-                var containerName = configuration["MetadataContainerName"] ?? "metadata";
+                var containerName = configuration["MetadataContainerName"] ?? "data";
 
                 logger.LogInformation(
                     "Initializing Azure Blob metadata store in container: {ContainerName}",
@@ -81,11 +82,11 @@ public static class ServiceCollectionExtensions
             }
             else
             {
-                // Local file system storage for metadata (development fallback)
-                var storePath = configuration["MetadataStorePath"] ?? "./store";
+                // Local file system storage for metadata (when not using Azure)
+                var storePath = configuration["MetadataPath"] ?? "./store";
 
                 logger.LogInformation(
-                    "Using local file system metadata store for development at: {Path}",
+                    "Using local file system metadata store at: {Path}",
                     storePath);
 
                 try
@@ -146,10 +147,10 @@ public static class ServiceCollectionExtensions
                 return null!;
             }
 
-            // Production-first: Default to Azure Storage unless explicitly using local storage
-            var useLocalStorage = bool.Parse(configuration["UseLocalStorageForContent"] ?? "false");
+            // Check configuration for Azure storage usage
+            var useAzureStorage = bool.Parse(configuration["UseAzureStorageForContent"] ?? "true");
 
-            if (!useLocalStorage)
+            if (useAzureStorage)
             {
                 // Azure Blob Storage for content (production default)
                 var connectionString = configuration.GetConnectionString("ContentStorageConnection")
@@ -161,7 +162,7 @@ public static class ServiceCollectionExtensions
                 {
                     // Fallback to local storage if no Azure connection is available
                     logger.LogWarning("No Azure storage connection found - falling back to local content storage");
-                    var localStorePath = configuration["ContentStorePath"] ?? "./content";
+                    var localStorePath = configuration["ContentPath"] ?? "./content";
                     if (!string.IsNullOrEmpty(localStorePath))
                     {
                         var store = new FileSystemContentStore(localStorePath);
@@ -175,8 +176,8 @@ public static class ServiceCollectionExtensions
                     }
                 }
 
-                var containerName = configuration["ContentContainerName"] ?? "content";
-                var pathPrefix = configuration["ContentPathPrefix"] ?? "";
+                var containerName = configuration["ContentContainerName"] ?? "data";
+                var pathPrefix = configuration["ContentPathPrefix"] ?? "Content";
 
                 logger.LogInformation(
                     "Initializing Azure Blob content store in container: {ContainerName}, path prefix: {PathPrefix}",
@@ -209,10 +210,10 @@ public static class ServiceCollectionExtensions
             }
             else
             {
-                // Local file system storage for content (development fallback)
-                var localStorePath = configuration["ContentStorePath"] ?? "./content";
+                // Local file system storage for content (when not using Azure)
+                var localStorePath = configuration["ContentPath"] ?? "./content";
                 logger.LogInformation(
-                    "Using local file system content store for development at: {Path}",
+                    "Using local file system content store at: {Path}",
                     localStorePath);
 
                 try
@@ -415,6 +416,29 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<SimpleAuthenticationWebService>();
         services.AddScoped<AuthenticationWebService>();
+    }
+
+    
+    private static void RegisterJsonSerialization(IServiceCollection services)
+    {
+        // Configure global JSON serialization options for Azure Functions
+        var jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = false,
+            DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+        };
+        
+        // Register as singleton for dependency injection
+        services.AddSingleton(jsonOptions);
+        
+        // Also configure for IOptions<JsonSerializerOptions> if needed
+        services.Configure<JsonSerializerOptions>(opts =>
+        {
+            opts.PropertyNamingPolicy = jsonOptions.PropertyNamingPolicy;
+            opts.WriteIndented = jsonOptions.WriteIndented;
+            opts.DefaultIgnoreCondition = jsonOptions.DefaultIgnoreCondition;
+        });
     }
 
     private static void RegisterAnomalyDetectionServices(IServiceCollection services, IConfiguration configuration)

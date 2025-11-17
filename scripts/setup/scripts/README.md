@@ -12,20 +12,20 @@ This directory contains all automation scripts organized by purpose.
 ## ?? Scripts Index
 
 ### Setup Scripts
-- [Configure-Storage.ps1](setup/Configure-Storage.ps1) - Configure Azure Storage
+- [Configure-Storage.ps1](../setup/Configure-Storage.ps1) - Configure Azure Storage
 
 ### Build Scripts
-- [Validate-Build.ps1](build/Validate-Build.ps1) - Validate build
+- [Validate-Build.ps1](../build/Validate-Build.ps1) - Validate build
 
 ### Test Scripts
-- [Run-InMemoryTests.ps1](test/Run-InMemoryTests.ps1) - Run in-memory tests
-- [Test-Startup.ps1](test/Test-Startup.ps1) - Test application startup
-- [Test-SyncWithDiagnostics.ps1](test/Test-SyncWithDiagnostics.ps1) - Test sync with diagnostics
+- [Run-InMemoryTests.ps1](../test/Run-InMemoryTests.ps1) - Run in-memory tests
+- [Test-Startup.ps1](../test/Test-Startup.ps1) - Test application startup
+- [Test-SyncWithDiagnostics.ps1](../../AppHost/src/Test-SyncWithDiagnostics.ps1) - Test sync with diagnostics
 
 ### Maintenance Scripts
-- [Fix-WCF-ServiceReferences.ps1](maintenance/Fix-WCF-ServiceReferences.ps1) - Fix WCF service references
-- [Regenerate-WCF-Net9.ps1](maintenance/Regenerate-WCF-Net9.ps1) - Regenerate WCF references for .NET 9
-- [Regenerate-WCF-Net9-OfflineFirst.ps1](maintenance/Regenerate-WCF-Net9-OfflineFirst.ps1) - Regenerate WCF (offline mode)
+- [Fix-WCF-ServiceReferences.ps1](../maintenance/Fix-WCF-ServiceReferences.ps1) - Fix WCF service references
+- [Regenerate-WCF-Net9.ps1](../maintenance/Regenerate-WCF-Net9.ps1) - Regenerate WCF references for .NET 9
+- [Regenerate-WCF-Net9-OfflineFirst.ps1](../maintenance/Regenerate-WCF-Net9-OfflineFirst.ps1) - Regenerate WCF (offline mode)
 
 ## ?? Quick Start
 
@@ -42,6 +42,6 @@ This directory contains all automation scripts organized by purpose.
 ./scripts/test/Run-InMemoryTests.ps1
 ```
 
-## ?? Documentation
+## 📖 Documentation
 
-For detailed documentation, see the [docs](../docs/README.md) directory.
+For detailed documentation, see the [docs/guides](../../docs/guides/README.md) directory.

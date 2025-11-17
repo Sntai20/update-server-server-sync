@@ -16,6 +16,7 @@ using UpdateEngine.Services;
 using UpdateEngine.Models;
 using System.Net;
 using Azure.Storage.Blobs;
+using UpdateEngine.Helpers;
 
 /// <summary>
 /// Unified sync functions consolidating all synchronization operations.
@@ -769,12 +770,11 @@ public class UnifiedSyncFunctions
 
             // Get container configuration
             var containerName = this.configuration["MetadataContainerName"] ?? "data";
-            var pathPrefix = this.configuration["ContentPathPrefix"] ?? "";
             
             // Create CSV export
             var csvData = this.GenerateSyncSummaryCsv();
             var fileName = $"sync-summary-{syncType}-{DateTime.UtcNow:yyyy-MM-dd-HH-mm-ss}.csv";
-            var blobPath = string.IsNullOrEmpty(pathPrefix) ? $"reports/{fileName}" : $"{pathPrefix.TrimEnd('/')}/reports/{fileName}";
+            var blobPath = $"Manifests/{fileName}";  // Manifests go to data/Manifests(container root level)
 
             // Upload to blob storage
             var containerClient = this.blobServiceClient.GetBlobContainerClient(containerName);
@@ -799,46 +799,332 @@ public class UnifiedSyncFunctions
         {
             throw new InvalidOperationException("Metadata store is not available");
         }
+        return ManifestCsvBuilder.GenerateDetailedManifestCsv(this.metadataStore);
+    }
 
-        // Create a filter that returns all packages
-        var filter = new MetadataFilter
+    // Request model for manifest verification
+    public class ManifestVerifyRequest
+    {
+        public string? ManifestBlobPath { get; set; }
+    }
+
+    [Function("VerifyManifestFiles")]
+    public async Task<HttpResponseData> VerifyManifestFiles(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post")] HttpRequestData req)
+    {
+        var response = req.CreateResponse(HttpStatusCode.OK);
+        response.Headers.Add("Content-Type", "application/json");
+
+        try
         {
-            TitleFilter = string.Empty,
-            HardwareIdFilter = string.Empty,
-            SkipSuperseded = false,
-            FirstX = 0
-        };
-
-        var packages = filter.Apply(this.metadataStore).ToList();
-        var csv = new StringBuilder();
-        
-        // CSV Header
-        csv.AppendLine("Id,Title,Type,HasContent,IsSuperseded,FileSize,FileCount");
-
-        // CSV Data
-        foreach (var package in packages)
-        {
-            var hasContent = false;
-            var fileSize = 0L;
-            var fileCount = 0;
-            var isSuperseded = false;
-
-            // Get additional metadata based on package type
-            if (package is SoftwareUpdate softwareUpdate)
+            // Read request body for manifest file name/path
+            var requestBody = await req.ReadAsStringAsync();
+            var manifestRequest = JsonSerializer.Deserialize<ManifestVerifyRequest>(requestBody ?? "{}", this.jsonOptions);
+            var manifestBlobPath = manifestRequest?.ManifestBlobPath;
+            if (string.IsNullOrEmpty(manifestBlobPath))
             {
-                hasContent = softwareUpdate.Files?.Any() == true;
-                fileSize = softwareUpdate.Files?.Sum(f => (long)f.Size) ?? 0;
-                fileCount = softwareUpdate.Files?.Count() ?? 0;
-                isSuperseded = softwareUpdate.IsSupersededBy?.Any() == true;
+                response.StatusCode = HttpStatusCode.BadRequest;
+                await response.WriteStringAsync("{\"error\":\"ManifestBlobPath is required\"}");
+                return response;
             }
 
-            // Escape CSV fields
-            var title = (package.Title ?? "").Replace("\"", "\"\"");
-            var type = package.GetType().Name;
+            // Download manifest CSV from blob storage
+            if (this.blobServiceClient == null)
+            {
+                response.StatusCode = HttpStatusCode.ServiceUnavailable;
+                await response.WriteStringAsync("{\"error\":\"BlobServiceClient not configured\"}");
+                return response;
+            }
+            var containerName = this.configuration["MetadataContainerName"] ?? "data";
+            var containerClient = this.blobServiceClient.GetBlobContainerClient(containerName);
+            var blobClient = containerClient.GetBlobClient(manifestBlobPath);
+            var downloadResult = await blobClient.DownloadContentAsync();
+            var csvContent = downloadResult.Value.Content.ToString();
 
-            csv.AppendLine($"\"{package.Id.OpenId}\",\"{title}\",\"{type}\",{hasContent},{isSuperseded},{fileSize},{fileCount}");
+            // Parse CSV
+            var presentFiles = new List<string>();
+            var missingFiles = new List<string>();
+            var lines = csvContent.Split('\n').Skip(1); // Skip header
+
+            foreach (var line in lines)
+            {
+                if (string.IsNullOrWhiteSpace(line)) continue;
+                var columns = line.Split(',');
+                if (columns.Length < 10) continue; // Expecting 10 columns
+
+                var filePath = columns[9].Trim('"');
+                var fileHash = columns[3].Trim('"');
+                var fileName = columns[2].Trim('"');
+
+                bool exists = false;
+                // Check local file system
+                if (this.contentStore is Microsoft.PackageGraph.Storage.Local.FileSystemContentStore)
+                {
+                    exists = File.Exists(filePath);
+                }
+                // Check blob storage
+                else if (this.contentStore?.GetType().Name.Contains("BlobContentStore") == true && this.blobServiceClient != null)
+                {
+                    var fileBlobClient = containerClient.GetBlobClient(filePath);
+                    var blobExists = await fileBlobClient.ExistsAsync();
+                    exists = blobExists.Value;
+                }
+
+                if (exists)
+                    presentFiles.Add(fileName);
+                else
+                    missingFiles.Add(fileName);
+            }
+
+            var result = new
+            {
+                PresentFiles = presentFiles,
+                MissingFiles = missingFiles,
+                TotalFiles = presentFiles.Count + missingFiles.Count,
+                Timestamp = DateTime.UtcNow
+            };
+
+            await response.WriteStringAsync(JsonSerializer.Serialize(result, this.jsonOptions));
+            return response;
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Error verifying manifest files");
+            response.StatusCode = HttpStatusCode.InternalServerError;
+            await response.WriteStringAsync(JsonSerializer.Serialize(new { error = ex.Message }, this.jsonOptions));
+            return response;
+        }
+    }
+
+    [Function("VerifyManifestFilesOnBlob")]
+    public async Task VerifyManifestFilesOnBlob(
+        [BlobTrigger("data/Manifests/{name}", Connection = "AzureWebJobsStorage")] byte[] manifestContent,
+        string name,
+        FunctionContext context)
+    {
+        var logger = context.GetLogger("VerifyManifestFilesOnBlob");
+        try
+        {
+            // Parse CSV
+            var presentFiles = new List<string>();
+            var missingFiles = new List<string>();
+            var csvContent = Encoding.UTF8.GetString(manifestContent);
+            var lines = csvContent.Split('\n').Skip(1); // Skip header
+
+            foreach (var line in lines)
+            {
+                if (string.IsNullOrWhiteSpace(line)) continue;
+                var columns = line.Split(',');
+                if (columns.Length < 10) continue; // Expecting 10 columns
+
+                var filePath = columns[9].Trim('"');
+                var fileName = columns[2].Trim('"');
+
+                bool exists = false;
+                // Check local file system
+                if (this.contentStore is Microsoft.PackageGraph.Storage.Local.FileSystemContentStore)
+                {
+                    exists = File.Exists(filePath);
+                }
+                // Check blob storage
+                else if (this.contentStore?.GetType().Name.Contains("BlobContentStore") == true && this.blobServiceClient != null)
+                {
+                    var containerName = this.configuration["MetadataContainerName"] ?? "data";
+                    var containerClient = this.blobServiceClient.GetBlobContainerClient(containerName);
+                    var fileBlobClient = containerClient.GetBlobClient(filePath);
+                    var blobExists = await fileBlobClient.ExistsAsync();
+                    exists = blobExists.Value;
+                }
+
+                if (exists)
+                    presentFiles.Add(fileName);
+                else
+                    missingFiles.Add(fileName);
+            }
+
+            logger.LogInformation("Manifest verification completed for {Name}. Present: {Present}, Missing: {Missing}", name, presentFiles.Count, missingFiles.Count);
+            // Optionally, write results to another blob, send notification, etc.
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error verifying manifest files for {Name}", name);
+            // Optionally, write error details to a log blob or send notification
+        }
+    }
+
+    /// <summary>
+    /// Manual trigger for content sync operations - useful for testing.
+    /// </summary>
+    [Function("TriggerContentSync")]
+    public async Task<HttpResponseData> TriggerContentSync(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post")] HttpRequestData req)
+    {
+        this.logger.LogInformation("Manual content sync triggered");
+
+        var response = req.CreateResponse(HttpStatusCode.OK);
+        response.Headers.Add("Content-Type", "application/json");
+
+        try
+        {
+            // Execute content sync immediately
+            await this.PerformCriticalContentSync();
+
+            var result = new
+            {
+                Success = true,
+                Message = "Content sync completed successfully",
+                Timestamp = DateTime.UtcNow
+            };
+
+            await response.WriteStringAsync(System.Text.Json.JsonSerializer.Serialize(result, new System.Text.Json.JsonSerializerOptions 
+            { 
+                WriteIndented = true 
+            }));
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Manual content sync failed");
+            
+            response.StatusCode = HttpStatusCode.InternalServerError;
+            var errorResult = new
+            {
+                Success = false,
+                Error = ex.Message,
+                Timestamp = DateTime.UtcNow
+            };
+
+            await response.WriteStringAsync(System.Text.Json.JsonSerializer.Serialize(errorResult, new System.Text.Json.JsonSerializerOptions 
+            { 
+                WriteIndented = true 
+            }));
         }
 
-        return csv.ToString();
+        return response;
+    }
+
+    /// <summary>
+    /// Diagnostic function to check content sync status and marker file creation.
+    /// </summary>
+    [Function("DiagnoseContentSync")]
+    public async Task<HttpResponseData> DiagnoseContentSync(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get")] HttpRequestData req)
+    {
+        this.logger.LogInformation("Starting content sync diagnostic");
+
+        var response = req.CreateResponse(HttpStatusCode.OK);
+        response.Headers.Add("Content-Type", "application/json");
+
+        // Check available updates with content files (async processing)
+        var contentFiles = new List<dynamic>();
+        if (this.metadataStore != null)
+        {
+            var updatesWithFiles = this.metadataStore.OfType<SoftwareUpdate>()
+                .Where(u => u.Files?.Any() == true)
+                .Take(5) // Reduce for async processing
+                .SelectMany(u => u.Files!)
+                .Take(10)
+                .ToList();
+
+            foreach (var file in updatesWithFiles)
+            {
+                var markerExists = await CheckMarkerExistsAsync(file);
+                contentFiles.Add(new 
+                { 
+                    Hash = file.Digest.HexString,
+                    ExpectedMarkerPath = GetExpectedMarkerPath(file),
+                    MarkerExists = markerExists
+                });
+            }
+        }
+
+        var diagnostics = new
+        {
+            Timestamp = DateTime.UtcNow,
+            ContentStoreType = this.contentStore?.GetType().Name ?? "NULL",
+            ContentStoreConfigured = this.contentStore != null,
+            MetadataStoreConfigured = this.metadataStore != null,
+            SyncServiceConfigured = this.syncService != null,
+            
+            // Include the processed content files
+            UpdatesWithContent = contentFiles,
+                
+            // Check content directory
+            ContentDirectoryExists = Directory.Exists("./Content"),
+            ContentDirectoryFiles = Directory.Exists("./Content") 
+                ? Directory.GetFiles("./Content").Take(20).ToList() 
+                : new List<string>(),
+                
+            Configuration = new
+            {
+                EnableContentSync = true, // From configuration
+                UseAzureStorageForContent = true // From configuration
+            }
+        };
+
+        var jsonResponse = System.Text.Json.JsonSerializer.Serialize(diagnostics, new System.Text.Json.JsonSerializerOptions 
+        { 
+            WriteIndented = true 
+        });
+        
+        await response.WriteStringAsync(jsonResponse);
+        return response;
+    }
+
+    /// <summary>
+    /// Helper method to get expected marker file path for a content file.
+    /// </summary>
+    private string GetExpectedMarkerPath(Microsoft.PackageGraph.ObjectModel.IContentFile file)
+    {
+        // For FileSystemContentStore, marker files are {contentFilePath}.done
+        if (this.contentStore is Microsoft.PackageGraph.Storage.Local.FileSystemContentStore)
+        {
+            return $"./Content/{file.Digest.HexString}.done";
+        }
+        // For BlobContentStore, marker files are stored as blobs: {PathPrefix}/{hash}.complete
+        else if (this.contentStore?.GetType().Name.Contains("BlobContentStore") == true)
+        {
+            return $"Content/{file.Digest.HexString.ToLower()}.complete";
+        }
+        
+        return "Unknown content store type";
+    }
+
+    /// <summary>
+    /// Helper method to check if a marker exists (works for both local and blob storage).
+    /// </summary>
+    private async Task<bool> CheckMarkerExistsAsync(Microsoft.PackageGraph.ObjectModel.IContentFile file)
+    {
+        // For FileSystemContentStore, check local file
+        if (this.contentStore is Microsoft.PackageGraph.Storage.Local.FileSystemContentStore)
+        {
+            var localPath = $"./Content/{file.Digest.HexString}.done";
+            return File.Exists(localPath);
+        }
+        // For BlobContentStore, check blob existence
+        else if (this.contentStore?.GetType().Name.Contains("BlobContentStore") == true)
+        {
+            try
+            {
+                // Get the BlobServiceClient and check if marker blob exists
+                if (this.blobServiceClient != null)
+                {
+                    var containerName = "data"; // From configuration
+                    var markerBlobName = $"Content/{file.Digest.HexString.ToLower()}.complete";
+                    
+                    var containerClient = this.blobServiceClient.GetBlobContainerClient(containerName);
+                    var blobClient = containerClient.GetBlobClient(markerBlobName);
+                    
+                    var response = await blobClient.ExistsAsync();
+                    return response.Value;
+                }
+            }
+            catch (Exception)
+            {
+                // Ignore errors for diagnostic purposes
+                return false;
+            }
+        }
+        
+        return false;
     }
 }

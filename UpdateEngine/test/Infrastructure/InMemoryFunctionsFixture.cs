@@ -4,6 +4,7 @@
 namespace UpdateEngineTest.Infrastructure;
 
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.PackageGraph.Storage;
 using Microsoft.PackageGraph.Storage.Local;
@@ -50,80 +51,39 @@ public class InMemoryFunctionsFixture : IAsyncLifetime
             return store;
         });
 
-        // Content store is optional - explicitly register as nullable
-        // Using a factory that returns null to satisfy the nullability constraint
-        services.AddSingleton<IContentStore?>(sp => null as IContentStore);
+        // Content store is optional - register as nullable
+        services.AddSingleton<IContentStore>(sp => null!);
 
-        // Add simplified configuration options
-        services.Configure<UpdateServerOptions>(options =>
+        // Create in-memory configuration with AppConfig settings  
+        var configDictionary = new Dictionary<string, string>()
         {
-            options.ServiceUrl = "http://localhost:7071";
-            options.ContentUrl = "http://localhost:7071/api/content";
-            options.MaxUpdateCount = 1000;
-            options.SupportedCategories = new[] { "Security Updates", "Critical Updates" };
-        });
-        
-        services.Configure<StorageOptions>(options =>
-        {
-            options.MetadataPath = "./store";
-            options.ContentPath = "./content";
-            options.UseAzureStorageForMetadata = false;
-            options.UseAzureStorageForContent = false;
-            options.MetadataContainerName = "data";
-            options.ContentContainerName = "data";
-            options.ReindexOnStartup = false;
-        });
-        
-        services.Configure<FeatureOptions>(options =>
-        {
-            options.EnableScheduledSync = true;
-            options.EnableContentSync = false;
-            options.EnableHealthMonitoring = true;
-            options.EnableMetadataExport = false;
-            options.EnableDriverMatching = false;
-            options.EnableAnomalyDetection = false;
-        });
-        
-        services.Configure<SyncOptions>(options =>
-        {
-            options.CriticalUpdatesIntervalHours = 24;
-            options.ComprehensiveUpdatesIntervalHours = 168;
-            options.ContentSyncIntervalHours = 1;
-            options.MaintenanceIntervalHours = 720;
-            options.HealthCheckIntervalMinutes = 60;
-        });
+            ["MetadataStorePath"] = this.tempStorePath,
+            ["ContentStorePath"] = this.tempStorePath,
+            ["ServiceUrl"] = "http://localhost:7071",
+            ["HealthCheckIntervalMinutes"] = "5",
+            ["SyncIntervalMinutes"] = "60",
+            ["EmergencySyncIntervalMinutes"] = "15",
+            ["MaintenanceIntervalHours"] = "6",
+            ["DeepHealthCheckIntervalHours"] = "24",
+            ["AnomalyDetectionCooldownMinutes"] = "30",
+            ["ContentSyncBatchSize"] = "50",
+            ["EnableScheduledSync"] = "true",
+            ["EnableEmergencySync"] = "true",
+            ["EnableMaintenance"] = "true",
+            ["EnableDeepHealthCheck"] = "true",
+            ["EnableAnomalyDetection"] = "false"
+        };
 
-        // Backward compatibility: Add legacy ServiceConfiguration for tests that still need it
-        services.AddSingleton(new ServiceConfigurationMutable
-        {
-            ServiceUrl = "http://localhost:7071",
-            ContentUrl = "http://localhost:7071/api/content",
-            MaxUpdateCount = 1000,
-            SupportedCategories = new[] { "Security Updates", "Critical Updates" },
-            SyncConfiguration = new SyncConfigMutable
-            {
-                CriticalUpdatesIntervalHours = 24,
-                ComprehensiveUpdatesIntervalHours = 168,
-                ContentSyncIntervalHours = 1,
-                MaintenanceIntervalHours = 720,
-                HealthCheckIntervalMinutes = 60
-            },
-            StorageConfiguration = new StorageConfigMutable
-            {
-                MetadataStorePath = "./store",
-                ContentStorePath = "./content",
-                EnableContentStorage = false,
-                ReindexOnStartup = false
-            },
-            FeatureFlags = new FeatureConfigMutable
-            {
-                EnableScheduledSync = true,
-                EnableContentSync = false,
-                EnableHealthMonitoring = true,
-                EnableMetadataExport = false,
-                EnableDriverMatching = false
-            }
-        });
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(configDictionary!)
+            .Build();
+
+        services.AddSingleton<IConfiguration>(configuration);
+
+        // Bind AppConfig from configuration
+        var appConfig = new AppConfig();
+        configuration.Bind(appConfig);
+        services.AddSingleton(appConfig);
 
         // Add application services
         services.AddScoped<ISyncService, SyncService>();

@@ -3,8 +3,8 @@
 
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Microsoft.PackageGraph.Storage;
 using Microsoft.PackageGraph.MicrosoftUpdate.Source;
 using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
@@ -34,6 +34,7 @@ public class UnifiedSyncFunctionsTest
     private readonly Mock<IContentStore> _mockContentStore;
     private readonly Mock<IAnomalyDetectionService> _mockAnomalyDetectionService;
     private readonly Mock<IMetadataStore> _mockMetadataStore;
+    private readonly Mock<IConfiguration> _mockConfiguration;
     private readonly UnifiedSyncFunctions _functions;
     private readonly UnifiedSyncFunctions _functionsWithAnomaly;
 
@@ -44,14 +45,14 @@ public class UnifiedSyncFunctionsTest
         this._mockContentStore = new Mock<IContentStore>();
         this._mockAnomalyDetectionService = new Mock<IAnomalyDetectionService>();
         this._mockMetadataStore = new Mock<IMetadataStore>();
-        var mockConfiguration = new Mock<IConfiguration>();
+        this._mockConfiguration = new Mock<IConfiguration>();
 
         // Functions without anomaly detection (existing tests)
         this._functions = new UnifiedSyncFunctions(
             this._mockLogger.Object,
             this._mockSyncService.Object,
             new JsonSerializerOptions(),
-            mockConfiguration.Object,
+            this._mockConfiguration.Object,
             this._mockContentStore.Object);
 
         // Functions with anomaly detection (new tests)
@@ -59,7 +60,7 @@ public class UnifiedSyncFunctionsTest
             this._mockLogger.Object,
             this._mockSyncService.Object,
             new JsonSerializerOptions(),
-            mockConfiguration.Object,
+            this._mockConfiguration.Object,
             this._mockContentStore.Object,
             this._mockAnomalyDetectionService.Object,
             this._mockMetadataStore.Object);
@@ -249,7 +250,7 @@ public class UnifiedSyncFunctionsTest
             this._mockLogger.Object,
             this._mockSyncService.Object,
             new JsonSerializerOptions(),
-            null);
+            default!);
 
         // Act
         await functionsWithoutContentStore.SyncContent(timer);
@@ -266,8 +267,8 @@ public class UnifiedSyncFunctionsTest
             x => x.Log(
                 LogLevel.Warning,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Content store not configured")),
-                It.IsAny<Exception>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Content store not configured")),
+                It.IsAny<Exception?>(),
                 It.Is<Func<It.IsAnyType, Exception?, string>>((v, t) => true)),
             Times.Once);
     }
@@ -291,7 +292,7 @@ public class UnifiedSyncFunctionsTest
                 LogLevel.Error,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => true),
-                It.IsAny<Exception>(),
+                It.IsAny<Exception?>(),
                 It.Is<Func<It.IsAnyType, Exception?, string>>((v, t) => true)),
             Times.Once);
     }
@@ -367,7 +368,7 @@ public class UnifiedSyncFunctionsTest
             this._mockLogger.Object,
             this._mockSyncService.Object,
             new JsonSerializerOptions(),
-            null);
+            default!);
 
         var request = new UniversalSyncRequest
         {
@@ -451,7 +452,7 @@ public class UnifiedSyncFunctionsTest
                 LogLevel.Information,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Performing post-sync anomaly detection")),
-                It.IsAny<Exception>(),
+                It.IsAny<Exception?>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
     }
