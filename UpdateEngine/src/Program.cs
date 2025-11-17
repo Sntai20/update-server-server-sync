@@ -39,6 +39,7 @@ static void ConfigureLogging(HostBuilderContext context)
     tempLogger.LogInformation("MetadataPath: {MetadataPath}", context.Configuration["MetadataPath"]);
     tempLogger.LogInformation("ContentPath: {ContentPath}", context.Configuration["ContentPath"]);
     tempLogger.LogInformation("UseAzureStorageForMetadata: {UseAzureStorageForMetadata}", context.Configuration["UseAzureStorageForMetadata"]);
+    tempLogger.LogInformation("UseAzureStorageForContent: {UseAzureStorageForContent}", context.Configuration["UseAzureStorageForContent"]);
 }
 
 static void ConfigureStorageServices(IServiceCollection services, IConfiguration configuration)

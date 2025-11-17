@@ -17,12 +17,12 @@ public class AppConfig
     public string[] SupportedLanguages { get; set; } = ["en", "en-US", "neutral", ""];
 
     // Storage settings
-    public string MetadataPath { get; set; } = "./store";
-    public string ContentPath { get; set; } = "./content";
-    public bool UseAzureStorageForMetadata { get; set; } = false;
-    public bool UseAzureStorageForContent { get; set; } = false;
-    public string MetadataContainerName { get; set; } = "metadata";
-    public string ContentContainerName { get; set; } = "content";
+    public string MetadataPath { get; set; } = "./LocalMetadataStore";
+    public string ContentPath { get; set; } = "./LocalContentStore";
+    public bool UseAzureStorageForMetadata { get; set; } = true;
+    public bool UseAzureStorageForContent { get; set; } = true;
+    public string MetadataContainerName { get; set; } = "data";
+    public string ContentContainerName { get; set; } = "data";
     public string ContentPathPrefix { get; set; } = "Content";
     public bool ReindexOnStartup { get; set; } = false;
 

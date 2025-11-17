@@ -28,12 +28,21 @@ public static class SimpleConfigurationHelper
 
         // Set storage environment variables
         functions
+            .WithEnvironment("ServiceUrl", appConfig.ServiceUrl)
+            .WithEnvironment("ContentUrl", appConfig.ContentUrl)
+            .WithEnvironment("MaxUpdateCount", appConfig.MaxUpdateCount.ToString())
             .WithEnvironment("UseAzureStorageForMetadata", appConfig.UseAzureStorageForMetadata.ToString())
             .WithEnvironment("UseAzureStorageForContent", appConfig.UseAzureStorageForContent.ToString())
             .WithEnvironment("MetadataContainerName", appConfig.MetadataContainerName)
             .WithEnvironment("ContentContainerName", appConfig.ContentContainerName)
+            .WithEnvironment("ContentPathPrefix", appConfig.ContentPathPrefix ?? "Content")
             .WithEnvironment("MetadataPath", appConfig.MetadataPath)
-            .WithEnvironment("ContentPath", appConfig.ContentPath);
+            .WithEnvironment("ContentPath", appConfig.ContentPath)
+            .WithEnvironment("ReindexOnStartup", appConfig.ReindexOnStartup.ToString())
+            .WithEnvironment("EnableScheduledSync", appConfig.EnableScheduledSync.ToString())
+            .WithEnvironment("EnableDetailedLogging", appConfig.EnableDetailedLogging.ToString())
+            .WithEnvironment("EnableMetrics", appConfig.EnableMetrics.ToString())
+            .WithEnvironment("EnableCaching", appConfig.EnableCaching.ToString());
 
         // Set service configuration as JSON (for backward compatibility)
         var serviceConfig = new
@@ -53,10 +62,6 @@ public static class SimpleConfigurationHelper
             .WithEnvironment("ScheduledHealthCheckSchedule", appConfig.ScheduledHealthCheckSchedule)
             .WithEnvironment("WeeklyMaintenanceSchedule", appConfig.WeeklyMaintenanceSchedule)
             .WithEnvironment("AnomalyDetectionSchedule", appConfig.AnomalyDetectionSchedule);
-
-        // Set connection strings if provided
-        SetConnectionStringIfExists(functions, configuration, "MetadataStorageConnection");
-        SetConnectionStringIfExists(functions, configuration, "ContentStorageConnection");
 
         // Pass Azure Functions disable configuration
         var azureWebJobsSection = configuration.GetSection("AzureWebJobs");

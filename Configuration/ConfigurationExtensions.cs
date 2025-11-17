@@ -27,16 +27,16 @@ public static class ConfigurationServiceExtensions
         // Bind the configuration directly to AppConfig
         var appConfig = new AppConfig();
         configuration.Bind(appConfig);
-        
+
         // Validate the configuration
         appConfig.Validate();
-        
+
         // Register as singleton
         services.AddSingleton(appConfig);
-        
+
         return services;
     }
-    
+
     /// <summary>
     /// Adds AppConfig with shared configuration loading from Configuration project.
     /// Loads shared base settings, then applies environment-specific overrides.
@@ -48,44 +48,44 @@ public static class ConfigurationServiceExtensions
     public static IServiceCollection AddSharedAppConfiguration(this IServiceCollection services, string environment, IConfiguration? additionalConfiguration = null)
     {
         var configBuilder = new ConfigurationBuilder();
-        
+
         // Get the path to the Configuration project's shared settings
         var configurationAssembly = Assembly.GetAssembly(typeof(AppConfig));
         var configDirectory = Path.GetDirectoryName(configurationAssembly?.Location) ?? throw new InvalidOperationException("Cannot locate Configuration assembly");
         var sharedPath = Path.Combine(configDirectory, "shared");
-        
-        // Load shared base configuration
-        var sharedBasePath = Path.Combine(sharedPath, "appsettings.shared.json");
-        if (File.Exists(sharedBasePath))
+
+        // Load defaults first (base configuration)
+        var defaultsPath = Path.Combine(sharedPath, "appsettings.defaults.json");
+        if (File.Exists(defaultsPath))
         {
-            configBuilder.AddJsonFile(sharedBasePath, optional: false);
+            configBuilder.AddJsonFile(defaultsPath, optional: false, reloadOnChange: false);
         }
-        
+
         // Load environment-specific shared configuration
         var sharedEnvPath = Path.Combine(sharedPath, $"appsettings.{environment}.json");
         if (File.Exists(sharedEnvPath))
         {
-            configBuilder.AddJsonFile(sharedEnvPath, optional: true);
+            configBuilder.AddJsonFile(sharedEnvPath, optional: true, reloadOnChange: false);
         }
-        
+
         // Add any additional configuration (project-specific overrides)
         if (additionalConfiguration != null)
         {
             configBuilder.AddConfiguration(additionalConfiguration);
         }
-        
+
         var configuration = configBuilder.Build();
-        
+
         // Bind to AppConfig and register
         var appConfig = new AppConfig();
         configuration.Bind(appConfig);
         appConfig.Validate();
-        
+
         services.AddSingleton(appConfig);
-        
+
         return services;
     }
-    
+
     /// <summary>
     /// Adds AppConfig to the service collection with a pre-configured instance.
     /// Useful for testing or when configuration comes from sources other than appsettings.json.
@@ -99,7 +99,7 @@ public static class ConfigurationServiceExtensions
         services.AddSingleton(appConfig);
         return services;
     }
-    
+
     /// <summary>
     /// Adds AppConfig to the service collection using a configuration delegate.
     /// Useful for programmatic configuration.
@@ -111,10 +111,10 @@ public static class ConfigurationServiceExtensions
     {
         var appConfig = new AppConfig();
         configureOptions(appConfig);
-        
+
         appConfig.Validate();
         services.AddSingleton(appConfig);
-        
+
         return services;
     }
 }
@@ -134,13 +134,13 @@ public static class AppConfigExtensions
     {
         if (string.IsNullOrWhiteSpace(scheduleString))
             throw new ArgumentException("Schedule string cannot be null or empty", nameof(scheduleString));
-            
+
         if (TimeSpan.TryParse(scheduleString, out var timeSpan))
             return timeSpan;
-            
+
         throw new ArgumentException($"Invalid schedule format: {scheduleString}", nameof(scheduleString));
     }
-    
+
     /// <summary>
     /// Gets the effective metadata storage type based on configuration.
     /// </summary>
@@ -150,7 +150,7 @@ public static class AppConfigExtensions
     {
         return config.UseAzureStorageForMetadata ? "Azure Blob Storage" : "Local File System";
     }
-    
+
     /// <summary>
     /// Gets the effective content storage type based on configuration.
     /// </summary>
@@ -160,7 +160,7 @@ public static class AppConfigExtensions
     {
         return config.UseAzureStorageForContent ? "Azure Blob Storage" : "Local File System";
     }
-    
+
     /// <summary>
     /// Creates a summary of the current configuration for logging/debugging.
     /// </summary>
@@ -202,7 +202,7 @@ public static class AppConfigExtensions
 /// <summary>
 /// Extension methods for IConfigurationBuilder to add shared configuration files.
 /// </summary>
-public static class SharedConfigurationExtensions  
+public static class SharedConfigurationExtensions
 {
     /// <summary>
     /// Adds shared configuration files from the Configuration project to the configuration builder.
@@ -216,29 +216,23 @@ public static class SharedConfigurationExtensions
         var configAssembly = typeof(ConfigurationServiceExtensions).Assembly;
         var baseDirectory = Path.GetDirectoryName(configAssembly.Location)
             ?? throw new InvalidOperationException("Could not determine assembly directory");
-        
+
         var sharedPath = Path.Combine(baseDirectory, "shared");
-        
+
         // Load configuration files in order: defaults -> shared overrides -> environment overrides  
         var defaultsPath = Path.Combine(sharedPath, "appsettings.defaults.json");
         if (File.Exists(defaultsPath))
         {
             builder.AddJsonFile(defaultsPath, optional: false, reloadOnChange: true);
         }
-        
-        var sharedOverridesPath = Path.Combine(sharedPath, "appsettings.shared.json");
-        if (File.Exists(sharedOverridesPath))
-        {
-            builder.AddJsonFile(sharedOverridesPath, optional: true, reloadOnChange: true);
-        }
-        
+
         var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Development";
         var environmentFile = Path.Combine(sharedPath, $"appsettings.{environment}.json");
         if (File.Exists(environmentFile))
         {
             builder.AddJsonFile(environmentFile, optional: true, reloadOnChange: true);
         }
-        
+
         return builder;
     }
 }

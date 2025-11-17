@@ -19,7 +19,8 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 // Configure shared configuration loading from Configuration project
 // This loads the shared base settings plus environment-specific overrides
-builder.Services.AddSharedAppConfiguration(builder.Environment.EnvironmentName, builder.Configuration);
+// Note: Don't pass builder.Configuration to avoid overriding defaults with empty values
+builder.Services.AddSharedAppConfiguration(builder.Environment.EnvironmentName);
 
 // Configure additional configuration sources following best practices
 builder.Configuration.AddEnvironmentVariables()
@@ -37,6 +38,8 @@ var storage = builder.Environment.EnvironmentName == Environments.Development
     ? builder.AddAzureStorage("Storage").RunAsEmulator()
     : builder.AddAzureStorage("Storage");
 
+var data = storage.AddBlobs("data");
+
 // Check if Service Bus should be enabled (disable for minimal testing)
 var enableServiceBus = builder.Configuration.GetValue<bool>("Features:EnableScheduledSync", false);
 
@@ -49,6 +52,8 @@ var enableServiceBus = builder.Configuration.GetValue<bool>("Features:EnableSche
 var updateFunctions = builder.AddAzureFunctionsProject<Projects.UpdateEngine>("UpdateEngine")
     .WithExternalHttpEndpoints()
     .WithHostStorage(storage)
+    .WithReference(data, "MetadataStorageConnection")
+    .WithReference(data, "ContentStorageConnection")
     .WaitFor(storage);
 
 // Conditionally add Service Bus if enabled
