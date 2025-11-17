@@ -16,6 +16,7 @@ using UpdateEngine.Services;
 using UpdateEngine.Models;
 using System.Net;
 using Azure.Storage.Blobs;
+using UpdateEngine.Helpers;
 
 /// <summary>
 /// Unified sync functions consolidating all synchronization operations.
@@ -773,7 +774,7 @@ public class UnifiedSyncFunctions
             // Create CSV export
             var csvData = this.GenerateSyncSummaryCsv();
             var fileName = $"sync-summary-{syncType}-{DateTime.UtcNow:yyyy-MM-dd-HH-mm-ss}.csv";
-            var blobPath = $"reports/{fileName}";  // Reports go to data/reports (container root level)
+            var blobPath = $"Manifests/{fileName}";  // Manifests go to data/Manifests(container root level)
 
             // Upload to blob storage
             var containerClient = this.blobServiceClient.GetBlobContainerClient(containerName);
@@ -798,65 +799,158 @@ public class UnifiedSyncFunctions
         {
             throw new InvalidOperationException("Metadata store is not available");
         }
-
-        // Create a filter that returns all packages
-        var filter = new MetadataFilter
-        {
-            TitleFilter = string.Empty,
-            HardwareIdFilter = string.Empty,
-            SkipSuperseded = false,
-            FirstX = 0
-        };
-
-        var packages = filter.Apply(this.metadataStore).ToList();
-        var csv = new StringBuilder();
-        
-        // Enhanced CSV Header for manifest functionality
-        csv.AppendLine("Id,Title,Type,HasContent,IsSuperseded,FileSize,FileCount,FileHashes,LastWriteTime,LastSyncTime");
-
-        // CSV Data
-        foreach (var package in packages)
-        {
-            var hasContent = false;
-            var fileSize = 0L;
-            var fileCount = 0;
-            var isSuperseded = false;
-            var fileHashes = "";
-            var lastWriteTime = "";
-            var lastSyncTime = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
-
-            // Get additional metadata based on package type
-            if (package is SoftwareUpdate softwareUpdate)
-            {
-                hasContent = softwareUpdate.Files?.Any() == true;
-                fileSize = softwareUpdate.Files?.Sum(f => (long)f.Size) ?? 0;
-                fileCount = softwareUpdate.Files?.Count() ?? 0;
-                isSuperseded = softwareUpdate.IsSupersededBy?.Any() == true;
-                
-                // Collect file hashes for manifest tracking
-                if (softwareUpdate.Files != null)
-                {
-                    var hashes = softwareUpdate.Files
-                        .Where(f => !string.IsNullOrEmpty(f.Digest?.HexString))
-                        .Select(f => f.Digest.HexString)
-                        .ToList();
-                    fileHashes = string.Join(";", hashes);
-                }
-                
-                // For software updates, use the current time as last write time since CreationDate is not available
-                lastWriteTime = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
-            }
-
-            // Escape CSV fields
-            var title = (package.Title ?? "").Replace("\"", "\"\"");
-            var type = package.GetType().Name;
-
-            csv.AppendLine($"\"{package.Id.OpenId}\",\"{title}\",\"{type}\",{hasContent},{isSuperseded},{fileSize},{fileCount},\"{fileHashes}\",\"{lastWriteTime}\",\"{lastSyncTime}\"");
-        }
-
-        return csv.ToString();
+        return ManifestCsvBuilder.GenerateDetailedManifestCsv(this.metadataStore);
     }
 
+    // Request model for manifest verification
+    public class ManifestVerifyRequest
+    {
+        public string? ManifestBlobPath { get; set; }
+    }
+
+    [Function("VerifyManifestFiles")]
+    public async Task<HttpResponseData> VerifyManifestFiles(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post")] HttpRequestData req)
+    {
+        var response = req.CreateResponse(HttpStatusCode.OK);
+        response.Headers.Add("Content-Type", "application/json");
+
+        try
+        {
+            // Read request body for manifest file name/path
+            var requestBody = await req.ReadAsStringAsync();
+            var manifestRequest = JsonSerializer.Deserialize<ManifestVerifyRequest>(requestBody ?? "{}", this.jsonOptions);
+            var manifestBlobPath = manifestRequest?.ManifestBlobPath;
+            if (string.IsNullOrEmpty(manifestBlobPath))
+            {
+                response.StatusCode = HttpStatusCode.BadRequest;
+                await response.WriteStringAsync("{\"error\":\"ManifestBlobPath is required\"}");
+                return response;
+            }
+
+            // Download manifest CSV from blob storage
+            if (this.blobServiceClient == null)
+            {
+                response.StatusCode = HttpStatusCode.ServiceUnavailable;
+                await response.WriteStringAsync("{\"error\":\"BlobServiceClient not configured\"}");
+                return response;
+            }
+            var containerName = this.configuration["MetadataContainerName"] ?? "data";
+            var containerClient = this.blobServiceClient.GetBlobContainerClient(containerName);
+            var blobClient = containerClient.GetBlobClient(manifestBlobPath);
+            var downloadResult = await blobClient.DownloadContentAsync();
+            var csvContent = downloadResult.Value.Content.ToString();
+
+            // Parse CSV
+            var presentFiles = new List<string>();
+            var missingFiles = new List<string>();
+            var lines = csvContent.Split('\n').Skip(1); // Skip header
+
+            foreach (var line in lines)
+            {
+                if (string.IsNullOrWhiteSpace(line)) continue;
+                var columns = line.Split(',');
+                if (columns.Length < 10) continue; // Expecting 10 columns
+
+                var filePath = columns[9].Trim('"');
+                var fileHash = columns[3].Trim('"');
+                var fileName = columns[2].Trim('"');
+
+                bool exists = false;
+                // Check local file system
+                if (this.contentStore is Microsoft.PackageGraph.Storage.Local.FileSystemContentStore)
+                {
+                    exists = File.Exists(filePath);
+                }
+                // Check blob storage
+                else if (this.contentStore?.GetType().Name.Contains("BlobContentStore") == true && this.blobServiceClient != null)
+                {
+                    var fileBlobClient = containerClient.GetBlobClient(filePath);
+                    var blobExists = await fileBlobClient.ExistsAsync();
+                    exists = blobExists.Value;
+                }
+
+                if (exists)
+                    presentFiles.Add(fileName);
+                else
+                    missingFiles.Add(fileName);
+            }
+
+            var result = new
+            {
+                PresentFiles = presentFiles,
+                MissingFiles = missingFiles,
+                TotalFiles = presentFiles.Count + missingFiles.Count,
+                Timestamp = DateTime.UtcNow
+            };
+
+            await response.WriteStringAsync(JsonSerializer.Serialize(result, this.jsonOptions));
+            return response;
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Error verifying manifest files");
+            response.StatusCode = HttpStatusCode.InternalServerError;
+            await response.WriteStringAsync(JsonSerializer.Serialize(new { error = ex.Message }, this.jsonOptions));
+            return response;
+        }
+    }
+
+    [Function("VerifyManifestFilesOnBlob")]
+    public async Task VerifyManifestFilesOnBlob(
+        [BlobTrigger("data/Manifests/{name}", Connection = "AzureWebJobsStorage")] byte[] manifestContent,
+        string name,
+        FunctionContext context)
+    {
+        var logger = context.GetLogger("VerifyManifestFilesOnBlob");
+        try
+        {
+            // Parse CSV
+            var presentFiles = new List<string>();
+            var missingFiles = new List<string>();
+            var csvContent = Encoding.UTF8.GetString(manifestContent);
+            var lines = csvContent.Split('\n').Skip(1); // Skip header
+
+            foreach (var line in lines)
+            {
+                if (string.IsNullOrWhiteSpace(line)) continue;
+                var columns = line.Split(',');
+                if (columns.Length < 10) continue; // Expecting 10 columns
+
+                var filePath = columns[9].Trim('"');
+                var fileName = columns[2].Trim('"');
+
+                bool exists = false;
+                // Check local file system
+                if (this.contentStore is Microsoft.PackageGraph.Storage.Local.FileSystemContentStore)
+                {
+                    exists = File.Exists(filePath);
+                }
+                // Check blob storage
+                else if (this.contentStore?.GetType().Name.Contains("BlobContentStore") == true && this.blobServiceClient != null)
+                {
+                    var containerName = this.configuration["MetadataContainerName"] ?? "data";
+                    var containerClient = this.blobServiceClient.GetBlobContainerClient(containerName);
+                    var fileBlobClient = containerClient.GetBlobClient(filePath);
+                    var blobExists = await fileBlobClient.ExistsAsync();
+                    exists = blobExists.Value;
+                }
+
+                if (exists)
+                    presentFiles.Add(fileName);
+                else
+                    missingFiles.Add(fileName);
+            }
+
+            logger.LogInformation("Manifest verification completed for {Name}. Present: {Present}, Missing: {Missing}", name, presentFiles.Count, missingFiles.Count);
+            // Optionally, write results to another blob, send notification, etc.
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error verifying manifest files for {Name}", name);
+            // Optionally, write error details to a log blob or send notification
+        }
+    }
 
     /// <summary>
     /// Manual trigger for content sync operations - useful for testing.
