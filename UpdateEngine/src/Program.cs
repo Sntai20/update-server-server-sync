@@ -21,8 +21,10 @@ var hostBuilder = new HostBuilder()
         services.AddSharedAppConfiguration(
             context.HostingEnvironment.EnvironmentName,
             context.Configuration);
-        
-        ConfigureStorageServices(services, context.Configuration);
+
+        // Storage services are now configured using the shared AppConfig
+        // that was registered via AddSharedAppConfiguration
+        services.AddMicrosoftUpdateServices(context.Configuration);
     });
 
 var host = hostBuilder.Build();
@@ -52,13 +54,6 @@ static void ConfigureLogging(HostBuilderContext context)
     {
         tempLogger.LogInformation("ContentPath: {ContentPath}", context.Configuration["ContentPath"]);
     }
-}
-
-static void ConfigureStorageServices(IServiceCollection services, IConfiguration configuration)
-{
-    // Storage services are now configured using the shared AppConfig
-    // that was registered via AddSharedAppConfiguration
-    services.AddMicrosoftUpdateServices(configuration);
 }
 
 static void ConfigureJsonSerialization(IServiceCollection services)
