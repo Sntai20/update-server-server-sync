@@ -3,8 +3,8 @@
 
 namespace Microsoft.PackageGraph.MicrosoftUpdate.Endpoints.ClientSync;
 
-using System.Threading.Tasks;
 using Microsoft.UpdateServices.WebServices.ClientAuthentication;
+using System.Threading.Tasks;
 
 /// <summary>
 /// Authentication service implementation. Reference implementation: all requests are authenticated and a token issued.

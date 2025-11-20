@@ -3,9 +3,9 @@
 
 namespace Microsoft.PackageGraph.MicrosoftUpdate.Endpoints.ServerSync;
 
+using Microsoft.UpdateServices.WebServices.DssAuthentication;
 using System;
 using System.Threading.Tasks;
-using Microsoft.UpdateServices.WebServices.DssAuthentication;
 
 /// <summary>
 /// Authentication service implementation; mock implementation, all requests get an authorization cookie, regardless of credentials

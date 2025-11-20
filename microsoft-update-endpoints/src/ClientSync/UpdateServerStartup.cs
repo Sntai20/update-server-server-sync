@@ -3,22 +3,22 @@
 
 namespace Microsoft.PackageGraph.MicrosoftUpdate.Endpoints.ClientSync;
 
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.Logging;
-using SoapCore;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.UpdateServices.WebServices.ClientSync;
-using System.Reflection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.PackageGraph.Storage;
-using System.Text.Json;
 using Microsoft.PackageGraph.Storage.Local;
-using System.Text.Json;
+using Microsoft.UpdateServices.WebServices.ClientSync;
+using SoapCore;
+using System.Reflection;
 using System.ServiceModel;
 using System.Text;
-using Microsoft.Extensions.Hosting;
+using System.Text.Json;
+using System.Text.Json;
 
 /// <summary>
 /// Startup class for a ASP.NET Core web service that implements the Client-Server sync protocol.

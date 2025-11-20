@@ -3,9 +3,9 @@
 
 namespace Microsoft.PackageGraph.MicrosoftUpdate.Endpoints.ClientSync;
 
+using Microsoft.UpdateServices.WebServices.ClientReporting;
 using System;
 using System.Threading.Tasks;
-using Microsoft.UpdateServices.WebServices.ClientReporting;
 
 /// <summary>
 /// Reporting web service implementation. Placeholder only.

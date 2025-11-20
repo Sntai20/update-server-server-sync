@@ -3,19 +3,19 @@
 
 namespace Microsoft.PackageGraph.MicrosoftUpdate.Endpoints.ServerSync;
 
+using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
+using Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Content;
+using Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Prerequisites;
+using Microsoft.PackageGraph.Storage;
+using Microsoft.PackageGraph.Storage.Local;
+using Microsoft.UpdateServices.WebServices.ServerSync;
 using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
-using Microsoft.UpdateServices.WebServices.ServerSync;
-using System.Linq;
 using System.IO;
+using System.Linq;
 using System.Text;
-using Microsoft.PackageGraph.Storage;
-using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
-using Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Prerequisites;
-using Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Content;
 using System.Threading;
-using Microsoft.PackageGraph.Storage.Local;
+using System.Threading.Tasks;
 
 /// <summary>
 /// Upstream update server implementation. Provides updates over the ServerSync protocol to downstream servers.

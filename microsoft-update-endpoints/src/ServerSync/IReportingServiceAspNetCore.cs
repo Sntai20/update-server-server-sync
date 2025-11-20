@@ -3,9 +3,9 @@
 
 namespace Microsoft.PackageGraph.MicrosoftUpdate.Endpoints.ServerSync;
 
-using System.Threading.Tasks;
 using Microsoft.UpdateServices.WebServices.ServerReporting;
 using System.ServiceModel;
+using System.Threading.Tasks;
 
 /// <summary>
 /// Declare an interface for the reporting web service (WCF) that can be used in AspNetCore with slight modifications.

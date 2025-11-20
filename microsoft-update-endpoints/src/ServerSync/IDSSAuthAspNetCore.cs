@@ -3,9 +3,9 @@
 
 namespace Microsoft.PackageGraph.MicrosoftUpdate.Endpoints.ServerSync;
 
-using System.Threading.Tasks;
 using Microsoft.UpdateServices.WebServices.DssAuthentication;
 using System.ServiceModel;
+using System.Threading.Tasks;
 
 /// <summary>
 /// Declare an interface for the DSSAuthWebService (WCF) that can be used in AspNetCore with slight modifications.

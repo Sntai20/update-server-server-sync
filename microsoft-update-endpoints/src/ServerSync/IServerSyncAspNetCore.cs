@@ -3,10 +3,10 @@
 
 namespace Microsoft.PackageGraph.MicrosoftUpdate.Endpoints.ServerSync;
 
-using System;
-using System.Threading.Tasks;
 using Microsoft.UpdateServices.WebServices.ServerSync;
+using System;
 using System.ServiceModel;
+using System.Threading.Tasks;
 
 /// <summary>
 /// Declare an interface for the ServerSyncWebService (WCF) that can be used in AspNetCore with slight modifications.

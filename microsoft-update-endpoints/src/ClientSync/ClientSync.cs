@@ -3,20 +3,20 @@
 
 namespace Microsoft.PackageGraph.MicrosoftUpdate.Endpoints.ClientSync;
 
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using System.Linq;
-using Microsoft.UpdateServices.WebServices.ClientSync;
-using System.IO;
-using System.Threading;
-using System.ServiceModel;
-using Microsoft.PackageGraph.Storage;
 using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
+using Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Content;
 using Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Drivers;
 using Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Prerequisites;
-using Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Content;
+using Microsoft.PackageGraph.Storage;
+using Microsoft.UpdateServices.WebServices.ClientSync;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.ServiceModel;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
 /// <summary>
 /// Update server implementation. Provides updates to Windows Update clients.

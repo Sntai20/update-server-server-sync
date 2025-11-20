@@ -3,13 +3,13 @@
 
 namespace Microsoft.PackageGraph.MicrosoftUpdate.Endpoints.ClientSync;
 
+using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
+using Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Drivers;
+using Microsoft.UpdateServices.WebServices.ClientSync;
 using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using System.Linq;
-using Microsoft.UpdateServices.WebServices.ClientSync;
-using Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Drivers;
-using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
+using System.Threading.Tasks;
 
 public partial class ClientSyncWebService
 {

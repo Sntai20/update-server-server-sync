@@ -3,9 +3,9 @@
 
 namespace Microsoft.PackageGraph.MicrosoftUpdate.Endpoints.ServerSync;
 
+using Microsoft.UpdateServices.WebServices.ServerReporting;
 using System;
 using System.Threading.Tasks;
-using Microsoft.UpdateServices.WebServices.ServerReporting;
 
 /// <summary>
 /// Reporting service implementation.

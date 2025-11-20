@@ -3,20 +3,20 @@
 
 namespace Microsoft.PackageGraph.MicrosoftUpdate.Endpoints.ServerSync;
 
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.Logging;
-using SoapCore;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.AspNetCore.Hosting;
-using System.Reflection;
-using Microsoft.UpdateServices.WebServices.ServerSync;
-using System.Text.Json;
-using System.IO;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.PackageGraph.Storage;
 using Microsoft.PackageGraph.Storage.Local;
-using Microsoft.Extensions.Hosting;
+using Microsoft.UpdateServices.WebServices.ServerSync;
+using SoapCore;
+using System.IO;
+using System.Reflection;
+using System.Text.Json;
 
 /// <summary>
 /// Startup class for a ASP.NET Core web service that implements the Server-Server sync protocol.
