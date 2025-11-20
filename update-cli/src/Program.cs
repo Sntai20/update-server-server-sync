@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+namespace UpdateCli;
+
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -9,8 +11,6 @@ using System.CommandLine;
 using UpdateCli.Commands;
 using UpdateCli.Configuration;
 using UpdateCli.Services;
-
-namespace UpdateCli;
 
 /// <summary>
 /// UpdateEngine CLI tool for querying and managing updates.

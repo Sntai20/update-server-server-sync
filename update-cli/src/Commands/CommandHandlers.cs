@@ -1,10 +1,10 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+namespace UpdateCli.Commands;
+
 using System.Text.Json;
 using UpdateCli.Services;
-
-namespace UpdateCli.Commands;
 
 /// <summary>
 /// Command handlers for the UpdateEngine CLI.

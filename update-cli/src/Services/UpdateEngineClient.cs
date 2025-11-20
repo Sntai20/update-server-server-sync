@@ -1,11 +1,11 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+namespace UpdateCli.Services;
+
 using Microsoft.Extensions.Options;
 using System.Text.Json;
 using UpdateCli.Configuration;
-
-namespace UpdateCli.Services;
 
 /// <summary>
 /// Service for communicating with the UpdateEngine API.

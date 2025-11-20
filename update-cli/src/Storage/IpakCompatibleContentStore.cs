@@ -1,10 +1,10 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+namespace UpdateCli.Storage;
+
 using System.Text.Json;
 using System.Text.RegularExpressions;
-
-namespace UpdateCli.Storage;
 
 /// <summary>
 /// IPAK-compatible content storage that organizes update files according to IPAK's expected folder structure.

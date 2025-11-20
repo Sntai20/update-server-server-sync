@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using UpdateCli.Services;
-
 namespace UpdateCli.Commands;
+
+using UpdateCli.Services;
 
 /// <summary>
 /// Windows 11 specific download handler.

@@ -1,11 +1,11 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+namespace UpdateCli.Commands;
+
 using UpdateCli.Services;
 using UpdateCli.Storage;
 using System.Text.Json;
-
-namespace UpdateCli.Commands;
 
 /// <summary>
 /// Base class for Windows/Server specific bulk download operations.
