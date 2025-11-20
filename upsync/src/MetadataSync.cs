@@ -3,15 +3,15 @@
 
 namespace Microsoft.PackageGraph.Utilitites.Upsync
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.IO;
-    using System.Text.Json;
-    using System.Threading;
+    using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
     using Microsoft.PackageGraph.MicrosoftUpdate.Source;
     using Microsoft.PackageGraph.Storage;
-    using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
+    using System;
+    using System.Collections.Generic;
+    using System.IO;
+    using System.Linq;
+    using System.Text.Json;
+    using System.Threading;
 
     /// <summary>
     /// Implements operations to fetch update metadata from an upstream update server

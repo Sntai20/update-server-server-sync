@@ -3,14 +3,14 @@
 
 namespace Microsoft.PackageGraph.Utilitites.Upsync
 {
-    using System;
     using Azure.Storage.Blobs;
     using Microsoft.PackageGraph.Storage;
     using Microsoft.PackageGraph.Storage.Local;
-    using System.IO;
+    using System;
     using System.Collections.Generic;
-    using System.Text.Json;
+    using System.IO;
     using System.Linq;
+    using System.Text.Json;
 
     public class MetadataStoreOptions : IMetadataStoreOptions
     {

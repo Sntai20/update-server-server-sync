@@ -4,14 +4,14 @@
 namespace Microsoft.PackageGraph.Utilitites.Upsync
 {
     using Azure.Storage.Blobs;
-    using System.Linq;
-    using System.Threading;
-    using System;
+    using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
     using Microsoft.PackageGraph.ObjectModel;
     using Microsoft.PackageGraph.Storage;
-    using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
-    using System.Collections.Generic;
     using Microsoft.PackageGraph.Storage.Local;
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Threading;
 
     class ContentSync
     {

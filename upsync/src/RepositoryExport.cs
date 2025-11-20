@@ -3,11 +3,11 @@
 
 namespace Microsoft.PackageGraph.Utilitites.Upsync
 {
-    using System;
-    using System.Text.Json;
-    using System.IO;
-    using Microsoft.UpdateServices.WebServices.ServerSync;
     using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
+    using Microsoft.UpdateServices.WebServices.ServerSync;
+    using System;
+    using System.IO;
+    using System.Text.Json;
 
     class UpdateMetadataExport
     {

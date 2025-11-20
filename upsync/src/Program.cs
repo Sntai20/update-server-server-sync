@@ -3,10 +3,10 @@
 
 namespace Microsoft.PackageGraph.Utilitites.Upsync
 {
-    using System;
     using CommandLine;
     using Microsoft.PackageGraph.MicrosoftUpdate;
     using Microsoft.PackageGraph.Storage;
+    using System;
 
     class Program
     {
