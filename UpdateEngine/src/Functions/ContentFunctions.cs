@@ -6,8 +6,8 @@ namespace UpdateEngine.Functions;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
-using Microsoft.PackageGraph.Storage;
 using Microsoft.PackageGraph.ObjectModel;
+using Microsoft.PackageGraph.Storage;
 using System.Net;
 
 public class ContentFunctions

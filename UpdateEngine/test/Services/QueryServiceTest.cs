@@ -5,8 +5,8 @@ namespace UpdateEngineTest.Services;
 
 using Microsoft.Extensions.Logging;
 using Microsoft.PackageGraph.Storage;
-using UpdateEngine.Services;
 using Moq;
+using UpdateEngine.Services;
 using Xunit;
 
 public class QueryServiceTest

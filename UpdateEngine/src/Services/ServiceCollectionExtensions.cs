@@ -3,15 +3,15 @@
 
 namespace UpdateEngine.Services;
 
+using Azure.Storage.Blobs;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.PackageGraph.Storage;
-using Microsoft.PackageGraph.Storage.Local;
-using Microsoft.PackageGraph.Storage.Azure;
-using Azure.Storage.Blobs;
 using Microsoft.PackageGraph.MicrosoftUpdate.Endpoints.ClientSync;
 using Microsoft.PackageGraph.MicrosoftUpdate.Endpoints.ServerSync;
+using Microsoft.PackageGraph.Storage;
+using Microsoft.PackageGraph.Storage.Azure;
+using Microsoft.PackageGraph.Storage.Local;
 using Microsoft.UpdateServices.WebServices.ClientSync;
 using Microsoft.UpdateServices.WebServices.ServerSync;
 using System.Text.Json;

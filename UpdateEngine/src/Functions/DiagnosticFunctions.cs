@@ -3,6 +3,7 @@
 
 namespace UpdateEngine.Functions;
 
+using Azure.Storage.Blobs;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Configuration;
@@ -11,7 +12,6 @@ using Microsoft.PackageGraph.Storage;
 using System.Collections;
 using System.Net;
 using System.Text.Json;
-using Azure.Storage.Blobs;
 
 /// <summary>
 /// Diagnostic functions for troubleshooting storage and configuration issues.

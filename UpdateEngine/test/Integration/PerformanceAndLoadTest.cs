@@ -4,13 +4,13 @@
 namespace UpdateEngineTest.Integration;
 
 using FluentAssertions;
-using UpdateEngineTest.Infrastructure;
-using System.Text.Json;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Text.Json;
+using UpdateEngineTest.Infrastructure;
 using Xunit;
 
 /// <summary>

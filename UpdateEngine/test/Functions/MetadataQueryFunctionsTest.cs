@@ -3,20 +3,20 @@
 
 namespace UpdateEngineTest.Functions;
 
+using FluentAssertions;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
-using Microsoft.PackageGraph.Storage;
 using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
+using Microsoft.PackageGraph.Storage;
 using Moq;
 using System.Net;
 using System.Text;
 using System.Text.Json;
 using UpdateEngine.Functions;
-using UpdateEngine.Services;
 using UpdateEngine.Models;
+using UpdateEngine.Services;
 using Xunit;
-using FluentAssertions;
 
 /// <summary>
 /// Unit tests for MetadataQueryFunctions.

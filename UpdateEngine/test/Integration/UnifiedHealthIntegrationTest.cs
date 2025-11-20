@@ -2,9 +2,9 @@ namespace UpdateEngineTest.Integration;
 
 using System.Net;
 using System.Text.Json;
+using UpdateEngineTest.Infrastructure;
 using Xunit;
 using Xunit.Abstractions;
-using UpdateEngineTest.Infrastructure;
 
 /// <summary>
 /// Integration tests for unified health functions.

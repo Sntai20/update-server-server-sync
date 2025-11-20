@@ -3,11 +3,11 @@
 
 namespace UpdateEngineTest.Integration;
 
+using Configuration;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.PackageGraph.Storage;
 using UpdateEngine.Services;
-using Configuration;
 using UpdateEngineTest.Infrastructure;
 using Xunit;
 

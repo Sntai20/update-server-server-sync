@@ -3,15 +3,15 @@
 
 namespace UpdateEngine.Functions;
 
-using System.Net;
-using System.Text.Json;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
+using System.Net;
+using System.Text.Json;
 using UpdateEngine.Models;
 using UpdateEngine.Services;
-using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
 
 /// <summary>
 /// Azure Functions for ML.NET-based anomaly detection in Windows Update metadata

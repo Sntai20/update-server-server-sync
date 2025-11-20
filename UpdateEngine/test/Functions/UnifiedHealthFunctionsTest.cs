@@ -6,16 +6,16 @@ namespace UpdateEngineTest.Functions;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
-using Microsoft.PackageGraph.Storage;
 using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
-using UpdateEngine.Functions;
-using UpdateEngine.Services;
-using UpdateEngine.Models;
+using Microsoft.PackageGraph.Storage;
 using Moq;
+using System.Collections.Specialized;
 using System.Net;
 using System.Text.Json;
+using UpdateEngine.Functions;
+using UpdateEngine.Models;
+using UpdateEngine.Services;
 using Xunit;
-using System.Collections.Specialized;
 
 public class UnifiedHealthFunctionsTest
 {

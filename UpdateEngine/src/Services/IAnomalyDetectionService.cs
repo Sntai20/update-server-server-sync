@@ -3,8 +3,8 @@
 
 namespace UpdateEngine.Services;
 
-using UpdateEngine.Models;
 using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
+using UpdateEngine.Models;
 
 /// <summary>
 /// Service for detecting anomalies in Windows Update metadata using ML.NET

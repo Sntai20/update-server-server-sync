@@ -3,22 +3,22 @@
 
 namespace UpdateEngineTest.Functions;
 
+using Configuration;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Microsoft.PackageGraph.Storage;
-using Microsoft.PackageGraph.MicrosoftUpdate.Source;
 using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
-using UpdateEngine.Services;
-using UpdateEngine.Models;
+using Microsoft.PackageGraph.MicrosoftUpdate.Source;
+using Microsoft.PackageGraph.Storage;
 using Moq;
 using System.Net;
 using System.Text;
 using System.Text.Json;
 using UpdateEngine.Functions;
+using UpdateEngine.Models;
+using UpdateEngine.Services;
 using Xunit;
-using Configuration;
 
 /// <summary>
 /// Unit tests for UnifiedSyncFunctions.

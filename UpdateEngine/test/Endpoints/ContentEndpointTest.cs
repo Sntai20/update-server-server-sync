@@ -4,9 +4,9 @@
 namespace UpdateEngineTest.Endpoints;
 
 using FluentAssertions;
-using UpdateEngineTest.Infrastructure;
 using System.Net;
 using System.Net.Http.Headers;
+using UpdateEngineTest.Infrastructure;
 using Xunit;
 using Xunit.Abstractions;
 

@@ -3,6 +3,7 @@
 
 namespace UpdateEngine.Functions;
 
+using Azure.Storage.Blobs;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Configuration;
@@ -12,12 +13,11 @@ using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
 using Microsoft.PackageGraph.Storage;
 using Microsoft.UpdateServices.WebServices.ServerSync;
 using System.Net;
-using System.Text.Json;
-using UpdateEngine.Services;
-using Azure.Storage.Blobs;
 using System.Text;
+using System.Text.Json;
 using UpdateEngine.Helpers;
 using UpdateEngine.Models;
+using UpdateEngine.Services;
 
 /// <summary>
 /// Azure Functions for metadata export operations.

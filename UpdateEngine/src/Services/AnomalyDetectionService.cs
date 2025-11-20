@@ -7,10 +7,10 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.ML;
 using Microsoft.ML.Data;
-using UpdateEngine.Models;
 using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
 using Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Applicability;
 using Microsoft.PackageGraph.Storage;
+using UpdateEngine.Models;
 
 /// <summary>
 /// ML.NET-based anomaly detection for Windows Updates

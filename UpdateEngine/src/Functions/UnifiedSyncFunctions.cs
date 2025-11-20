@@ -3,20 +3,20 @@
 
 namespace UpdateEngine.Functions;
 
-using System.Text.Json;
-using System.Text;
+using Azure.Storage.Blobs;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Microsoft.PackageGraph.Storage;
-using Microsoft.PackageGraph.MicrosoftUpdate.Source;
 using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
-using UpdateEngine.Services;
-using UpdateEngine.Models;
+using Microsoft.PackageGraph.MicrosoftUpdate.Source;
+using Microsoft.PackageGraph.Storage;
 using System.Net;
-using Azure.Storage.Blobs;
+using System.Text;
+using System.Text.Json;
 using UpdateEngine.Helpers;
+using UpdateEngine.Models;
+using UpdateEngine.Services;
 
 /// <summary>
 /// Unified sync functions consolidating all synchronization operations.

@@ -6,9 +6,9 @@ using Microsoft.Extensions.Logging;
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using UpdateEngineTest.Infrastructure;
 using Xunit;
 using Xunit.Abstractions;
-using UpdateEngineTest.Infrastructure;
 
 /// <summary>
 /// Integration tests for unified sync functions.

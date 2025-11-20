@@ -3,11 +3,11 @@
 
 namespace UpdateEngine.Services;
 
-using System.Linq;
 using Microsoft.Extensions.Logging;
-using Microsoft.PackageGraph.Storage;
-using Microsoft.PackageGraph.MicrosoftUpdate.Source;
 using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
+using Microsoft.PackageGraph.MicrosoftUpdate.Source;
+using Microsoft.PackageGraph.Storage;
+using System.Linq;
 
 /// <summary>
 /// Implementation of sync service providing core synchronization logic.

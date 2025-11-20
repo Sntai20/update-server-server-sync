@@ -3,21 +3,20 @@
 
 namespace UpdateEngine.Functions;
 
-using System.Text.Json;
+using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
+using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
-using UpdateEngine.Services;
-using UpdateEngine.Models;
-using Microsoft.PackageGraph.Storage;
+using Microsoft.Extensions.Logging;
 using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
+using Microsoft.PackageGraph.Storage;
 using System.Net;
-
-using Microsoft.Azure.Functions.Worker;
-using Microsoft.Azure.Functions.Worker.Http;
-using Microsoft.Extensions.Logging;
 using System.Net;
 using System.Text.Json;
+using System.Text.Json;
+using UpdateEngine.Models;
+using UpdateEngine.Services;
 using UpdateEngine.Services;
 
 /// <summary>

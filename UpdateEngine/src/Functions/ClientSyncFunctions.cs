@@ -9,8 +9,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.PackageGraph.MicrosoftUpdate.Endpoints.ClientSync;
 using System.Net;
 using System.Text;
-using System.Xml.Serialization;
 using System.Xml;
+using System.Xml.Serialization;
 
 public class ClientSyncFunctions
 {

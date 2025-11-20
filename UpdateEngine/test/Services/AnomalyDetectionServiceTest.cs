@@ -3,18 +3,18 @@
 
 namespace UpdateEngineTest.Services;
 
-using Microsoft.Extensions.Logging;
+using FluentAssertions;
 using Microsoft.Extensions.Configuration;
-using Microsoft.PackageGraph.Storage;
+using Microsoft.Extensions.Logging;
+using Microsoft.ML;
 using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
 using Microsoft.PackageGraph.ObjectModel;
-using Microsoft.ML;
+using Microsoft.PackageGraph.Storage;
 using Moq;
-using UpdateEngine.Services;
-using UpdateEngine.Models;
-using Xunit;
-using FluentAssertions;
 using System.Collections.Generic;
+using UpdateEngine.Models;
+using UpdateEngine.Services;
+using Xunit;
 
 /// <summary>
 /// Unit tests for AnomalyDetectionService.

@@ -3,13 +3,13 @@
 
 namespace UpdateEngineTest.Infrastructure;
 
-using Microsoft.Extensions.DependencyInjection;
+using Configuration;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.PackageGraph.Storage;
 using Microsoft.PackageGraph.Storage.Local;
 using UpdateEngine.Services;
-using Configuration;
 using Xunit;
 
 /// <summary>

@@ -4,10 +4,10 @@
 namespace UpdateEngineTest.Services;
 
 using Microsoft.Extensions.Logging;
-using Microsoft.PackageGraph.Storage;
 using Microsoft.PackageGraph.MicrosoftUpdate.Source;
-using UpdateEngine.Services;
+using Microsoft.PackageGraph.Storage;
 using Moq;
+using UpdateEngine.Services;
 using Xunit;
 
 public class SyncServiceTest

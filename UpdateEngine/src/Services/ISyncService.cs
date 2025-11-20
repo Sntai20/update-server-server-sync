@@ -3,8 +3,8 @@
 
 namespace UpdateEngine.Services;
 
-using Microsoft.PackageGraph.Storage;
 using Microsoft.PackageGraph.MicrosoftUpdate.Source;
+using Microsoft.PackageGraph.Storage;
 
 /// <summary>
 /// Service interface for metadata and content synchronization operations.

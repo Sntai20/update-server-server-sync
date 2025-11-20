@@ -4,9 +4,9 @@
 namespace UpdateEngineTest.Integration;
 
 using FluentAssertions;
-using UpdateEngineTest.Infrastructure;
 using System.Net;
 using System.Text;
+using UpdateEngineTest.Infrastructure;
 using Xunit;
 
 /// <summary>
