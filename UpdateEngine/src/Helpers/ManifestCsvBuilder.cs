@@ -1,8 +1,8 @@
+namespace UpdateEngine.Helpers;
+
 using System.Text;
 using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
 using Microsoft.PackageGraph.Storage;
-
-namespace UpdateEngine.Helpers;
 
 public static class ManifestCsvBuilder
 {

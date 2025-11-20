@@ -1,9 +1,9 @@
+namespace UpdateEngineTest.Integration;
+
 using System.Net.Http;
 using System.Text;
 using UpdateEngineTest.Infrastructure;
 using Xunit;
-
-namespace UpdateEngineTest.Integration;
 
 [Collection("AspireAppHost")]
 public class AppHostWorkflowTest

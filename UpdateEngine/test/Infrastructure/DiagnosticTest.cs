@@ -1,12 +1,12 @@
 // Create a simple test file to debug the issue
 // filepath: d:\repos\update-server-server-sync-fork\UpdateEngine\test\Integration\DiagnosticTest.cs
 
+namespace UpdateEngineTest.Integration;
+
 using System.Net;
 using UpdateEngineTest.Infrastructure;
 using Xunit;
 using Xunit.Abstractions;
-
-namespace UpdateEngineTest.Integration;
 
 [Collection("AspireAppHost")]
 public class DiagnosticTest

@@ -1,3 +1,5 @@
+namespace UpdateEngineTest.Integration;
+
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -7,8 +9,6 @@ using System.Text.Json;
 using Xunit;
 using Xunit.Abstractions;
 using UpdateEngineTest.Infrastructure;
-
-namespace UpdateEngineTest.Integration;
 
 /// <summary>
 /// Integration tests for unified sync functions.

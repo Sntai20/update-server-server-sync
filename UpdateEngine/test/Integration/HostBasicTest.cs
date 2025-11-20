@@ -1,8 +1,8 @@
+namespace UpdateEngineTest.Integration;
+
 using System.Net;
 using UpdateEngineTest.Infrastructure;
 using Xunit;
-
-namespace UpdateEngineTest.Integration;
 
 [Collection("AspireAppHost")]
 public class AppHostBasicTest

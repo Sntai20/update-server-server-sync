@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+namespace UpdateEngineTest.Services;
+
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using Microsoft.PackageGraph.Storage;
@@ -13,8 +15,6 @@ using UpdateEngine.Models;
 using Xunit;
 using FluentAssertions;
 using System.Collections.Generic;
-
-namespace UpdateEngineTest.Services;
 
 /// <summary>
 /// Unit tests for AnomalyDetectionService.

@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+namespace UpdateEngineTest.Functions;
+
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
@@ -15,8 +17,6 @@ using UpdateEngine.Services;
 using UpdateEngine.Models;
 using Xunit;
 using FluentAssertions;
-
-namespace UpdateEngineTest.Functions;
 
 /// <summary>
 /// Unit tests for MetadataQueryFunctions.
