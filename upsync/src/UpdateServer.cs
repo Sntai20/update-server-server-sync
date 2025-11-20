@@ -1,17 +1,17 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
-using Microsoft.PackageGraph.MicrosoftUpdate.Endpoints.ClientSync;
-using Microsoft.PackageGraph.Storage.Local;
-using System.Collections.Generic;
-using System.IO;
-
 namespace Microsoft.PackageGraph.Utilitites.Upsync
 {
+    using Microsoft.AspNetCore.Builder;
+    using Microsoft.AspNetCore.Hosting;
+    using Microsoft.Extensions.Configuration;
+    using Microsoft.Extensions.Logging;
+    using Microsoft.PackageGraph.MicrosoftUpdate.Endpoints.ClientSync;
+    using Microsoft.PackageGraph.Storage.Local;
+    using System.Collections.Generic;
+    using System.IO;
+
     /// <summary>
     /// Runs a service that provides updates to downstream updates servers (WSUS)
     /// Requires a local source of update metadata. All or a subset of updates from the local source can be served.

@@ -1,18 +1,18 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using Azure.Storage.Blobs;
-using System.Linq;
-using System.Threading;
-using System;
-using Microsoft.PackageGraph.ObjectModel;
-using Microsoft.PackageGraph.Storage;
-using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
-using System.Collections.Generic;
-using Microsoft.PackageGraph.Storage.Local;
-
 namespace Microsoft.PackageGraph.Utilitites.Upsync
 {
+    using Azure.Storage.Blobs;
+    using System.Linq;
+    using System.Threading;
+    using System;
+    using Microsoft.PackageGraph.ObjectModel;
+    using Microsoft.PackageGraph.Storage;
+    using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
+    using System.Collections.Generic;
+    using Microsoft.PackageGraph.Storage.Local;
+
     class ContentSync
     {
         public static void SyncContent(ContentSyncOptions options)

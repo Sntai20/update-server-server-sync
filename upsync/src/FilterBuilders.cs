@@ -1,13 +1,13 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace Microsoft.PackageGraph.Utilitites.Upsync
 {
+    using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+
     /// <summary>
     /// Class for building metadata filters from command line options
     /// </summary>

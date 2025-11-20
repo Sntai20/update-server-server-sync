@@ -1,11 +1,11 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using System;
-using System.Threading;
-
 namespace Microsoft.PackageGraph.Utilitites.Upsync
 {
+    using System;
+    using System.Threading;
+
     /// <summary>
     /// Implements copying of metadata from a source repository to a destination
     /// </summary>

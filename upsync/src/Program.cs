@@ -1,13 +1,13 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using System;
-using CommandLine;
-using Microsoft.PackageGraph.MicrosoftUpdate;
-using Microsoft.PackageGraph.Storage;
-
 namespace Microsoft.PackageGraph.Utilitites.Upsync
 {
+    using System;
+    using CommandLine;
+    using Microsoft.PackageGraph.MicrosoftUpdate;
+    using Microsoft.PackageGraph.Storage;
+
     class Program
     {
         private static readonly object ProgressLock = new();

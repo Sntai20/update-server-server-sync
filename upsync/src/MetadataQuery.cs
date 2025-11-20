@@ -1,17 +1,17 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
-using Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Drivers;
-using Microsoft.PackageGraph.MicrosoftUpdate.Source;
-using Microsoft.PackageGraph.ObjectModel;
-using Microsoft.PackageGraph.Storage;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace Microsoft.PackageGraph.Utilitites.Upsync
 {
+    using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
+    using Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Drivers;
+    using Microsoft.PackageGraph.MicrosoftUpdate.Source;
+    using Microsoft.PackageGraph.ObjectModel;
+    using Microsoft.PackageGraph.Storage;
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+
     /// <summary>
     /// Implements query and management operations on a local updates metadata source
     /// </summary>

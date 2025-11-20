@@ -1,14 +1,14 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using System;
-using System.Text.Json;
-using System.IO;
-using Microsoft.UpdateServices.WebServices.ServerSync;
-using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
-
 namespace Microsoft.PackageGraph.Utilitites.Upsync
 {
+    using System;
+    using System.Text.Json;
+    using System.IO;
+    using Microsoft.UpdateServices.WebServices.ServerSync;
+    using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
+
     class UpdateMetadataExport
     {
         /// <summary>

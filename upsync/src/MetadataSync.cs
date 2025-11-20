@@ -1,18 +1,18 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.IO;
-using System.Text.Json;
-using System.Threading;
-using Microsoft.PackageGraph.MicrosoftUpdate.Source;
-using Microsoft.PackageGraph.Storage;
-using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
-
 namespace Microsoft.PackageGraph.Utilitites.Upsync
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.IO;
+    using System.Text.Json;
+    using System.Threading;
+    using Microsoft.PackageGraph.MicrosoftUpdate.Source;
+    using Microsoft.PackageGraph.Storage;
+    using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
+
     /// <summary>
     /// Implements operations to fetch update metadata from an upstream update server
     /// </summary>

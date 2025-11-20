@@ -1,11 +1,11 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using CommandLine;
-using System.Collections.Generic;
-
 namespace Microsoft.PackageGraph.Utilitites.Upsync
 {
+    using CommandLine;
+    using System.Collections.Generic;
+
     enum PackageType
     {
         MicrosoftUpdateClassification,

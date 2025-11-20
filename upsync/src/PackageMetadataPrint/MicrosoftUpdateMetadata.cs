@@ -1,21 +1,21 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
-using Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Content;
-using Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Handlers;
-using Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Prerequisites;
-using Microsoft.PackageGraph.Storage;
-using System.Text.Json.Serialization;
-using System.Text.Json;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics.Metrics;
-using System.IO;
-using System.Linq;
-
 namespace Microsoft.PackageGraph.Utilitites.Upsync
 {
+    using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
+    using Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Content;
+    using Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Handlers;
+    using Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Prerequisites;
+    using Microsoft.PackageGraph.Storage;
+    using System.Text.Json.Serialization;
+    using System.Text.Json;
+    using System;
+    using System.Collections.Generic;
+    using System.Diagnostics.Metrics;
+    using System.IO;
+    using System.Linq;
+
     class MicrosoftUpdateMetadata
     {
         /// <summary>

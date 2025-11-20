@@ -1,17 +1,17 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using System;
-using Azure.Storage.Blobs;
-using Microsoft.PackageGraph.Storage;
-using Microsoft.PackageGraph.Storage.Local;
-using System.IO;
-using System.Collections.Generic;
-using System.Text.Json;
-using System.Linq;
-
 namespace Microsoft.PackageGraph.Utilitites.Upsync
 {
+    using System;
+    using Azure.Storage.Blobs;
+    using Microsoft.PackageGraph.Storage;
+    using Microsoft.PackageGraph.Storage.Local;
+    using System.IO;
+    using System.Collections.Generic;
+    using System.Text.Json;
+    using System.Linq;
+
     public class MetadataStoreOptions : IMetadataStoreOptions
     {
         public string Alias { get; set; }
