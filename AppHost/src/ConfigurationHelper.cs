@@ -3,10 +3,10 @@
 
 namespace AppHost;
 
-using System.Text.Json;
 using Aspire.Hosting;
 using Aspire.Hosting.Azure;
 using Microsoft.Extensions.Configuration;
+using System.Text.Json;
 
 /// <summary>
 /// Simplified configuration helper for mapping AppConfig to Azure Functions environment variables.

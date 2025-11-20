@@ -3,9 +3,9 @@
 
 namespace UpdateCli.Commands;
 
+using System.Text.Json;
 using UpdateCli.Services;
 using UpdateCli.Storage;
-using System.Text.Json;
 
 /// <summary>
 /// Base class for Windows/Server specific bulk download operations.
