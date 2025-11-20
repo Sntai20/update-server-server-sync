@@ -1,13 +1,13 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+namespace Configuration;
+
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.IO;
 using System.Reflection;
-
-namespace Configuration;
 
 /// <summary>
 /// Extension methods for registering and configuring AppConfig in dependency injection.
