@@ -3,14 +3,14 @@
 
 namespace Microsoft.PackageGraph.MicrosoftUpdate.Source
 {
+    using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
+    using Microsoft.PackageGraph.ObjectModel;
+    using Microsoft.PackageGraph.Storage;
     using System;
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
     using System.Threading;
-    using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
-    using Microsoft.PackageGraph.ObjectModel;
-    using Microsoft.PackageGraph.Storage;
 
     /// <summary>
     /// Retrieves all available categories from the Microsoft Update catalog.

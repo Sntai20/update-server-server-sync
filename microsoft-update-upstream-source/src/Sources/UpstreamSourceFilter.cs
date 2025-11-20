@@ -8,10 +8,10 @@ namespace Microsoft.PackageGraph.MicrosoftUpdate.Source
     using Microsoft.PackageGraph.ObjectModel;
     using Microsoft.PackageGraph.Storage;
     using Microsoft.UpdateServices.WebServices.ServerSync;
-    using System.Text.Json.Serialization;
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Text.Json.Serialization;
 
     /// <summary>
     /// Implements a filter for updates based by product and/or classification.

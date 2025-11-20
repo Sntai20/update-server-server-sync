@@ -3,14 +3,14 @@
 
 namespace Microsoft.PackageGraph.MicrosoftUpdate.Source
 {
+    using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
+    using Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Content;
     using Microsoft.UpdateServices.WebServices.ServerSync;
     using System;
+    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
-    using System.Collections.Concurrent;
-    using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
-    using Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Content;
 
     /// <summary>
     /// <para>

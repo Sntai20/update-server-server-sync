@@ -3,11 +3,11 @@
 
 namespace Microsoft.PackageGraph.MicrosoftUpdate.Source;
 
+using Microsoft.UpdateServices.WebServices.DssAuthentication;
+using Microsoft.UpdateServices.WebServices.ServerSync;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.UpdateServices.WebServices.DssAuthentication;
-using Microsoft.UpdateServices.WebServices.ServerSync;
 
 /// <summary>
 /// Implements authentication with an upstream update server.
