@@ -12,7 +12,6 @@
 
   <ItemGroup>
     <PackageReference Include="CommandLineParser" />
-    <PackageReference Include="Microsoft.AspNetCore.Hosting" />
     <PackageReference Include="Azure.Storage.Blobs" />
   </ItemGroup>
 

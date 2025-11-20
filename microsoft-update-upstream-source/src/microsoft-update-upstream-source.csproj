@@ -20,10 +20,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="System.Text.Json" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\..\microsoft-update-partition\src\microsoft-update-partition.csproj" />
     <ProjectReference Include="..\..\microsoft-update-webservices\src\microsoft-update-webservices.csproj" />
   </ItemGroup>
