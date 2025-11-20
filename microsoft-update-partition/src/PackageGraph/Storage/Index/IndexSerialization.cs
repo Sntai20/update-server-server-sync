@@ -1,9 +1,9 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using System.Text.Json;
 using System.IO;
 using System.Text;
+using System.Text.Json;
 
 namespace Microsoft.PackageGraph.Storage.Index
 {

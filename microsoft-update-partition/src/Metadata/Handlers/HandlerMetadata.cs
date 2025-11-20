@@ -1,10 +1,10 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using System.Text.Json.Serialization;
 using System;
 using System.Linq;
 using System.Reflection;
+using System.Text.Json.Serialization;
 using System.Xml;
 using System.Xml.XPath;
 

@@ -8,12 +8,12 @@ using Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Parsers;
 using Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Prerequisites;
 using Microsoft.PackageGraph.ObjectModel;
 using Microsoft.PackageGraph.Storage;
-using System.Text.Json.Serialization;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Text.Json.Serialization;
 using System.Xml;
 using System.Xml.XPath;
 

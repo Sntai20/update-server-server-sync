@@ -1,19 +1,19 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using ICSharpCode.SharpZipLib.Zip;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Specialized;
+using ICSharpCode.SharpZipLib.Zip;
 using Microsoft.PackageGraph.ObjectModel;
 using Microsoft.PackageGraph.Partitions;
 using Microsoft.PackageGraph.Storage.Index;
-using System.Text.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 
 namespace Microsoft.PackageGraph.Storage.Azure
 {
