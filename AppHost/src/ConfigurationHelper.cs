@@ -1,17 +1,17 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+namespace AppHost;
+
 using System.Text.Json;
 using Aspire.Hosting;
 using Aspire.Hosting.Azure;
 using Microsoft.Extensions.Configuration;
 
-namespace AppHost;
-
 /// <summary>
 /// Simplified configuration helper for mapping AppConfig to Azure Functions environment variables.
 /// </summary>
-public static class SimpleConfigurationHelper
+public static class ConfigurationHelper
 {
     /// <summary>
     /// Maps configuration sections directly to environment variables without complex transformations.

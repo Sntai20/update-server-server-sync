@@ -86,7 +86,7 @@ if (enableServiceBus)
 /// Storage directories/containers are created automatically during Functions startup via DI.
 /// Uses simplified configuration approach without complex transformations.
 /// </summary>
-SimpleConfigurationHelper.ConfigureUpdateFunctions(updateFunctions, builder.Configuration);
+ConfigurationHelper.ConfigureUpdateFunctions(updateFunctions, builder.Configuration);
 
 var app = builder.Build();
 
