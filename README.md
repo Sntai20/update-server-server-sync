@@ -1,4 +1,4 @@
-﻿# Windows Update Services Server-Server Sync Protocol
+# Windows Update Services Server-Server Sync Protocol
 
 Provide a C# implementation (.NET Core) of the Microsoft Update Server-Server sync protocol, both client and server.
 
@@ -53,6 +53,17 @@ This repository is organized as follows:
 - **[Testing Guide](./docs/guides/INMEMORY_TESTING_GUIDE.md)** - In-memory testing (no infrastructure required)
 - **[Migration Summary](./docs/guides/MIGRATION_SUMMARY.md)** - Azure Storage migration guide
 
+### Architecture & Consolidation
+
+- **[Implementation Summary](./docs/guides/IMPLEMENTATION_SUMMARY.md)** - Complete overview of dual hosting + solution integration ⭐ **START HERE**
+- **[Dual Hosting Solution Integration](./docs/guides/DUAL_HOSTING_SOLUTION_INTEGRATION.md)** - Integration with AppHost, Configuration, and update-cli
+- **[Dual Hosting Model Guide](./docs/guides/DUAL_HOSTING_CONSOLIDATION_GUIDE.md)** - Support both Azure Functions AND Worker Service hosting
+- **[Dual Hosting Quick Summary](./docs/guides/DUAL_HOSTING_QUICK_SUMMARY.md)** - Quick reference for dual hosting
+- **[Function Consolidation Guide](./docs/guides/FUNCTION_CONSOLIDATION_GUIDE.md)** - Comprehensive plan to consolidate 35+ functions to ~20
+- **[Function Consolidation Comparison](./docs/guides/FUNCTION_CONSOLIDATION_COMPARISON.md)** - Before/after visual comparison
+- **[Consolidation Answer](./docs/guides/CONSOLIDATION_ANSWER.md)** - Quick answers to consolidation questions
+- **[Function Restructuring Summary](./UpdateEngine/src/Functions/RESTRUCTURING_SUMMARY.md)** - Current function catalog
+
 ### Troubleshooting
 
 - **[WCF .NET 9 Fixes](./docs/guides/WCF_NET9_FIX_GUIDE.md)** - Fix WCF compatibility issues
@@ -77,6 +88,196 @@ This repository is organized as follows:
 | **Validate Build** | `./scripts/build/Validate-Build.ps1` |
 
 **📖 For more commands, see [docs/guides/QUICK_REFERENCE.md](./docs/guides/QUICK_REFERENCE.md)**
+
+## 🚀 Azure Functions Capabilities
+
+This implementation provides **35+ Azure Functions** organized by functional domain, enabling both traditional ASP.NET Core and modern serverless architectures.
+
+### 📦 Function Organization
+
+Functions are organized into **4 logical domains** for better cohesion and maintainability:
+
+```
+UpdateEngine/src/Functions/
+├── Core/                          # Essential operations (19 functions)
+│   ├── WebServiceFunctions.cs    # 5 SOAP web services (WSUS protocol)
+│   ├── ContentDeliveryFunctions.cs # 6 content operations
+│   └── MetadataAccessFunctions.cs  # 8 query/export operations
+├── Management/                    # Administrative operations (17 functions)
+│   ├── UnifiedSyncFunctions.cs   # 11 sync operations
+│   ├── UnifiedHealthFunctions.cs # 5 health/maintenance operations
+│   └── DiagnosticFunctions.cs    # 3 diagnostic operations
+├── Intelligence/                  # Advanced features (2 functions)
+│   └── AnomalyDetectionFunctions.cs # ML-based anomaly detection
+└── Shared/                       # Common utilities
+    ├── SoapHelpers.cs            # SOAP request/response utilities
+    ├── FunctionHelpers.cs        # HTTP/JSON utilities
+    └── CommonModels.cs           # Shared request/response models
+```
+
+### 🎯 Core Capabilities
+
+#### 1. **Metadata Synchronization & Management** (11 functions)
+- Sync categories from upstream Microsoft Update servers
+- Sync updates with filtering (products, classifications, dates)
+- Comprehensive sync (categories + updates) with automatic rollback
+- Pause, resume, cancel sync operations
+- Background scheduled sync with timer triggers
+- Export sync summaries to CSV manifests in Azure Blob Storage
+
+#### 2. **Content Synchronization & Delivery** (6 functions)
+- Download update content files to local or Azure Blob storage
+- Serve content with HTTP range request support
+- Content status tracking and verification
+- Efficient content addressing (SHA1/SHA256 hash-based)
+- Automatic content integrity validation
+
+#### 3. **SOAP Web Services (WSUS Protocol)** (5 functions)
+- **ClientWebService** - Serve updates to Windows Update clients (MUv6)
+- **ServerSyncWebService** - Serve updates to downstream WSUS servers
+- **SimpleAuthWebService** - Simple authentication for WSUS
+- **DssAuthWebService** - Digital Signature Service authentication
+- **ReportingWebService** - Client reporting and telemetry
+
+#### 4. **Health Monitoring & Diagnostics** (8 functions)
+- Real-time store status (indexed updates, categories, drivers)
+- Sync progress tracking with detailed metrics
+- Background health checks with configurable intervals
+- Comprehensive diagnostics (configuration, storage, metadata)
+- Service availability monitoring
+- Automatic health reporting to Azure Blob Storage
+
+#### 5. **Anomaly Detection & Intelligence** (2 functions)
+- ML-based anomaly detection for sync operations
+- Automatic detection of missing updates, inconsistencies
+- Statistical analysis of update patterns
+- Scheduled anomaly detection with reporting
+
+#### 6. **Driver Matching & Hardware Compatibility** (1 function)
+- Match drivers to hardware IDs (PnP IDs)
+- Query driver metadata by hardware compatibility
+- Support for Windows driver installation
+
+#### 7. **Update Manifest Generation & Verification** (2 functions)
+- Generate detailed CSV manifests with file tracking
+  - **Columns**: LastWriteTime, LastSyncTime, FileName, FileHash, FileSize, Id, Title, Type, IsSuperseded, FilePath
+- HTTP-triggered manifest verification
+- Blob-triggered automatic verification on manifest upload
+- Verify file presence from manifest after sync operations
+
+#### 8. **Query & Filtering Operations** (8 functions)
+- Query metadata by filter (titles, KB articles, classifications, products)
+- Export metadata to JSON/CSV formats
+- List available filters (products, classifications)
+- Advanced filtering with multiple criteria
+- Real-time metadata store status
+
+#### 9. **Store Management Operations** (4 functions)
+- Initialize metadata and content stores
+- Reindex operations for store optimization
+- Store statistics and metrics
+- Configuration validation
+
+#### 10. **RESTful HTTP APIs** (35+ endpoints)
+All functions expose clean RESTful APIs:
+- `GET /api/content/{contentHash}` - Download content
+- `POST /api/sync/start` - Start sync operation
+- `GET /api/metadata/query` - Query updates
+- `POST /api/metadata/export` - Export metadata
+- `GET /api/health/status` - Health check
+- And 30+ more endpoints
+
+#### 11. **Scheduled Automation** (Timer triggers)
+- Background sync on configurable intervals
+- Scheduled health checks
+- Automatic anomaly detection
+- Periodic manifest verification
+
+#### 12. **Event-Driven Processing** (Blob triggers)
+- Automatic manifest verification on upload
+- Content validation on blob changes
+- Reactive processing pipelines
+
+#### 13. **Azure Storage Integration**
+- **Metadata Storage**: Azure Blob or Local filesystem
+- **Content Storage**: Azure Blob or Local filesystem
+- **Reports Storage**: Manifests, health reports, diagnostics in `data/` containers
+- Automatic retry logic with exponential backoff
+- Connection string or managed identity authentication
+
+#### 14. **Configuration Management**
+- Environment-based configuration (appsettings.json, environment variables)
+- JSON-based service configuration
+- Storage configuration (Azure vs Local)
+- Feature flags for optional capabilities
+- Validation with helpful error messages
+
+#### 15. **Comprehensive Error Handling**
+- Structured exception handling with HTTP status codes
+- Detailed error responses with timestamps
+- Logging with correlation IDs
+- Retry logic for transient failures
+
+#### 16. **Developer Tools**
+- In-memory testing (no infrastructure required)
+- .NET Aspire orchestration for local development
+- Docker support with Azurite for Azure Storage emulation
+- Comprehensive test fixtures for integration testing
+
+### 🔧 API Examples
+
+```bash
+# Query metadata
+curl http://localhost:7071/api/metadata/query \
+  -X POST -H "Content-Type: application/json" \
+  -d '{"titleFilter":"Cumulative Update","maxResults":10}'
+
+# Start comprehensive sync
+curl http://localhost:7071/api/sync/comprehensive/start \
+  -X POST -H "Content-Type: application/json" \
+  -d '{"productTitles":["Windows 10"],"classificationIds":["<classification-id>"]}'
+
+# Get store status
+curl http://localhost:7071/api/health/status
+
+# Download content
+curl http://localhost:7071/api/content/abc123def456... -o update.cab
+
+# Access SOAP endpoint (Windows Update clients)
+curl http://localhost:7071/api/ClientWebService/client.asmx?wsdl
+```
+
+### 📊 Function Statistics
+
+- **Total Functions**: 35+
+- **SOAP Services**: 5 (WSUS protocol compliance)
+- **HTTP APIs**: 30+ RESTful endpoints
+- **Timer Triggers**: 3 scheduled operations
+- **Blob Triggers**: 1 event-driven processor
+- **Files**: 6 function classes (reduced from 10)
+- **Code Reuse**: Shared helpers eliminate ~40% duplication
+
+### 🎨 Architecture Benefits
+
+1. **Cohesive Organization**: Functions grouped by domain (Core, Management, Intelligence)
+2. **Loose Coupling**: Shared helpers and models reduce duplication
+3. **Scalability**: Serverless functions scale independently
+4. **Hybrid Deployment**: Same codebase for Azure Functions or ASP.NET Core
+5. **Testability**: Comprehensive test fixtures with in-memory testing
+6. **Maintainability**: Clear separation of concerns, ~40% fewer files
+
+### 📖 Detailed Documentation
+
+For comprehensive function details, see:
+
+#### Testing
+- **[Testing Strategy](./docs/guides/TESTING_STRATEGY.md)** - Comprehensive testing guide (Unit, Integration, E2E) ⭐ **NEW**
+- **[Testing Strategy Quick Ref](./docs/guides/TESTING_STRATEGY_QUICK_REF.md)** - Quick reference for testing
+- **[Function Restructuring Summary](./UpdateEngine/src/Functions/RESTRUCTURING_SUMMARY.md)** - Complete function catalog
+- **[Testing Guide](./docs/guides/TESTING_GUIDE.md)** - Testing strategies
+- **[Triggers Guide](./docs/guides/TRIGGERS_GUIDE.md)** - Azure Functions triggers
+
+---
 
 ## Reference the library in your project
 

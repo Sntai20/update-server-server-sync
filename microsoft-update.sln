@@ -26,6 +26,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Configuration", "Configurat
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "upsync", "upsync\src\upsync.csproj", "{F1E2D3C4-5A6B-7C8D-9E0F-123456789DEF}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServiceDefaults", "ServiceDefaults\ServiceDefaults\ServiceDefaults.csproj", "{32F151DD-75FF-48EE-9E73-A9A84A51540F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -72,6 +74,10 @@ Global
 		{F1E2D3C4-5A6B-7C8D-9E0F-123456789DEF}.Debug|x64.Build.0 = Debug|x64
 		{F1E2D3C4-5A6B-7C8D-9E0F-123456789DEF}.Release|x64.ActiveCfg = Release|x64
 		{F1E2D3C4-5A6B-7C8D-9E0F-123456789DEF}.Release|x64.Build.0 = Release|x64
+		{32F151DD-75FF-48EE-9E73-A9A84A51540F}.Debug|x64.ActiveCfg = Debug|x64
+		{32F151DD-75FF-48EE-9E73-A9A84A51540F}.Debug|x64.Build.0 = Debug|x64
+		{32F151DD-75FF-48EE-9E73-A9A84A51540F}.Release|x64.ActiveCfg = Release|x64
+		{32F151DD-75FF-48EE-9E73-A9A84A51540F}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
