@@ -195,7 +195,7 @@ cd AppHost/src && dotnet run
 ?         .AddUpdateEngineCore(configuration)                  ?
 ?                                                              ?
 ?  • Registers IOptionsMonitor<AppConfig>                      ?
-?  • Registers Orchestrators (use IOptionsMonitor)             ?
+?  • Registers Orchestrators (use IOptionsMonitor for hot-reload)
 ?  • Registers Domain Services                                 ?
 ?  • Registers Stores (use IOptions - no hot-reload)           ?
 ?  • Registers Health Checks (ASP.NET Core standard)           ?
@@ -581,113 +581,77 @@ az containerapp create --name update-engine --image my-image
   - [x] ? `WorkerService/README.md` - Complete usage guide
   - [x] ? `docs/guides/WEEK4_DAY1_SUMMARY.md` - Detailed progress summary
 
-#### ?? Day 2 In Progress (AppHost Integration - 40% Complete)
+#### ? Day 2 Complete (January 20, 2025)
+- [x] ? Add WorkerService to solution file
+  - [x] ? Run `dotnet sln add WorkerService/WorkerService.csproj`
+  - [x] ? Verify WorkerService builds with solution
+- [x] ? Fix configuration loading in WorkerService
+  - [x] ? Update `Program.cs` to use `AddSharedAppConfiguration()`
+  - [x] ? Verify configuration loaded from shared appsettings.defaults.json
+  - [x] ? Test AppConfig binding with IOptions/IOptionsMonitor
 - [x] ? Update AppHost to include Worker Service
   - [x] ? Add WorkerService project reference to AppHost.csproj
   - [x] ? Create `ConfigureUpdateEngine` generic configuration method
   - [x] ? Add Worker Service to AppHost Program.cs (port 8080)
   - [x] ? Configure shared infrastructure (Azurite, Redis)
   - [x] ? Build validation - zero compilation errors
-- [x] ? Create dual hosting test infrastructure
-  - [x] ? `scripts/test/Test-DualHosting.ps1` - Automated test script (8 tests)
-  - [x] ? `docs/guides/WEEK4_DAY2_INSTRUCTIONS.md` - Complete test guide
-  - [x] ? `docs/guides/WEEK4_DAY2_PROGRESS.md` - Progress tracking
-- [ ] ? Test both hosting models (Functions + Worker Service)
-  - [ ] ? Start AppHost and validate services start
-  - [ ] ? Run automated test script
-  - [ ] ? Verify all health checks pass
-- [ ] ? Manual endpoint testing with curl
-  - [ ] ? Test Azure Functions endpoints (7071)
-  - [ ] ? Test Worker Service endpoints (8080)
-  - [ ] ? Compare responses between hosts
-- [ ] ? Verify background workers start correctly
-  - [ ] ? Check logs for SyncWorker startup
-  - [ ] ? Check logs for HealthCheckWorker startup
-  - [ ] ? Test configuration hot-reload
-- [ ] ? Test Redis caching with Worker Service
-  - [ ] ? Verify cache MISS on first query
-  - [ ] ? Verify cache HIT on second query
-  - [ ] ? Validate cache keys in Redis
-- [ ] ? Validate health check endpoints in Worker Service
-  - [ ] ? Test /health (comprehensive)
-  - [ ] ? Test /health/live (liveness probe)
-  - [ ] ? Test /health/ready (readiness probe)
-- [ ] ? Document dual hosting setup
-  - [ ] ? Create WEEK4_DAY2_SUMMARY.md
-  - [ ] ? Update IMPLEMENTATION_SUMMARY.md
+- [x] ? **Create documentation**
+  - [x] ? `docs/guides/WORKERSERVICE_ADDED_TO_SOLUTION.md` - Solution integration details
+  - [x] ? Document configuration loading flow
+  - [x] ? Document known solution file issue (duplicate ServiceDefaults name)
 
-#### ? Day 3-4 Pending (Estimated: 6-8 hours)
+#### ?? Day 3 In Progress (Testing Phase)
+- [ ] ?? Test both hosting models (Functions + Worker Service)
+  - [ ] ?? Start AppHost and validate services start
+  - [ ] ?? Run automated test script
+  - [ ] ?? Verify all health checks pass
+- [ ] ?? Manual endpoint testing with curl
+  - [ ] ?? Test Azure Functions endpoints (7071)
+  - [ ] ?? Test Worker Service endpoints (8080)
+  - [ ] ?? Compare responses between hosts
+- [ ] ?? Verify background workers start correctly
+  - [ ] ?? Check logs for SyncWorker startup
+  - [ ] ?? Check logs for HealthCheckWorker startup
+  - [ ] ?? Test configuration hot-reload
+- [ ] ?? Test Redis caching with Worker Service
+  - [ ] ?? Verify cache MISS on first query
+  - [ ] ?? Verify cache HIT on second query
+  - [ ] ?? Validate cache keys in Redis
+- [ ] ?? Validate health check endpoints in Worker Service
+  - [ ] ?? Test /health (comprehensive)
+  - [ ] ?? Test /health/live (liveness probe)
+  - [ ] ?? Test /health/ready (readiness probe)
+- [ ] ?? Create test infrastructure
+  - [x] ? `scripts/test/Test-DualHosting.ps1` - Automated test script
+  - [x] ? `docs/guides/WEEK4_DAY3_TESTING_GUIDE.md` - Complete test guide
+  - [x] ? `docs/guides/WEEK4_PROGRESS_SUMMARY.md` - Detailed progress tracking
+- [ ] ?? Document test results
+  - [ ] ?? Create WEEK4_DAY3_SUMMARY.md
+  - [ ] ?? Update IMPLEMENTATION_SUMMARY.md
+
+**Testing Resources**:
+- ?? [WEEK4_DAY3_TESTING_GUIDE.md](./WEEK4_DAY3_TESTING_GUIDE.md) - Complete testing procedures
+- ?? [scripts/test/Test-DualHosting.ps1](../../scripts/test/Test-DualHosting.ps1) - Automated test script
+- ?? [WEEK4_PROGRESS_SUMMARY.md](./WEEK4_PROGRESS_SUMMARY.md) - Detailed progress tracking
+
+#### ? Day 4 Pending (Integration Tests)
 - [ ] ? **Create `WorkerServiceTestFixture.cs`**
 - [ ] ? **Write `WorkerServiceHostingE2ETest.cs`**
 - [ ] ? Write controller integration tests
 - [ ] ? Write background worker tests
 - [ ] ? Test configuration hot-reload in Worker Service
 
-**Week 4 Progress**: **~52% Complete** (11/21 tasks done)
+**Week 4 Progress**: **~65% Complete** (20/31 tasks done)
 
-**Day 2 Progress**: **~40% Complete** (2/7 major tasks done)
+**Day 2 Achievements**:
+- ? WorkerService added to solution (builds with `dotnet sln`)
+- ? Configuration loading fixed (uses AddSharedAppConfiguration)
+- ? AppHost integration complete (generic ConfigureUpdateEngine method)
+- ? Build validation - zero compilation errors
+- ? Documentation complete (WORKERSERVICE_ADDED_TO_SOLUTION.md)
+- ?? Known issue documented: Duplicate "ServiceDefaults" name in solution file
 
-**Day 2 Achievements** (So Far):
-- ? AppHost configuration complete
-- ? Generic configuration method created
-- ? Test infrastructure ready
-- ? Zero compilation errors
-- ? Ready for live testing
-
-### Week 5: CLI Integration + E2E Tests ? **PENDING**
-- [ ] ? Update CLI to use orchestrators and IOptions<AppConfig>
-- [ ] ? Remove duplicate logic from CLI
-- [ ] ? **Add health check command to CLI**
-- [ ] ? **Add caching support to CLI** (optional)
-- [ ] ? **Write `CLIToolE2ETest.cs`**
-- [ ] ? **Write `FullSyncWorkflowTest.cs`** (complete E2E)
-- [ ] ? Test CLI commands with orchestrators
-- [ ] ? **Test configuration hot-reload in Worker Service**
-- [ ] ? Test CLI with caching enabled/disabled
-
-### Week 6: Performance Testing & Production Readiness ? **PENDING**
-- [ ] ? Achieve 90%+ code coverage on orchestrators
-- [ ] ? **Write unit tests for health checks**
-- [ ] ? Run full test suite (Unit + Integration + E2E)
-- [ ] ? **Performance testing with Redis** (cache hit rates)
-- [ ] ? **Load testing** (concurrent requests with caching)
-- [ ] ? **Document configuration hot-reload patterns**
-- [ ] ? **Document health check integration with Kubernetes/Docker**
-- [ ] ? Update documentation with test results
-- [ ] ? Create deployment guides (Azure Functions + Worker Service)
-- [ ] ? **Production deployment checklist**
-
-### ?? Week 3 Achievements
-
-**Completed**: January 16, 2025  
-**Status**: ? **100% COMPLETE**
-
-#### Code Implementation
-- ? **CacheService** - Generic cache-aside pattern (~300 lines)
-- ? **RedisHealthCheck** - Comprehensive health monitoring (~120 lines)
-- ? **Orchestrator Integration** - Caching in all 3 orchestrators
-- ? **Configuration** - Complete CacheConfiguration with hot-reload
-- ? **AppHost Integration** - Redis container and configuration mapping
-
-#### Testing
-- ? **17 Unit Tests** - 100% passing (CacheServiceTests.cs)
-- ? **Zero Errors** - Clean build
-- ? **Graceful Degradation** - Validated fallback behavior
-- ? **Mock-Based Testing** - No Redis dependency in unit tests
-
-#### Documentation
-- ? **CACHING_GUIDE.md** - ~1,500 lines comprehensive guide
-- ? **WEEK3_COMPLETION_SUMMARY.md** - ~1,200 lines summary
-- ? **ARCHITECTURE_DECISIONS.md** - Caching decision rationale
-- ? **TESTING_STRATEGY.md** - Caching test patterns
-- ? **README.md** - Caching features overview
-- ? **appsettings.example.json** - Cache configuration examples
-
-#### Performance Benefits
-- ? **50-95% improvement** expected for read operations
-- ? **Horizontal scaling** enabled with shared Redis cache
-- ? **Lower Azure costs** through reduced storage queries
-- ? **Sub-second response times** for cached data
+**Day 3 Focus**: Live testing with AppHost orchestration
 
 ### ?? Overall Progress
 
@@ -696,25 +660,32 @@ az containerapp create --name update-engine --image my-image
 | **Week 1** | ? Complete | 100% |
 | **Week 2** | ? Complete | 100% |
 | **Week 3** | ? Complete | 100% |
-| **Week 4** | ? Pending | 0% |
+| **Week 4** | ?? In Progress | 65% |
 | **Week 5** | ? Pending | 0% |
 | **Week 6** | ? Pending | 0% |
-| **Overall** | ?? On Track | **50%** (3/6 weeks) |
+| **Overall** | ?? On Track | **61%** (3.65/6 weeks) |
 
-### ?? Next Milestone: Week 4
+### ?? Next Milestone: Week 4 Day 3
 
-**Objective**: Worker Service Implementation  
-**Duration**: 5-7 days  
+**Objective**: Live Testing with Dual Hosting  
+**Duration**: 1-2 days  
+**Status**: ?? In Progress
+
 **Key Deliverables**:
-1. Worker Service project with ASP.NET Core controllers
-2. Background workers for scheduled operations
-3. Dual hosting tests (Functions + Worker Service)
-4. Health check endpoint validation
-5. Redis caching validation in Worker Service
+1. Start AppHost and validate both services (Functions + Worker Service)
+2. Test all REST API endpoints on both hosts
+3. Verify background workers start and execute correctly
+4. Validate health check endpoints (/health, /health/live, /health/ready)
+5. Test Redis caching integration
+6. Create automated test script (Test-DualHosting.ps1)
+7. Document test results and any issues found
 
 **Prerequisites** (All Complete ?):
-- ? Orchestrators created and tested
-- ? Configuration with hot-reload support
-- ? Health checks implemented
-- ? Caching infrastructure ready
-- ? Comprehensive documentation
+- ? WorkerService project created and builds successfully
+- ? WorkerService added to solution file
+- ? Configuration loading fixed (uses AddSharedAppConfiguration)
+- ? AppHost integration complete
+- ? Generic ConfigureUpdateEngine method created
+- ? Documentation complete (README.md, WORKERSERVICE_ADDED_TO_SOLUTION.md)
+
+**Current Blockers**: None - Ready for testing!
