@@ -408,3 +408,16 @@ Temporary Items
 
 # JetBrains
 *.sln.DotSettings.user
+
+# Configuration - Ignore build output copies of shared configs
+**/bin/output/shared/appsettings*.json
+
+# Development - Ignore local data directories
+out/
+LocalMetadataStore/
+LocalContentStore/
+data/
+
+# Development - Ignore local override configs (machine-specific)
+# Uncomment if you want to ignore local.settings.json variations per developer
+# local.settings.json
