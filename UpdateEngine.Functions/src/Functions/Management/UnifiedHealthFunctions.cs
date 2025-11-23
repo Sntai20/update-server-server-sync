@@ -135,12 +135,12 @@ public class UnifiedHealthFunctions
     /// <summary>
     /// Weekly maintenance tasks.
     /// Default: Every 7 days (Sunday at 1 AM UTC when using CRON, or every 168 hours with TimeSpan).
-    /// Configure with WeeklyMaintenanceSchedule app setting (TimeSpan format).
+    /// Configure with MaintenanceSchedule app setting (CRON or TimeSpan format).
     /// Performs cleanup and optimization tasks.
     /// </summary>
     [Function("WeeklyMaintenance")]
     public async Task WeeklyMaintenance(
-        [TimerTrigger("%WeeklyMaintenanceSchedule%")] TimerInfo timer)
+        [TimerTrigger("%MaintenanceSchedule%")] TimerInfo timer)
     {
         this.logger.LogInformation("Starting weekly maintenance tasks at {Time}", DateTime.UtcNow);
 

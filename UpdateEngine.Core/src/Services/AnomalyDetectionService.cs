@@ -202,19 +202,19 @@ public class AnomalyDetectionService : IAnomalyDetectionService
                 softwareUpdate.Id?.ID, ex.Message);
             return 0.0; // Normal score
         }
-        catch (Exception ex) when (ex.Message.Contains("not found"))
+        catch (Exception ex) when (ex.Message.Contains("not found") || ex.Message.Contains("not supported"))
         {
-            // Package metadata is missing from storage - this can happen during partial sync
+            // Package metadata is missing from storage or read operation not supported - this can happen during partial sync
             // Return a neutral score for anomaly detection
-            this.logger.LogDebug("Returning neutral anomaly score for update {UpdateId} due to missing package metadata: {Error}", 
+            this.logger.LogDebug("Returning neutral anomaly score for update {UpdateId} due to storage access issue: {Error}", 
                 softwareUpdate.Id?.ID, ex.Message);
             return 0.0; // Normal score
         }
         catch (Exception ex)
         {
             // Log other errors but don't fail the entire sync process
-            this.logger.LogWarning(ex, "Error scoring update {UpdateId} for anomalies, returning neutral score", 
-                softwareUpdate.Id?.ID);
+            this.logger.LogWarning("Error scoring update {UpdateId} for anomalies, returning neutral score\nResult: Error scoring update {UpdateId} for anomalies, returning neutral score\nException: {Exception}\nStack: {StackTrace}.", 
+                softwareUpdate.Id?.ID, softwareUpdate.Id?.ID, ex.Message, ex.StackTrace);
             return 0.0; // Normal score
         }
     }
@@ -280,11 +280,20 @@ public class AnomalyDetectionService : IAnomalyDetectionService
             applicabilityRulesCount = 0;
             hasComplexApplicability = false;
         }
-        catch (Exception ex) when (ex.Message.Contains("not found"))
+        catch (Exception ex) when (ex.Message.Contains("not found") || ex.Message.Contains("not supported"))
         {
-            // Package metadata is missing from storage - this can happen during partial sync
+            // Package metadata is missing from storage or read operation not supported - this can happen during partial sync
+            // or when using write-only CompressedMetadataStore
             // Default to safe values for anomaly detection
-            this.logger.LogDebug("Skipping applicability analysis for update {UpdateId} due to missing package metadata: {Error}", 
+            this.logger.LogDebug("Skipping applicability analysis for update {UpdateId} due to storage access issue: {Error}", 
+                softwareUpdate.Id?.ID, ex.Message);
+            applicabilityRulesCount = 0;
+            hasComplexApplicability = false;
+        }
+        catch (Exception ex)
+        {
+            // Catch any other exceptions accessing ApplicabilityRules (storage errors, etc.)
+            this.logger.LogDebug("Skipping applicability analysis for update {UpdateId} due to unexpected error: {Error}", 
                 softwareUpdate.Id?.ID, ex.Message);
             applicabilityRulesCount = 0;
             hasComplexApplicability = false;
