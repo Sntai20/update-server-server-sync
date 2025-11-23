@@ -22,7 +22,7 @@
     <ProjectReference Include="../../microsoft-update-endpoints/src/microsoft-update-endpoints.csproj" />
     <ProjectReference Include="../../microsoft-update-upstream-source/src/microsoft-update-upstream-source.csproj" />
     <ProjectReference Include="../../Configuration/src/Configuration.csproj" />
-    <ProjectReference Include="../core/UpdateEngine.Core.csproj" />
+    <ProjectReference Include="../../UpdateEngine.Core/src/UpdateEngine.Core.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Update="host.json">

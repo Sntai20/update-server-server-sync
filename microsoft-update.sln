@@ -35,7 +35,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{40E99631-95B
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "core", "core", "{7B500216-95E6-02C6-0F9B-509CA2148E77}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UpdateEngine.Core", "UpdateEngine\core\UpdateEngine.Core.csproj", "{99FD369A-4C72-4EFD-9584-27B8E39C975E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UpdateEngine.Core", "UpdateEngine.Core\src\UpdateEngine.Core.csproj", "{99FD369A-4C72-4EFD-9584-27B8E39C975E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
