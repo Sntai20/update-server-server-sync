@@ -1,0 +1,34 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>UpdateEngine.SyncTool</RootNamespace>
+    <AssemblyName>UpdateEngine.SyncTool</AssemblyName>
+    <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
+    <FileVersion>3.0.3.0</FileVersion>
+    <AssemblyVersion>3.0.3.0</AssemblyVersion>
+    <ProductVersion>3.0.3.0</ProductVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommandLineParser" />
+    <PackageReference Include="Azure.Storage.Blobs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../UpdateEngine.Endpoints/src/microsoft-update-endpoints.csproj" />
+    <ProjectReference Include="../../UpdateEngine.Metadata/src/microsoft-update-partition.csproj" />
+    <ProjectReference Include="../../UpdateEngine.UpstreamSource/src/microsoft-update-upstream-source.csproj" />
+    <ProjectReference Include="../../UpdateEngine.WebServices/src/microsoft-update-webservices.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="update-server-config.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="upstream-server-config.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

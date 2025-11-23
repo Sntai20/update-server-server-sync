@@ -1,0 +1,73 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+namespace UpdateEngine.Metadata.Source
+{
+    using Microsoft.UpdateServices.WebServices.ServerSync;
+    using System;
+    using System.Collections.Generic;
+    using System.Text.Json.Serialization;
+
+    /// <summary>
+    /// Grants access to an upstream update server. Requried for most requests to an update server.
+    /// </summary>
+    class ServiceAccessToken
+    {
+        /// <summary>
+        /// Authentication data received from an update server
+        /// </summary>
+        [JsonPropertyName("authenticationInfo")]
+        internal List<AuthPlugInInfo> AuthenticationInfo { get; set; }
+
+        /// <summary>
+        /// Authorization cookie received from a DSS
+        /// </summary>
+        [JsonPropertyName("authCookie")]
+        internal Microsoft.UpdateServices.WebServices.DssAuthentication.AuthorizationCookie AuthCookie { get; set; }
+
+        /// <summary>
+        /// Access cookie received from the upstream update server
+        /// </summary>
+        [JsonPropertyName("accessCookie")]
+        internal Cookie AccessCookie { get; set; }
+
+        internal ServiceAccessToken()
+        {
+        }
+
+        /// <summary>
+        /// Check if the access token is expired
+        /// </summary>
+        /// <value>True is expired, false otherwise</value>
+        public bool Expired { get { return ExpiresIn(TimeSpan.FromMilliseconds(0)); } }
+
+        /// <summary>
+        /// Check if the access token will expire within the specified time span
+        /// </summary>
+        /// <param name="timeSpan">Time span from current time.</param>
+        /// <returns>True if the token will expire before the timespan passes, false otherwise</returns>
+        public bool ExpiresIn(TimeSpan timeSpan)
+        {
+            return AccessCookie == null || AccessCookie.Expiration < DateTime.Now.AddMinutes(timeSpan.TotalMinutes);
+        }
+
+        /// <summary>
+        /// Serializes an instance of <see cref="ServiceAccessToken"/> to JSON
+        /// </summary>
+        /// <returns>JSON string</returns>
+        public string ToJson()
+        {
+            return System.Text.Json.JsonSerializer.Serialize(this);
+        }
+
+        /// <summary>
+        /// Deserialize an instance of <see cref="ServiceAccessToken"/> from a JSON string.
+        /// </summary>
+        /// <param name="json">The JSON string containing the serialized ServiceAccessToken</param>
+        /// <returns>Deserialiazed ServiceAccessToken</returns>
+        public static ServiceAccessToken? FromJson(string json)
+        {
+            return System.Text.Json.JsonSerializer.Deserialize<ServiceAccessToken>(json);
+        }
+    }
+}

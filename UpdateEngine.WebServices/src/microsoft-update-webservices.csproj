@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Project-specific properties only -->
+    <RootNamespace>UpdateEngine.WebServices</RootNamespace>
+    <AssemblyName>UpdateEngine.WebServices</AssemblyName>
+    <PackageId>Microsoft.PackageGraph.MicrosoftUpdate.WebServices</PackageId>
+    <Description>C# bindings for the Microsoft Update web services. WSDL auto-generated code.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.ServiceModel.Primitives" />
+    <PackageReference Include="System.ServiceModel.Http" />
+  </ItemGroup>
+
+</Project>
