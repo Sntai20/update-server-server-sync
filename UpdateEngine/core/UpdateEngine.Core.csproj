@@ -1,0 +1,37 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>UpdateEngine.Core</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Dependency Injection and Options Pattern -->
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    
+    <!-- Health Checks -->
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" />
+    
+    <!-- Azure Storage (for health checks) -->
+    <PackageReference Include="Azure.Storage.Blobs" />
+    
+    <!-- Redis Caching -->
+    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" />
+    
+    <!-- Machine Learning (for anomaly detection) -->
+    <PackageReference Include="Microsoft.ML" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Core domain libraries -->
+    <ProjectReference Include="..\..\Configuration\Configuration.csproj" />
+    <ProjectReference Include="..\..\microsoft-update-partition\src\microsoft-update-partition.csproj" />
+    <ProjectReference Include="..\..\microsoft-update-upstream-source\src\microsoft-update-upstream-source.csproj" />
+    <ProjectReference Include="..\..\microsoft-update-webservices\src\microsoft-update-webservices.csproj" />
+  </ItemGroup>
+
+</Project>

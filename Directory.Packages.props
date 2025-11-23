@@ -69,5 +69,7 @@
     <PackageVersion Include="Aspire.StackExchange.Redis" Version="9.0.0" />
     <PackageVersion Include="Microsoft.AspNetCore.Diagnostics.HealthChecks" Version="9.0.0" />
     <PackageVersion Include="Swashbuckle.AspNetCore" Version="7.2.0" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
   </ItemGroup>
 </Project>
