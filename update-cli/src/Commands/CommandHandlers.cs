@@ -381,11 +381,10 @@ public class CommandHandlers
                 Console.WriteLine("Content Store Statistics:");
                 Console.WriteLine($"Total Files: {stats.TotalFiles}");
                 Console.WriteLine($"Total Size: {stats.TotalSizeBytes:N0} bytes ({stats.TotalSizeBytes / (1024.0 * 1024.0 * 1024.0):F2} GB)");
-                Console.WriteLine($"Available: {stats.ContentStoreAvailable}");
-                if (stats.LastDownload.HasValue)
-                {
-                    Console.WriteLine($"Last Download: {stats.LastDownload.Value}");
-                }
+                Console.WriteLine($"Updates With Content: {stats.UpdatesWithContent}");
+                Console.WriteLine($"Pending Downloads: {stats.PendingDownloads}");
+                Console.WriteLine($"Queued Size: {stats.QueuedSizeBytes:N0} bytes");
+                Console.WriteLine($"Orphaned Files: {stats.OrphanedFiles}");
                 
                 return 0;
             }
@@ -512,8 +511,7 @@ public class CommandHandlers
                 Console.WriteLine($"ID: {updateId}");
                 if (package is MicrosoftUpdatePackage muPackage)
                 {
-                    Console.WriteLine($"Creation Date: {muPackage.CreationDate}");
-                    Console.WriteLine($"Support URL: {muPackage.SupportUrl}");
+                    Console.WriteLine($"Type: {muPackage.GetType().Name}");
                 }
                 
                 return 0;
@@ -560,7 +558,7 @@ public class CommandHandlers
                     
                     Console.WriteLine("Reindex Result:");
                     Console.WriteLine($"Success: {result.Success}");
-                    Console.WriteLine($"Packages Reindexed: {result.PackagesReindexed}");
+                    Console.WriteLine($"Packages Reindexed: {result.ReindexedCount}");
                     Console.WriteLine($"Duration: {result.Duration}");
                     if (!string.IsNullOrEmpty(result.ErrorMessage))
                     {
@@ -593,6 +591,12 @@ public class CommandHandlers
                 }
                 
                 return 0;
+            }
+            else
+            {
+                Console.WriteLine("Error: No metadata orchestrator or HTTP client available");
+                return 1;
+            }
         }
         catch (Exception ex)
         {

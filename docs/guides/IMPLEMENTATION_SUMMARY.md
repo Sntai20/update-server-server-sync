@@ -334,12 +334,20 @@ cd AppHost/src && dotnet run
   - [x] ✅ Update HandleReindexAsync to use IMetadataOrchestrator.ReindexAsync
   - [x] ✅ Update HandleContentStatusAsync to use IContentOrchestrator.GetStatisticsAsync
   - [x] ✅ Fix all compilation errors - build succeeds with 0 errors
-- [ ] 📋 Add configuration for metadata and content store paths (appsettings.json)
-- [ ] 📋 Test CLI tool with same orchestrators as Functions/Worker
-- [ ] 📋 Write CLI integration tests
-- [ ] 📋 Update CLI documentation
+- [x] ✅ Add configuration for metadata and content store paths
+  - [x] ✅ Updated appsettings.json with UpdateEngine configuration
+  - [x] ✅ Created appsettings.Development.json for local mode
+  - [x] ✅ Created appsettings.Remote.json for HTTP client mode
+  - [x] ✅ Updated Program.cs with CliMode configuration support
+  - [x] ✅ Conditional service registration based on mode
+- [x] ✅ Update CLI documentation
+  - [x] ✅ Added dual-mode architecture section to README
+  - [x] ✅ Configuration examples for both modes
+  - [x] ✅ Environment variable usage examples
+- [ ] 📋 Test CLI tool with same orchestrators as Functions/Worker (manual testing)
+- [ ] 📋 Write CLI integration tests (future enhancement)
 
-**Achievement**: CLI tool now supports dual-mode operation (local orchestrators vs remote HTTP), achieving 95% code reuse across Azure Functions, Worker Service, and CLI.
+**Achievement**: CLI tool now supports dual-mode operation (local orchestrators vs remote HTTP), achieving 95% code reuse across Azure Functions, Worker Service, and CLI. Build succeeds with 0 errors.
 
 ### 📋 Phase 5: Final Consolidation (Future Work) - PENDING
 

@@ -2,6 +2,56 @@
 
 A command-line interface for querying and managing the Microsoft Update Server-Server Sync UpdateEngine with unified API support.
 
+## 🌟 Dual-Mode Architecture
+
+The CLI tool supports **two operating modes**:
+
+### 1. Local Mode (Default) - Direct Orchestrator Access
+Uses UpdateEngine.Core orchestrators directly for maximum performance and offline capability:
+- ✅ No HTTP overhead
+- ✅ Works offline (no server required)
+- ✅ Direct access to metadata and content stores
+- ✅ Shared orchestrators with Azure Functions and Worker Service
+
+### 2. Remote Mode - HTTP Client
+Connects to a remote UpdateEngine server (Azure Functions or Worker Service):
+- ✅ Works with remote servers
+- ✅ No local storage required
+- ✅ Lightweight client deployment
+
+### Configuration
+
+Set the mode in `appsettings.json`:
+
+```json
+{
+  "CliMode": "local",  // or "remote"
+  "UpdateEngine": {
+    "StorageConfiguration": {
+      "MetadataPath": "./data/metadata",
+      "ContentPath": "./data/content"
+    }
+  }
+}
+```
+
+**Available configuration files:**
+- `appsettings.json` - Default settings (local mode)
+- `appsettings.Development.json` - Development settings (local mode with detailed logging)
+- `appsettings.Remote.json` - Remote HTTP mode
+
+**To use a specific configuration:**
+
+```bash
+# Use remote mode
+$env:ASPNETCORE_ENVIRONMENT="Remote"
+dotnet run -- health
+
+# Use development mode  
+$env:ASPNETCORE_ENVIRONMENT="Development"
+dotnet run -- sync metadata
+```
+
 ## Features
 
 - **Health Monitoring**: Check UpdateEngine health status with multiple scopes (basic, full, sync, store)

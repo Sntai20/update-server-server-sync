@@ -81,12 +81,38 @@ public static class Program
             builder.AddConsole();
         });
 
-        // Add UpdateEngine.Core services (orchestrators, services, stores, health checks)
-        services.AddUpdateEngineCore(configuration);
-
-        // Add CLI-specific services
-        services.AddHttpClient<UpdateEngineClient>(); // Keep for backward compatibility
-        services.AddTransient<CommandHandlers>();
+        // Determine CLI mode (local orchestrators vs remote HTTP)
+        var cliMode = configuration.GetValue<string>("CliMode") ?? "local";
+        
+        if (cliMode.Equals("local", StringComparison.OrdinalIgnoreCase))
+        {
+            // Local mode: Register UpdateEngine.Core services (orchestrators, services, stores, health checks)
+            services.AddUpdateEngineCore(configuration);
+            
+            // Register CommandHandlers with orchestrators
+            services.AddTransient<CommandHandlers>(sp =>
+            {
+                var syncOrchestrator = sp.GetRequiredService<UpdateEngine.Core.Orchestrators.ISyncOrchestrator>();
+                var metadataOrchestrator = sp.GetRequiredService<UpdateEngine.Core.Orchestrators.IMetadataOrchestrator>();
+                var contentOrchestrator = sp.GetRequiredService<UpdateEngine.Core.Orchestrators.IContentOrchestrator>();
+                var healthService = sp.GetRequiredService<UpdateEngine.Core.Services.IHealthService>();
+                var metadataStore = sp.GetRequiredService<Microsoft.PackageGraph.Storage.IMetadataStore>();
+                
+                return new CommandHandlers(syncOrchestrator, metadataOrchestrator, contentOrchestrator, healthService, metadataStore);
+            });
+        }
+        else
+        {
+            // Remote mode: Use HTTP client
+            services.AddHttpClient<UpdateEngineClient>();
+            
+            // Register CommandHandlers with HTTP client
+            services.AddTransient<CommandHandlers>(sp =>
+            {
+                var client = sp.GetRequiredService<UpdateEngineClient>();
+                return new CommandHandlers(client);
+            });
+        }
     }
 
     private static Command CreateHealthCommand(CommandHandlers handlers)
