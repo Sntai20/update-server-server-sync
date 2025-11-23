@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Microsoft.UpdateServices.WorkerService</RootNamespace>
+    <AssemblyName>Microsoft.UpdateServices.WorkerService</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Configuration and ServiceDefaults -->
+    <ProjectReference Include="..\Configuration\Configuration.csproj" />
+    <ProjectReference Include="..\ServiceDefaults\ServiceDefaults\ServiceDefaults.csproj" />
+    
+    <!-- UpdateEngine Core components (orchestrators, models, services) -->
+    <ProjectReference Include="..\UpdateEngine\src\UpdateEngine.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.StackExchange.Redis" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" />
+    <PackageReference Include="Swashbuckle.AspNetCore" />
+  </ItemGroup>
+
+</Project>
