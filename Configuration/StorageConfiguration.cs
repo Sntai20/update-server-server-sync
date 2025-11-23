@@ -32,16 +32,10 @@ public class StorageConfiguration
 
     public void Validate()
     {
-        if (this.UseAzureStorageForMetadata || this.UseAzureStorageForContent)
-        {
-            if (string.IsNullOrWhiteSpace(this.AzureStorageConnectionString) && 
-                string.IsNullOrWhiteSpace(this.AzureStorageAccountName))
-            {
-                throw new InvalidOperationException(
-                    "StorageConfiguration.AzureStorageConnectionString or AzureStorageAccountName is required when using Azure Storage");
-            }
-        }
-
+        // Note: Connection strings can come from multiple sources (Aspire, environment variables, etc.)
+        // so we don't validate them here. They will be validated when the store is actually created.
+        
+        // Only validate that local storage paths are provided when not using Azure Storage
         if (!this.UseAzureStorageForMetadata && string.IsNullOrWhiteSpace(this.MetadataPath))
         {
             throw new InvalidOperationException("StorageConfiguration.MetadataPath is required when not using Azure Storage");
