@@ -247,7 +247,7 @@ public static class ServiceCollectionExtensions
         {
             var config = provider.GetRequiredService<IOptions<AppConfig>>().Value;
             return config.StorageConfiguration.UseAzureStorageForMetadata
-                ? Azure.PackageStore.Open(
+                ? Azure.Package.Store.Open(
                     config.StorageConfiguration.AzureStorageConnectionString,
                     config.StorageConfiguration.AzureContainerName)
                 : PackageStore.Open(config.StorageConfiguration.MetadataPath);
@@ -562,17 +562,77 @@ az containerapp create --name update-engine --image my-image
 - [x] ? Validate all tests passing (17/17 cache tests)
 - [x] ? Validate zero compilation errors
 
-### Week 4: Worker Service + Dual Hosting Tests ? **PENDING**
-- [ ] ? Create `WorkerService.csproj`
-- [ ] ? Create ASP.NET Core controllers (use IOptionsSnapshot)
-- [ ] ? Create background workers (use IOptionsMonitor)
-- [ ] ? **Expose ASP.NET Core health check endpoints** (/health, /health/live, /health/ready)
+### Week 4: Worker Service + Dual Hosting Tests ?? **IN PROGRESS** (Day 2 In Progress)
+
+#### ? Day 1 Complete (January 16, 2025)
+- [x] ? Create `WorkerService.csproj` (separate project at solution root)
+- [x] ? Create ASP.NET Core controllers (use IOptionsSnapshot)
+  - [x] ? `SyncController.cs` - Sync operations REST API
+  - [x] ? `MetadataController.cs` - Metadata queries REST API
+  - [x] ? `HealthController.cs` - Programmatic health check access
+- [x] ? Create background workers (use IOptionsMonitor)
+  - [x] ? `SyncWorker.cs` - Scheduled sync operations with hot-reload
+  - [x] ? `HealthCheckWorker.cs` - Periodic health monitoring with hot-reload
+- [x] ? **Expose ASP.NET Core health check endpoints** (/health, /health/live, /health/ready)
+- [x] ? Create configuration files (appsettings.json, appsettings.Development.json)
+- [x] ? Update `Directory.Packages.props` with new package versions
+- [x] ? Build successfully (zero compilation errors)
+- [x] ? **Create documentation**
+  - [x] ? `WorkerService/README.md` - Complete usage guide
+  - [x] ? `docs/guides/WEEK4_DAY1_SUMMARY.md` - Detailed progress summary
+
+#### ?? Day 2 In Progress (AppHost Integration - 40% Complete)
+- [x] ? Update AppHost to include Worker Service
+  - [x] ? Add WorkerService project reference to AppHost.csproj
+  - [x] ? Create `ConfigureUpdateEngine` generic configuration method
+  - [x] ? Add Worker Service to AppHost Program.cs (port 8080)
+  - [x] ? Configure shared infrastructure (Azurite, Redis)
+  - [x] ? Build validation - zero compilation errors
+- [x] ? Create dual hosting test infrastructure
+  - [x] ? `scripts/test/Test-DualHosting.ps1` - Automated test script (8 tests)
+  - [x] ? `docs/guides/WEEK4_DAY2_INSTRUCTIONS.md` - Complete test guide
+  - [x] ? `docs/guides/WEEK4_DAY2_PROGRESS.md` - Progress tracking
+- [ ] ? Test both hosting models (Functions + Worker Service)
+  - [ ] ? Start AppHost and validate services start
+  - [ ] ? Run automated test script
+  - [ ] ? Verify all health checks pass
+- [ ] ? Manual endpoint testing with curl
+  - [ ] ? Test Azure Functions endpoints (7071)
+  - [ ] ? Test Worker Service endpoints (8080)
+  - [ ] ? Compare responses between hosts
+- [ ] ? Verify background workers start correctly
+  - [ ] ? Check logs for SyncWorker startup
+  - [ ] ? Check logs for HealthCheckWorker startup
+  - [ ] ? Test configuration hot-reload
+- [ ] ? Test Redis caching with Worker Service
+  - [ ] ? Verify cache MISS on first query
+  - [ ] ? Verify cache HIT on second query
+  - [ ] ? Validate cache keys in Redis
+- [ ] ? Validate health check endpoints in Worker Service
+  - [ ] ? Test /health (comprehensive)
+  - [ ] ? Test /health/live (liveness probe)
+  - [ ] ? Test /health/ready (readiness probe)
+- [ ] ? Document dual hosting setup
+  - [ ] ? Create WEEK4_DAY2_SUMMARY.md
+  - [ ] ? Update IMPLEMENTATION_SUMMARY.md
+
+#### ? Day 3-4 Pending (Estimated: 6-8 hours)
 - [ ] ? **Create `WorkerServiceTestFixture.cs`**
 - [ ] ? **Write `WorkerServiceHostingE2ETest.cs`**
-- [ ] ? Update AppHost to include Worker Service
-- [ ] ? Test both hosting models (Functions + Worker Service)
-- [ ] ? Test Redis caching with Worker Service
-- [ ] ? Validate health check endpoints in Worker Service
+- [ ] ? Write controller integration tests
+- [ ] ? Write background worker tests
+- [ ] ? Test configuration hot-reload in Worker Service
+
+**Week 4 Progress**: **~52% Complete** (11/21 tasks done)
+
+**Day 2 Progress**: **~40% Complete** (2/7 major tasks done)
+
+**Day 2 Achievements** (So Far):
+- ? AppHost configuration complete
+- ? Generic configuration method created
+- ? Test infrastructure ready
+- ? Zero compilation errors
+- ? Ready for live testing
 
 ### Week 5: CLI Integration + E2E Tests ? **PENDING**
 - [ ] ? Update CLI to use orchestrators and IOptions<AppConfig>
