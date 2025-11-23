@@ -90,27 +90,41 @@ public static class ServiceCollectionExtensions
             var config = provider.GetRequiredService<IOptions<AppConfig>>().Value;
             var storageConfig = config.StorageConfiguration;
 
+            // Try to get connection string from Aspire first (ConnectionStrings:MetadataStorageConnection)
+            // Fall back to StorageConfiguration.AzureStorageConnectionString if not available
+            var connectionString = configuration.GetConnectionString("MetadataStorageConnection") 
+                ?? storageConfig.AzureStorageConnectionString;
+
             // Log configuration for debugging
             logger?.LogInformation("Metadata Store Configuration:");
             logger?.LogInformation("  UseAzureStorageForMetadata: {UseAzure}", storageConfig.UseAzureStorageForMetadata);
             logger?.LogInformation("  MetadataPath: {MetadataPath}", storageConfig.MetadataPath);
             logger?.LogInformation("  MetadataContainerName: {ContainerName}", storageConfig.MetadataContainerName);
-            
-            var connectionString = configuration.GetConnectionString("MetadataStorageConnection") 
-                ?? storageConfig.AzureStorageConnectionString;
             logger?.LogInformation("  Connection String from Aspire: {HasConnection}", !string.IsNullOrEmpty(configuration.GetConnectionString("MetadataStorageConnection")));
             logger?.LogInformation("  Connection String from Config: {HasConnection}", !string.IsNullOrEmpty(storageConfig.AzureStorageConnectionString));
 
-            if (storageConfig.UseAzureStorageForMetadata)
+            // Decide whether to use Azure Storage based on:
+            // 1. Configuration flag is true AND connection string is available, OR
+            // 2. Connection string is available (Aspire-provided)
+            var useAzureStorage = (storageConfig.UseAzureStorageForMetadata && !string.IsNullOrEmpty(connectionString))
+                || (!string.IsNullOrEmpty(connectionString));
+
+            if (useAzureStorage)
             {
-                // Try to get connection string from Aspire first (ConnectionStrings:MetadataStorageConnection)
-                // Fall back to StorageConfiguration.AzureStorageConnectionString if not available
                 if (string.IsNullOrEmpty(connectionString))
                 {
-                    throw new InvalidOperationException(
-                        "Azure Storage connection string not found. " +
-                        "Ensure either ConnectionStrings:MetadataStorageConnection or " +
-                        "StorageConfiguration:AzureStorageConnectionString is configured.");
+                    logger?.LogWarning(
+                        "Azure Storage requested but no connection string found. " +
+                        "Falling back to local file system storage at: {Path}", 
+                        storageConfig.MetadataPath);
+                    
+                    // Fall back to local storage
+                    if (!System.IO.Directory.Exists(storageConfig.MetadataPath))
+                    {
+                        logger?.LogWarning("Metadata store directory does not exist, creating: {Path}", storageConfig.MetadataPath);
+                        System.IO.Directory.CreateDirectory(storageConfig.MetadataPath);
+                    }
+                    return Microsoft.PackageGraph.Storage.Local.PackageStore.Open(storageConfig.MetadataPath);
                 }
 
                 logger?.LogInformation("Opening Azure Blob Storage metadata store (container: {Container})", storageConfig.MetadataContainerName);
@@ -134,6 +148,7 @@ public static class ServiceCollectionExtensions
 
         services.AddSingleton(provider =>
         {
+            var logger = provider.GetService<Microsoft.Extensions.Logging.ILogger<IContentStore>>();
             var config = provider.GetRequiredService<IOptions<AppConfig>>().Value;
             var storageConfig = config.StorageConfiguration;
 
@@ -142,22 +157,32 @@ public static class ServiceCollectionExtensions
                 return (IContentStore?)null;
             }
 
-            if (storageConfig.UseAzureStorageForContent)
-            {
-                // Try to get connection string from Aspire first (ConnectionStrings:ContentStorageConnection or MetadataStorageConnection)
-                // Fall back to StorageConfiguration.AzureStorageConnectionString if not available
-                var connectionString = configuration.GetConnectionString("ContentStorageConnection") 
-                    ?? configuration.GetConnectionString("MetadataStorageConnection")
-                    ?? storageConfig.AzureStorageConnectionString;
+            // Try to get connection string from Aspire first (ConnectionStrings:ContentStorageConnection or MetadataStorageConnection)
+            // Fall back to StorageConfiguration.AzureStorageConnectionString if not available
+            var connectionString = configuration.GetConnectionString("ContentStorageConnection") 
+                ?? configuration.GetConnectionString("MetadataStorageConnection")
+                ?? storageConfig.AzureStorageConnectionString;
 
+            // Decide whether to use Azure Storage based on:
+            // 1. Configuration flag is true AND connection string is available, OR
+            // 2. Connection string is available (Aspire-provided)
+            var useAzureStorage = (storageConfig.UseAzureStorageForContent && !string.IsNullOrEmpty(connectionString))
+                || (!string.IsNullOrEmpty(connectionString) && string.IsNullOrEmpty(storageConfig.ContentPath));
+
+            if (useAzureStorage)
+            {
                 if (string.IsNullOrEmpty(connectionString))
                 {
-                    throw new InvalidOperationException(
-                        "Azure Storage connection string not found. " +
-                        "Ensure either ConnectionStrings:ContentStorageConnection or " +
-                        "StorageConfiguration:AzureStorageConnectionString is configured.");
+                    logger?.LogWarning(
+                        "Azure Storage requested but no connection string found. " +
+                        "Falling back to local file system storage at: {Path}", 
+                        storageConfig.ContentPath);
+                    
+                    // Fall back to local storage
+                    return (IContentStore?)new FileSystemContentStore(storageConfig.ContentPath);
                 }
 
+                logger?.LogInformation("Opening Azure Blob Storage content store (container: {Container})", storageConfig.ContentContainerName);
                 // Azure Blob Storage
                 var blobServiceClient = new Azure.Storage.Blobs.BlobServiceClient(connectionString);
                 return (IContentStore?)Microsoft.PackageGraph.Storage.Azure.BlobContentStore.OpenOrCreate(
@@ -168,6 +193,13 @@ public static class ServiceCollectionExtensions
             else
             {
                 // Local File System
+                if (string.IsNullOrEmpty(storageConfig.ContentPath))
+                {
+                    logger?.LogInformation("No content store configured (catalog-only mode)");
+                    return (IContentStore?)null;
+                }
+
+                logger?.LogInformation("Opening local file system content store at: {Path}", storageConfig.ContentPath);
                 return (IContentStore?)new FileSystemContentStore(storageConfig.ContentPath);
             }
         });
