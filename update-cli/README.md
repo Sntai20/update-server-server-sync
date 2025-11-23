@@ -341,6 +341,28 @@ Solutions:
 - HttpClient for API communication
 - Microsoft.Extensions.* for configuration and DI
 
+## Testing
+
+The CLI includes automated tests validating orchestrator integration:
+
+```powershell
+# Run all tests
+cd update-cli/test
+dotnet test
+
+# Run with detailed output
+dotnet test --verbosity normal
+```
+
+**Test Coverage:**
+- Construction and dependency injection validation
+- Health check operations with mocked services
+- Statistics retrieval from metadata orchestrator
+- Content status queries from content orchestrator
+- Configuration loading (local/remote modes)
+
+All tests use mocked orchestrators to avoid external dependencies, providing fast and reliable test execution.
+
 ## Command Reference
 
 ### Health Commands
