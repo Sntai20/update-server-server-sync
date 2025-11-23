@@ -12,8 +12,8 @@ using Microsoft.PackageGraph.ObjectModel;
 using Microsoft.PackageGraph.Storage;
 using Moq;
 using System.Collections.Generic;
-using UpdateEngine.Models;
-using UpdateEngine.Services;
+using UpdateEngine.Core.Models;
+using UpdateEngine.Core.Services;
 using Xunit;
 
 /// <summary>

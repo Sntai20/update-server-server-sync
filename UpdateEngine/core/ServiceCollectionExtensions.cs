@@ -17,7 +17,6 @@ using System.Text.Json.Serialization;
 using UpdateEngine.Core.HealthChecks;
 using UpdateEngine.Core.Orchestrators;
 using UpdateEngine.Core.Services;
-using UpdateEngine.Services;
 
 /// <summary>
 /// Extension methods for registering Update Engine services in the DI container.
@@ -46,7 +45,7 @@ public static class ServiceCollectionExtensions
         });
 
         // 2. Configuration (IOptionsMonitor pattern with hot-reload)
-        services.Configure<AppConfig>(configuration.GetSection(AppConfig.SectionName));
+        services.Configure<AppConfig>(options => configuration.GetSection(AppConfig.SectionName).Bind(options));
 
         // Validate configuration on startup
         var appConfig = configuration.BindToAppConfig();
@@ -78,7 +77,9 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IContentOrchestrator, ContentOrchestrator>();
 
         // 5. Domain services
-        services.AddSingleton<ISyncService, SyncService>();
+        // NOTE: ISyncService and other domain services are still in UpdateEngine project
+        // They will be registered by the host project (UpdateEngine, WorkerService, etc.)
+        // services.AddSingleton<ISyncService, SyncService>();
 
         // 6. Stores (use IOptions - startup only since stores don't hot-reload)
         services.AddSingleton<IMetadataStore>(provider =>
@@ -196,9 +197,6 @@ public static class ServiceCollectionExtensions
                 failureStatus: Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Degraded,
                 tags: new[] { "cache", "redis" });
         }
-
-        // 8. HTTP Client
-        services.AddHttpClient();
 
         return services;
     }

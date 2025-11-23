@@ -13,8 +13,8 @@ using System.Collections.Specialized;
 using System.Net;
 using System.Text.Json;
 using UpdateEngine.Functions.Management;
-using UpdateEngine.Models;
-using UpdateEngine.Services;
+using UpdateEngine.Core.Models;
+using UpdateEngine.Core.Services;
 using Xunit;
 
 public class UnifiedHealthFunctionsTest

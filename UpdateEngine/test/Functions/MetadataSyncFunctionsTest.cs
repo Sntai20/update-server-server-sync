@@ -15,7 +15,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using UpdateEngine.Functions.Management;
-using UpdateEngine.Services;
+using UpdateEngine.Core.Services;
 using Xunit;
 
 /// <summary>

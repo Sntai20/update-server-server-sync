@@ -4,7 +4,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using UpdateEngine.Core.Models;
 using UpdateEngine.Core.Services;
-using UpdateEngine.Services;
 
 namespace UpdateEngine.Core.Orchestrators;
 

@@ -14,7 +14,7 @@
     <ProjectReference Include="..\ServiceDefaults\ServiceDefaults\ServiceDefaults.csproj" />
     
     <!-- UpdateEngine Core components (orchestrators, models, services) -->
-    <ProjectReference Include="..\UpdateEngine\src\UpdateEngine.csproj" />
+    <ProjectReference Include="..\UpdateEngine\core\UpdateEngine.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>

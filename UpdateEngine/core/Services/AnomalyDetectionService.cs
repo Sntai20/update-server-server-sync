@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-namespace UpdateEngine.Services;
+namespace UpdateEngine.Core.Services;
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -10,7 +10,7 @@ using Microsoft.ML.Data;
 using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
 using Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Applicability;
 using Microsoft.PackageGraph.Storage;
-using UpdateEngine.Models;
+using UpdateEngine.Core.Models;
 
 /// <summary>
 /// ML.NET-based anomaly detection for Windows Updates

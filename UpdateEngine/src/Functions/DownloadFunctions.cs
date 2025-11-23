@@ -10,7 +10,7 @@ using Microsoft.PackageGraph.ObjectModel;
 using Microsoft.PackageGraph.Storage;
 using System.Net;
 using System.Text.Json;
-using UpdateEngine.Services;
+using UpdateEngine.Core.Services;
 
 /// <summary>
 /// Functions for downloading updates and metadata from the UpdateEngine.

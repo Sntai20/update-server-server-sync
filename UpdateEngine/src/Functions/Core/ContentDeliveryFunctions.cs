@@ -11,7 +11,7 @@ using Microsoft.PackageGraph.Storage;
 using System.Net;
 using System.Text.Json;
 using UpdateEngine.Functions.Shared;
-using UpdateEngine.Services;
+using UpdateEngine.Core.Services;
 
 /// <summary>
 /// Consolidated functions for content delivery, downloads, and content management.

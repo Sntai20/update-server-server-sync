@@ -10,8 +10,8 @@ using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
 using Microsoft.PackageGraph.Storage;
 using System.Net;
 using System.Text.Json;
-using UpdateEngine.Models;
-using UpdateEngine.Services;
+using UpdateEngine.Core.Models;
+using UpdateEngine.Core.Services;
 
 /// <summary>
 /// Unified health and maintenance functions consolidating all health-related operations.

@@ -10,8 +10,8 @@ using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
 using Microsoft.PackageGraph.Storage;
 using System.Net;
 using System.Text.Json;
-using UpdateEngine.Models;
-using UpdateEngine.Services;
+using UpdateEngine.Core.Models;
+using UpdateEngine.Core.Services;
 
 /// <summary>
 /// Azure Functions for metadata query and analysis operations.
@@ -49,7 +49,7 @@ public class MetadataQueryFunctions
         try
         {
             var requestBody = await new StreamReader(req.Body).ReadToEndAsync();
-            var queryRequest = JsonSerializer.Deserialize<Services.MetadataQueryRequest>(requestBody) ?? new Services.MetadataQueryRequest();
+            var queryRequest = JsonSerializer.Deserialize<UpdateEngine.Core.Services.MetadataQueryRequest>(requestBody) ?? new UpdateEngine.Core.Services.MetadataQueryRequest();
 
             var results = await this.queryService.QueryMetadataAsync(queryRequest);
 
@@ -104,7 +104,7 @@ public class MetadataQueryFunctions
         try
         {
             var requestBody = await new StreamReader(req.Body).ReadToEndAsync();
-            var matchRequest = JsonSerializer.Deserialize<Services.DriverMatchRequest>(requestBody) ?? new Services.DriverMatchRequest();
+            var matchRequest = JsonSerializer.Deserialize<UpdateEngine.Core.Services.DriverMatchRequest>(requestBody) ?? new UpdateEngine.Core.Services.DriverMatchRequest();
 
             var matches = await this.queryService.MatchDriversAsync(matchRequest);
 
@@ -159,7 +159,7 @@ public class MetadataQueryFunctions
         try
         {
             var requestBody = await new StreamReader(req.Body).ReadToEndAsync();
-            var exportRequest = JsonSerializer.Deserialize<Services.MetadataExportRequest>(requestBody) ?? new Services.MetadataExportRequest();
+            var exportRequest = JsonSerializer.Deserialize<UpdateEngine.Core.Services.MetadataExportRequest>(requestBody) ?? new UpdateEngine.Core.Services.MetadataExportRequest();
 
             var exportResult = await this.queryService.ExportMetadataAsync(exportRequest);
 

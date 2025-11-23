@@ -15,9 +15,10 @@ using Microsoft.UpdateServices.WebServices.ServerSync;
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using System.Xml.Linq;
+using UpdateEngine.Core.Models;
+using UpdateEngine.Core.Services;
 using UpdateEngine.Helpers;
-using UpdateEngine.Models;
-using UpdateEngine.Services;
 
 /// <summary>
 /// Azure Functions for metadata export operations.
@@ -276,6 +277,7 @@ public class MetadataExportFunctions
         {
             throw new InvalidOperationException("Metadata store is not available");
         }
+        
         return ManifestCsvBuilder.GenerateSummaryManifestCsv(this.metadataStore);
     }
 }

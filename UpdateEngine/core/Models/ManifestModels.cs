@@ -1,6 +1,9 @@
-namespace UpdateEngine.Models;
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
 
-using UpdateEngine.Services;
+namespace UpdateEngine.Core.Models;
+
+using UpdateEngine.Core.Services;
 
 public class MetadataExportRequest : IMetadataFilterRequest
 {

@@ -1,4 +1,4 @@
-﻿namespace UpdateEngineTest.Integration;
+namespace UpdateEngineTest.Integration;
 
 using System.Net;
 using System.Text;

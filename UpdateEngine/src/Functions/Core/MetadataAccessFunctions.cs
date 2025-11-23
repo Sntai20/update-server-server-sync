@@ -10,15 +10,18 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.PackageGraph.MicrosoftUpdate;
 using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
+using Microsoft.PackageGraph.ObjectModel;
 using Microsoft.PackageGraph.Storage;
 using Microsoft.UpdateServices.WebServices.ServerSync;
+using System.Collections;
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using System.Xml.Linq;
+using UpdateEngine.Core.Models;
+using UpdateEngine.Core.Services;
 using UpdateEngine.Functions.Shared;
 using UpdateEngine.Helpers;
-using UpdateEngine.Models;
-using UpdateEngine.Services;
 
 /// <summary>
 /// Consolidated functions for metadata access, querying, and export operations.
@@ -140,15 +143,15 @@ public class MetadataAccessFunctions
     {
         return await FunctionHelpers.ExecuteWithErrorHandlingAsync(req, this.logger, async () =>
         {
-            var exportRequest = await FunctionHelpers.ParseJsonRequestAsync<UpdateEngine.Models.MetadataExportRequest>(req, this.jsonOptions);
+            var exportRequest = await FunctionHelpers.ParseJsonRequestAsync<UpdateEngine.Core.Models.MetadataExportRequest>(req, this.jsonOptions);
             FunctionHelpers.ValidateRequiredParameters(
                 ("exportRequest", exportRequest)
             );
 
             this.logger.LogInformation("Basic metadata export requested");
 
-            // Convert Models.MetadataExportRequest to Services.MetadataExportRequest
-            var serviceRequest = new UpdateEngine.Services.MetadataExportRequest
+            // Convert UpdateEngine.Core.Models.MetadataExportRequest to UpdateEngine.Core.Services.MetadataExportRequest
+            var serviceRequest = new UpdateEngine.Core.Services.MetadataExportRequest
             {
                 Format = exportRequest!.Format,
                 ProductsFilter = exportRequest.ProductsFilter?.ToList(),
@@ -174,7 +177,7 @@ public class MetadataAccessFunctions
     {
         return await FunctionHelpers.ExecuteWithErrorHandlingAsync(req, this.logger, async () =>
         {
-            var exportRequest = await FunctionHelpers.ParseJsonRequestAsync<UpdateEngine.Models.MetadataExportRequest>(req, this.jsonOptions);
+            var exportRequest = await FunctionHelpers.ParseJsonRequestAsync<UpdateEngine.Core.Models.MetadataExportRequest>(req, this.jsonOptions);
             FunctionHelpers.ValidateRequiredParameters(
                 ("exportRequest", exportRequest)
             );
@@ -223,8 +226,8 @@ public class MetadataAccessFunctions
     {
         return await FunctionHelpers.ExecuteWithErrorHandlingAsync(req, this.logger, async () =>
         {
-            var exportRequest = await FunctionHelpers.ParseJsonRequestAsync<UpdateEngine.Models.MetadataExportRequest>(req, this.jsonOptions);
-            exportRequest ??= new UpdateEngine.Models.MetadataExportRequest();
+            var exportRequest = await FunctionHelpers.ParseJsonRequestAsync<UpdateEngine.Core.Models.MetadataExportRequest>(req, this.jsonOptions);
+            exportRequest ??= new UpdateEngine.Core.Models.MetadataExportRequest();
 
             this.logger.LogInformation("CSV export requested");
 

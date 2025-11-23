@@ -1,10 +1,10 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-namespace UpdateEngine.Services;
+namespace UpdateEngine.Core.Services;
 
 using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
-using UpdateEngine.Models;
+using UpdateEngine.Core.Models;
 
 /// <summary>
 /// Service for detecting anomalies in Windows Update metadata using ML.NET

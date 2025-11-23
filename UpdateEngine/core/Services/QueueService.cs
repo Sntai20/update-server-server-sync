@@ -1,13 +1,13 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-namespace UpdateEngine.Services;
+namespace UpdateEngine.Core.Services;
 
 using Azure.Storage.Queues;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
-using UpdateEngine.Models;
+using UpdateEngine.Core.Models;
 
 public class QueueService : IQueueService
 {

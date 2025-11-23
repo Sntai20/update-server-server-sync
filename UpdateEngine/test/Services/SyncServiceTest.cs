@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.PackageGraph.MicrosoftUpdate.Source;
 using Microsoft.PackageGraph.Storage;
 using Moq;
-using UpdateEngine.Services;
+using UpdateEngine.Core.Services;
 using Xunit;
 
 public class SyncServiceTest

@@ -10,8 +10,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
 using System.Net;
 using System.Text.Json;
-using UpdateEngine.Models;
-using UpdateEngine.Services;
+using UpdateEngine.Core.Models;
+using UpdateEngine.Core.Services;
 
 /// <summary>
 /// Azure Functions for ML.NET-based anomaly detection in Windows Update metadata

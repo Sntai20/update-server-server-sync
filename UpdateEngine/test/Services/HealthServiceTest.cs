@@ -6,7 +6,7 @@ namespace UpdateEngineTest.Services;
 using Microsoft.Extensions.Logging;
 using Microsoft.PackageGraph.Storage;
 using Moq;
-using UpdateEngine.Services;
+using UpdateEngine.Core.Services;
 using Xunit;
 
 public class HealthServiceTest

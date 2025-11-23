@@ -7,7 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.PackageGraph.Storage;
-using UpdateEngine.Services;
+using UpdateEngine.Core.Services;
 using Xunit;
 using Xunit.Abstractions;
 

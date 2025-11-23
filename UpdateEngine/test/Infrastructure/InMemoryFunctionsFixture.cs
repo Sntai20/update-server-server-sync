@@ -9,7 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.PackageGraph.Storage;
 using Microsoft.PackageGraph.Storage.Local;
-using UpdateEngine.Services;
+using UpdateEngine.Core.Services;
 using Xunit;
 
 /// <summary>

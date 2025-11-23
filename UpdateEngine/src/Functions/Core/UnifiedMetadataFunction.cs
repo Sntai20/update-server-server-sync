@@ -4,8 +4,8 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 // TODO: Implement IMetadataQueryService
-// using UpdateEngine.Services;
-using UpdateEngine.Models;
+// using UpdateEngine.Core.Services;
+using UpdateEngine.Core.Models;
 using Azure.Storage.Blobs;
 
 namespace UpdateEngine.Functions.Core;

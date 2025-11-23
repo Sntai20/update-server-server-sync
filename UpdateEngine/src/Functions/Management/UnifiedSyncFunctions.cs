@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
 namespace UpdateEngine.Functions.Management;
@@ -15,8 +15,8 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using UpdateEngine.Helpers;
-using UpdateEngine.Models;
-using UpdateEngine.Services;
+using UpdateEngine.Core.Models;
+using UpdateEngine.Core.Services;
 
 /// <summary>
 /// Unified sync functions consolidating all synchronization operations.

@@ -7,7 +7,7 @@ using Configuration;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.PackageGraph.Storage;
-using UpdateEngine.Services;
+using UpdateEngine.Core.Services;
 using UpdateEngineTest.Infrastructure;
 using Xunit;
 

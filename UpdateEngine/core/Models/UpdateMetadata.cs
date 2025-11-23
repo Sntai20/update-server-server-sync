@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-namespace UpdateEngine.Models;
+namespace UpdateEngine.Core.Models;
 
 /// <summary>
 /// UpdateMetadata model for ML.NET anomaly detection
