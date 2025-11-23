@@ -319,10 +319,15 @@ cd AppHost/src && dotnet run
 - [x] ✅ Add UpdateEngine.Core project reference to update-cli
 - [x] ✅ Add Configuration project reference to update-cli
 - [x] ✅ Update CLI dependency injection to use ServiceCollectionExtensions
-- [ ] 🔄 Refactor CommandHandlers to use orchestrators (instead of HTTP client)
-- [ ] 🔄 Update commands to use `ISyncOrchestrator`
-- [ ] 🔄 Update commands to use `IMetadataOrchestrator`
-- [ ] 🔄 Update commands to use `IHealthService`
+- [x] ✅ Refactor CommandHandlers to use orchestrators (dual mode pattern)
+  - [x] ✅ Add dual constructor (local orchestrators vs remote HTTP)
+  - [x] ✅ Update HandleHealthAsync to use IHealthService.PerformHealthCheckAsync
+  - [x] ✅ Update HandleSyncMetadataAsync to use ISyncOrchestrator.ExecuteSyncAsync
+  - [x] ✅ Update HandleStoreStatisticsAsync to use IMetadataOrchestrator.GetStatisticsAsync
+  - [x] ✅ Update HandleSearchAsync to use IMetadataOrchestrator.QueryUpdatesAsync
+  - [x] ✅ Update HandleCategoriesAsync to use IMetadataStore.OfType<T>()
+  - [x] ✅ Fix all 15 compilation errors - build succeeds with 0 errors
+- [ ] 📋 Complete remaining handler methods (configuration, content sync, reindex, downloads)
 - [ ] 📋 Add configuration for metadata and content store paths
 - [ ] 📋 Test CLI tool with same orchestrators as Functions/Worker
 - [ ] 📋 Write CLI integration tests
@@ -344,9 +349,9 @@ cd AppHost/src && dotnet run
 | **Phase 1: Core Infrastructure** | ✅ Complete | 100% | Weeks 1-3 |
 | **Phase 2: Dual Hosting Model** | ✅ Complete | 100% | Week 4 (Nov 2025) |
 | **Phase 3: Structure Standardization** | ✅ Complete | 100% | Nov 23, 2025 |
-| **Phase 4: CLI Integration** | 📋 Pending | 0% | Future work |
+| **Phase 4: CLI Integration** | 🔄 In Progress | **50%** | Started Nov 23, 2025 |
 | **Phase 5: Final Consolidation** | 📋 Pending | 0% | Future work |
-| **Overall** | ✅ Core Complete | **80%** | 3/5 phases complete |
+| **Overall** | 🔄 In Progress | **85%** | 3.5/5 phases complete |
 
 ### 🎯 Current Status: Ready for Phase 4
 

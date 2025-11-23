@@ -4,25 +4,56 @@
 namespace UpdateCli.Commands;
 
 using System.Text.Json;
+using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
+using Microsoft.PackageGraph.ObjectModel;
+using Microsoft.PackageGraph.Storage;
 using UpdateCli.Services;
+using UpdateEngine.Core.Models;
+using UpdateEngine.Core.Orchestrators;
+using UpdateEngine.Core.Services;
 
 /// <summary>
 /// Command handlers for the UpdateEngine CLI.
-/// Updated to work with unified function endpoints.
+/// Now supports both direct orchestrator access (local mode) and HTTP client (remote mode).
 /// </summary>
 public class CommandHandlers
 {
-    private readonly UpdateEngineClient updateEngineClient;
-    private readonly Server2022DownloadHandler server2022Handler;
-    private readonly Server2025DownloadHandler server2025Handler;
-    private readonly Windows11DownloadHandler windows11Handler;
+    private readonly UpdateEngineClient? updateEngineClient;
+    private readonly ISyncOrchestrator? syncOrchestrator;
+    private readonly IMetadataOrchestrator? metadataOrchestrator;
+    private readonly IHealthService? healthService;
+    private readonly IMetadataStore? metadataStore;
+    private readonly Server2022DownloadHandler? server2022Handler;
+    private readonly Server2025DownloadHandler? server2025Handler;
+    private readonly Windows11DownloadHandler? windows11Handler;
+    private readonly bool useOrchestrators;
 
+    /// <summary>
+    /// Constructor for local mode (uses orchestrators directly).
+    /// </summary>
+    public CommandHandlers(
+        ISyncOrchestrator syncOrchestrator,
+        IMetadataOrchestrator metadataOrchestrator,
+        IHealthService healthService,
+        IMetadataStore metadataStore)
+    {
+        this.syncOrchestrator = syncOrchestrator;
+        this.metadataOrchestrator = metadataOrchestrator;
+        this.healthService = healthService;
+        this.metadataStore = metadataStore;
+        this.useOrchestrators = true;
+    }
+
+    /// <summary>
+    /// Constructor for remote mode (uses HTTP client).
+    /// </summary>
     public CommandHandlers(UpdateEngineClient updateEngineClient)
     {
         this.updateEngineClient = updateEngineClient;
         this.server2022Handler = new Server2022DownloadHandler(updateEngineClient);
         this.server2025Handler = new Server2025DownloadHandler(updateEngineClient);
         this.windows11Handler = new Windows11DownloadHandler(updateEngineClient);
+        this.useOrchestrators = false;
     }
 
     /// <summary>
@@ -33,10 +64,35 @@ public class CommandHandlers
         try
         {
             Console.WriteLine($"Checking UpdateEngine health (scope: {scope})...");
-            var status = await this.updateEngineClient.GetHealthStatusAsync(scope);
-            Console.WriteLine("UpdateEngine Health Status:");
-            Console.WriteLine(status);
-            return 0;
+            
+            if (this.useOrchestrators && this.healthService != null && this.metadataStore != null)
+            {
+                // Local mode: Use IHealthService
+                var healthResult = await this.healthService.PerformHealthCheckAsync();
+                
+                Console.WriteLine("UpdateEngine Health Status:");
+                Console.WriteLine($"Status: {healthResult.Status}");
+                Console.WriteLine($"Is Healthy: {healthResult.IsHealthy}");
+                Console.WriteLine($"Package Count: {healthResult.PackageCount}");
+                Console.WriteLine($"Content Store Available: {healthResult.ContentStoreAvailable}");
+                Console.WriteLine($"Reindexing Required: {healthResult.ReindexingRequired}");
+                Console.WriteLine($"Timestamp: {healthResult.Timestamp}");
+                
+                return healthResult.IsHealthy ? 0 : 1;
+            }
+            else if (this.updateEngineClient != null)
+            {
+                // Remote mode: Use HTTP client
+                var status = await this.updateEngineClient.GetHealthStatusAsync(scope);
+                Console.WriteLine("UpdateEngine Health Status:");
+                Console.WriteLine(status);
+                return 0;
+            }
+            else
+            {
+                Console.WriteLine("Error: No health service or HTTP client available");
+                return 1;
+            }
         }
         catch (Exception ex)
         {
@@ -73,10 +129,45 @@ public class CommandHandlers
         {
             Console.WriteLine("Starting comprehensive metadata synchronization...");
             Console.WriteLine("(Syncing categories and updates)");
-            var result = await this.updateEngineClient.SyncMetadataAsync();
-            Console.WriteLine("Metadata Sync Result:");
-            Console.WriteLine(result);
-            return 0;
+            
+            if (this.useOrchestrators && this.syncOrchestrator != null)
+            {
+                // Local mode: Use ISyncOrchestrator
+                var request = new UnifiedSyncRequest
+                {
+                    SyncType = SyncType.Comprehensive,
+                    Action = SyncAction.Start
+                };
+                
+                var result = await this.syncOrchestrator.ExecuteSyncAsync(request, CancellationToken.None);
+                
+                Console.WriteLine("Metadata Sync Result:");
+                Console.WriteLine($"Success: {result.Success}");
+                Console.WriteLine($"Message: {result.Message}");
+                if (result.ItemsSynced.HasValue)
+                {
+                    Console.WriteLine($"Items Synced: {result.ItemsSynced.Value}");
+                }
+                if (result.Duration.HasValue)
+                {
+                    Console.WriteLine($"Duration: {result.Duration.Value}");
+                }
+                
+                return result.Success ? 0 : 1;
+            }
+            else if (this.updateEngineClient != null)
+            {
+                // Remote mode: Use HTTP client
+                var result = await this.updateEngineClient.SyncMetadataAsync();
+                Console.WriteLine("Metadata Sync Result:");
+                Console.WriteLine(result);
+                return 0;
+            }
+            else
+            {
+                Console.WriteLine("Error: No sync orchestrator or HTTP client available");
+                return 1;
+            }
         }
         catch (Exception ex)
         {
@@ -133,10 +224,43 @@ public class CommandHandlers
     {
         try
         {
-            var stats = await this.updateEngineClient.GetStoreStatisticsAsync();
-            Console.WriteLine("Store Statistics:");
-            Console.WriteLine(stats);
-            return 0;
+            if (this.useOrchestrators && this.metadataOrchestrator != null)
+            {
+                // Local mode: Use IMetadataOrchestrator to get statistics
+                var stats = await this.metadataOrchestrator.GetStatisticsAsync(CancellationToken.None);
+                
+                Console.WriteLine("Store Statistics:");
+                Console.WriteLine($"Total Updates: {stats.TotalUpdates}");
+                Console.WriteLine($"Total Categories: {stats.TotalCategories}");
+                Console.WriteLine($"Total Classifications: {stats.TotalClassifications}");
+                Console.WriteLine($"Total Products: {stats.TotalProducts}");
+                Console.WriteLine($"Reindexing Required: {stats.ReindexingRequired}");
+                
+                if (stats.LastUpdated.HasValue)
+                {
+                    Console.WriteLine($"Last Updated: {stats.LastUpdated.Value}");
+                }
+                
+                if (stats.StoreSizeBytes.HasValue)
+                {
+                    Console.WriteLine($"Store Size: {stats.StoreSizeBytes.Value:N0} bytes");
+                }
+                
+                return 0;
+            }
+            else if (this.updateEngineClient != null)
+            {
+                // Remote mode: Use HTTP client
+                var stats = await this.updateEngineClient.GetStoreStatisticsAsync();
+                Console.WriteLine("Store Statistics:");
+                Console.WriteLine(stats);
+                return 0;
+            }
+            else
+            {
+                Console.WriteLine("Error: No metadata store or HTTP client available");
+                return 1;
+            }
         }
         catch (Exception ex)
         {
@@ -172,10 +296,47 @@ public class CommandHandlers
         try
         {
             Console.WriteLine($"Searching for updates in category: {category}");
-            var results = await this.updateEngineClient.SearchUpdatesByCategoryAsync(category);
-            Console.WriteLine("Search Results:");
-            Console.WriteLine(results);
-            return 0;
+            
+            if (this.useOrchestrators && this.metadataOrchestrator != null)
+            {
+                // Local mode: Use IMetadataOrchestrator
+                var query = new MetadataQuery
+                {
+                    Classifications = new List<string> { category },
+                    MaxResults = 100
+                };
+                
+                var results = await this.metadataOrchestrator.QueryUpdatesAsync(query, CancellationToken.None);
+                
+                Console.WriteLine($"Search Results: Found {results.Count} updates");
+                foreach (var packageId in results.Take(20)) // Show first 20
+                {
+                    var guidId = packageId.OpenId != null && packageId.OpenId.Length == 16 
+                        ? new Guid(packageId.OpenId).ToString() 
+                        : "Unknown";
+                    Console.WriteLine($"  - {guidId}");
+                }
+                
+                if (results.Count > 20)
+                {
+                    Console.WriteLine($"  ... and {results.Count - 20} more");
+                }
+                
+                return 0;
+            }
+            else if (this.updateEngineClient != null)
+            {
+                // Remote mode: Use HTTP client
+                var results = await this.updateEngineClient.SearchUpdatesByCategoryAsync(category);
+                Console.WriteLine("Search Results:");
+                Console.WriteLine(results);
+                return 0;
+            }
+            else
+            {
+                Console.WriteLine("Error: No metadata orchestrator or HTTP client available");
+                return 1;
+            }
         }
         catch (Exception ex)
         {
@@ -242,10 +403,39 @@ public class CommandHandlers
     {
         try
         {
-            var categories = await this.updateEngineClient.GetCategoriesAsync();
-            Console.WriteLine("Available Categories:");
-            Console.WriteLine(categories);
-            return 0;
+            if (this.useOrchestrators && this.metadataStore != null)
+            {
+                // Local mode: Query metadata store directly using OfType<T>()
+                Console.WriteLine("Available Categories:");
+                Console.WriteLine("\nProducts:");
+                var products = this.metadataStore.OfType<ProductCategory>().Take(25);
+                foreach (var product in products)
+                {
+                    Console.WriteLine($"  - {product.Title}");
+                }
+                
+                Console.WriteLine("\nClassifications:");
+                var classifications = this.metadataStore.OfType<ClassificationCategory>().Take(25);
+                foreach (var classification in classifications)
+                {
+                    Console.WriteLine($"  - {classification.Title}");
+                }
+                
+                return 0;
+            }
+            else if (this.updateEngineClient != null)
+            {
+                // Remote mode: Use HTTP client
+                var categories = await this.updateEngineClient.GetCategoriesAsync();
+                Console.WriteLine("Available Categories:");
+                Console.WriteLine(categories);
+                return 0;
+            }
+            else
+            {
+                Console.WriteLine("Error: No metadata store or HTTP client available");
+                return 1;
+            }
         }
         catch (Exception ex)
         {
