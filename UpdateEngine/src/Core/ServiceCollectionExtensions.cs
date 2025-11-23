@@ -126,7 +126,7 @@ public static class ServiceCollectionExtensions
         });
 
         // 7. Health Checks
-        services.AddHealthChecks()
+        var healthChecksBuilder = services.AddHealthChecks()
             .AddCheck<MetadataStoreHealthCheck>(
                 name: "metadata-store",
                 failureStatus: Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Unhealthy,
@@ -143,6 +143,15 @@ public static class ServiceCollectionExtensions
                 name: "azure-storage",
                 failureStatus: Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Unhealthy,
                 tags: new[] { "storage", "azure", "critical" });
+
+        // Add Redis health check if caching is enabled
+        if (appConfig.CacheConfiguration.EnableDistributedCache)
+        {
+            healthChecksBuilder.AddCheck<RedisHealthCheck>(
+                name: "redis-cache",
+                failureStatus: Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Degraded,
+                tags: new[] { "cache", "redis" });
+        }
 
         // 8. HTTP Client
         services.AddHttpClient();
