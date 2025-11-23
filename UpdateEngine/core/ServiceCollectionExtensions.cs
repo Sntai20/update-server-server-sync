@@ -71,15 +71,17 @@ public static class ServiceCollectionExtensions
         // Register CacheService
         services.AddSingleton<CacheService>();
 
-        // 4. Orchestrators (host-agnostic, use IOptionsMonitor for hot-reload)
+        // 4. Domain Services (required by orchestrators)
+        services.AddSingleton<ISyncService, SyncService>();
+        services.AddSingleton<IQueryService, QueryService>();
+        services.AddSingleton<IHealthService, HealthService>();
+        services.AddSingleton<IAnomalyDetectionService, AnomalyDetectionService>();
+        services.AddSingleton<IQueueService, QueueService>();
+
+        // 5. Orchestrators (host-agnostic, use IOptionsMonitor for hot-reload)
         services.AddSingleton<ISyncOrchestrator, SyncOrchestrator>();
         services.AddSingleton<IMetadataOrchestrator, MetadataOrchestrator>();
         services.AddSingleton<IContentOrchestrator, ContentOrchestrator>();
-
-        // 5. Domain services
-        // NOTE: ISyncService and other domain services are still in UpdateEngine project
-        // They will be registered by the host project (UpdateEngine, WorkerService, etc.)
-        // services.AddSingleton<ISyncService, SyncService>();
 
         // 6. Stores (use IOptions - startup only since stores don't hot-reload)
         services.AddSingleton<IMetadataStore>(provider =>

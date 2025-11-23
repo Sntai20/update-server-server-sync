@@ -46,6 +46,27 @@ Aspire.Hosting.DistributedApplicationException: Endpoint with name 'http' alread
 
 **Result**: ? AppHost builds and starts successfully
 
+### 3. Domain Services Registration Missing
+**Problem**: WorkerService failed to start with error:
+```
+Unable to resolve service for type 'UpdateEngine.Core.Services.ISyncService' 
+while attempting to activate 'UpdateEngine.Core.Orchestrators.SyncOrchestrator'.
+```
+
+**Root Cause**: The `AddUpdateEngineCore()` extension method registered orchestrators but NOT the domain services (`ISyncService`, `IHealthService`, `IQueryService`, `IAnomalyDetectionService`, `IQueueService`) that the orchestrators depend on.
+
+**Fix Applied**:
+- Added domain services registration to `UpdateEngine/core/ServiceCollectionExtensions.cs`
+- Registered 5 domain services as singletons:
+  - `ISyncService ? SyncService`
+  - `IQueryService ? QueryService`
+  - `IHealthService ? HealthService`
+  - `IAnomalyDetectionService ? AnomalyDetectionService`
+  - `IQueueService ? QueueService`
+- Reordered registration: Domain Services (4) before Orchestrators (5)
+
+**Result**: ? WorkerService builds and starts successfully with all dependencies resolved
+
 ## ?? Current State
 
 ### Build Status
@@ -151,7 +172,7 @@ After testing completes:
 ## ?? Progress Update
 
 ### Week 4 Status
-**Overall Progress**: 65% ? 75% (after AppHost fix)  
+**Overall Progress**: 65% ? 80% (after all fixes)  
 **Current Phase**: Day 3 - Ready for Live Testing  
 **Blockers**: None ?
 
@@ -167,9 +188,11 @@ After testing completes:
 - ? Zero compilation errors
 - ? Zero test compilation errors
 - ? AppHost starts successfully
+- ? WorkerService starts successfully
 - ?? 17 nullable reference warnings (non-critical)
 - ? All projects build successfully
 - ? All tests compile successfully
+- ? All dependencies properly registered
 
 ## ?? Key Achievements Today
 
@@ -183,19 +206,26 @@ After testing completes:
    - AppHost now starts successfully
    - Ready to orchestrate both hosting models
 
-3. **Build Validation** ?
+3. **Fixed Domain Services Registration** ?
+   - Added ISyncService, IHealthService, IQueryService registration
+   - Added IAnomalyDetectionService, IQueueService registration
+   - WorkerService now starts successfully
+   - All orchestrator dependencies resolved
+
+4. **Build Validation** ?
    - Entire solution builds successfully
    - All test projects compile
    - Zero blocking errors
 
-4. **Testing Infrastructure Ready** ?
+5. **Testing Infrastructure Ready** ?
    - Automated test script ready
    - Comprehensive test guide ready
    - Clear success criteria defined
 
-5. **Documentation Complete** ?
+6. **Documentation Complete** ?
    - Testing procedures documented
    - AppHost fix documented
+   - Domain services fix documented
    - Known issues documented
    - Next steps clearly defined
 
