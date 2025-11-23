@@ -8,6 +8,7 @@ using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
 using Microsoft.PackageGraph.MicrosoftUpdate.Source;
 using Microsoft.PackageGraph.Storage;
 using System.Linq;
+using System.Threading;
 
 /// <summary>
 /// Implementation of sync service providing core synchronization logic.
@@ -17,6 +18,12 @@ public class SyncService : ISyncService
 {
     private readonly ILogger<SyncService> logger;
     private readonly IMetadataStore metadataStore;
+    
+    // Simple in-memory state tracking (in production, use distributed cache like Redis)
+    private bool isRunning = false;
+    private bool isPaused = false;
+    private DateTime? syncStartTime = null;
+    private CancellationTokenSource? currentSyncCancellation = null;
 
     public SyncService(ILogger<SyncService> logger, IMetadataStore metadataStore)
     {
@@ -239,5 +246,48 @@ public class SyncService : ISyncService
         }
 
         return filesList;
+    }
+
+    // New methods required by ISyncOrchestrator
+    public Task<SyncStatus> GetSyncStatusAsync(CancellationToken cancellationToken = default)
+    {
+        var status = new SyncStatus
+        {
+            IsRunning = this.isRunning,
+            StartTime = this.syncStartTime,
+            ProgressPercentage = 0, // TODO: Implement progress tracking
+            CurrentPhase = this.isRunning ? "Syncing" : "Idle",
+            ItemsProcessed = 0, // TODO: Implement item counting
+            TotalItems = 0,
+            ErrorCount = 0
+        };
+
+        return Task.FromResult(status);
+    }
+
+    public Task PauseSyncAsync(CancellationToken cancellationToken = default)
+    {
+        this.logger.LogInformation("Pausing sync operation");
+        this.isPaused = true;
+        // TODO: Implement actual pause logic
+        return Task.CompletedTask;
+    }
+
+    public Task ResumeSyncAsync(CancellationToken cancellationToken = default)
+    {
+        this.logger.LogInformation("Resuming sync operation");
+        this.isPaused = false;
+        // TODO: Implement actual resume logic
+        return Task.CompletedTask;
+    }
+
+    public Task CancelSyncAsync(CancellationToken cancellationToken = default)
+    {
+        this.logger.LogInformation("Cancelling sync operation");
+        this.currentSyncCancellation?.Cancel();
+        this.isRunning = false;
+        this.isPaused = false;
+        this.syncStartTime = null;
+        return Task.CompletedTask;
     }
 }

@@ -1,22 +1,16 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-namespace UpdateEngine.Functions;
+namespace UpdateEngine.Functions.Management;
 
 using Microsoft.Azure.Functions.Worker;
-using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
-using Microsoft.Azure.Functions.Worker.Http;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging;
 using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
 using Microsoft.PackageGraph.Storage;
 using System.Net;
-using System.Net;
-using System.Text.Json;
 using System.Text.Json;
 using UpdateEngine.Models;
-using UpdateEngine.Services;
 using UpdateEngine.Services;
 
 /// <summary>

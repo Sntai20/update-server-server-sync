@@ -1,67 +1,70 @@
 <Project>
-    <PropertyGroup>
-        <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-        <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
-        <NoWarn>$(NoWarn);NU1507</NoWarn>
-    </PropertyGroup>
-    <ItemGroup>
-        <PackageVersion Include="Aspire.Hosting.AppHost" Version="13.0.0" />
-        <PackageVersion Include="Aspire.Hosting.Azure.Functions" Version="13.0.0-preview.1.25560.3" />
-        <PackageVersion Include="Aspire.Hosting.Azure.Storage" Version="13.0.0" />
-        <PackageVersion Include="Aspire.Hosting.Azure.ServiceBus" Version="13.0.0" />
-        <PackageVersion Include="Aspire.Hosting.Testing" Version="13.0.0" />
-        <PackageVersion Include="Azure.Storage.Blobs" Version="12.26.0" />
-        <PackageVersion Include="Azure.Storage.Queues" Version="12.24.0" />
-        <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="9.0.10" />
-        <PackageVersion Include="Microsoft.Azure.Functions.Worker" Version="2.2.0" />
-        <PackageVersion Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.0.5" />
-        <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Http" Version="3.3.0" />
-        <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Timer" Version="4.3.1" />
-        <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.ServiceBus" Version="5.24.0" />
-        <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Storage.Blobs" Version="6.8.0" />
-        <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Http.AspNetCore" Version="2.1.0" />
-        <PackageVersion Include="Microsoft.ML" Version="3.0.0" />
-        <PackageVersion Include="Microsoft.ML.Mkl.Components" Version="3.0.0" />
-        <PackageVersion Include="CommandLineParser" Version="2.9.1" />
-        <PackageVersion Include="coverlet.collector" Version="6.0.2" />
-        <PackageVersion Include="FluentAssertions" Version="8.8.0" />
-        <PackageVersion Include="MathNet.Numerics" Version="5.0.0" />
-        <PackageVersion Include="Microsoft.AspNetCore" Version="2.3.0" />
-        <PackageVersion Include="Microsoft.AspNetCore.Hosting" Version="2.3.0" />
-        <PackageVersion Include="Microsoft.AspNetCore.Mvc" Version="2.3.0" />
-        <PackageVersion Include="Microsoft.Azure.Storage.Blob" Version="11.2.3" />
-        <PackageVersion Include="Microsoft.Extensions.Configuration" Version="9.0.11" />
-        <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.11" />
-        <PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="9.0.11" />
-        <PackageVersion Include="Microsoft.Extensions.Configuration.CommandLine" Version="9.0.11" />
-        <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="9.0.11" />
-        <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="9.0.11" />
-        <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="9.0.11" />
-        <PackageVersion Include="Microsoft.Extensions.Hosting" Version="9.0.11" />
-        <PackageVersion Include="Microsoft.Extensions.Http" Version="9.0.11" />
-        <PackageVersion Include="Microsoft.Extensions.Logging" Version="9.0.11" />
-        <PackageVersion Include="Microsoft.Extensions.Options" Version="9.0.11" />
-        <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="9.4.0" />
-        <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="9.3.0" />
-        <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.0.0" />
-        <PackageVersion Include="Moq" Version="4.20.72" />
-        <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.12.0" />
-        <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.12.0" />
-        <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.12.0" />
-        <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.12.0" />
-        <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.12.0" />
-        <PackageVersion Include="SharpZipLib" Version="1.4.2" />
-        <PackageVersion Include="SoapCore" Version="1.2.1.11" />
-        <PackageVersion Include="StyleCop.Analyzers" Version="1.2.0-beta.435" />
-        <PackageVersion Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
-        <PackageVersion Include="System.ServiceModel.Duplex" Version="6.0.0" />
-        <PackageVersion Include="System.ServiceModel.Http" Version="8.1.2" />
-        <PackageVersion Include="System.ServiceModel.NetTcp" Version="8.1.2" />
-        <PackageVersion Include="System.ServiceModel.Primitives" Version="8.1.2" />
-        <PackageVersion Include="System.ServiceModel.Security" Version="6.0.0" />
-        <PackageVersion Include="System.Text.Json" Version="9.0.10" />
-        <PackageVersion Include="xunit" Version="2.9.3" />
-        <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
-        <PackageVersion Include="Xunit.SkippableFact" Version="1.4.13" />
-    </ItemGroup>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+    <NoWarn>$(NoWarn);NU1507</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageVersion Include="Aspire.Hosting.AppHost" Version="13.0.0" />
+    <PackageVersion Include="Aspire.Hosting.Azure.Functions" Version="13.0.0-preview.1.25560.3" />
+    <PackageVersion Include="Aspire.Hosting.Azure.Storage" Version="13.0.0" />
+    <PackageVersion Include="Aspire.Hosting.Azure.ServiceBus" Version="13.0.0" />
+    <PackageVersion Include="Aspire.Hosting.Redis" Version="13.0.0" />
+    <PackageVersion Include="Aspire.Hosting.Testing" Version="13.0.0" />
+    <PackageVersion Include="Azure.Storage.Blobs" Version="12.26.0" />
+    <PackageVersion Include="Azure.Storage.Queues" Version="12.24.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="9.0.10" />
+    <PackageVersion Include="Microsoft.Azure.Functions.Worker" Version="2.2.0" />
+    <PackageVersion Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.0.5" />
+    <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Http" Version="3.3.0" />
+    <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Timer" Version="4.3.1" />
+    <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.ServiceBus" Version="5.24.0" />
+    <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Storage.Blobs" Version="6.8.0" />
+    <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Http.AspNetCore" Version="2.1.0" />
+    <PackageVersion Include="Microsoft.ML" Version="3.0.0" />
+    <PackageVersion Include="Microsoft.ML.Mkl.Components" Version="3.0.0" />
+    <PackageVersion Include="CommandLineParser" Version="2.9.1" />
+    <PackageVersion Include="coverlet.collector" Version="6.0.2" />
+    <PackageVersion Include="FluentAssertions" Version="8.8.0" />
+    <PackageVersion Include="MathNet.Numerics" Version="5.0.0" />
+    <PackageVersion Include="Microsoft.AspNetCore" Version="2.3.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.Hosting" Version="2.3.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc" Version="2.3.0" />
+    <PackageVersion Include="Microsoft.Azure.Storage.Blob" Version="11.2.3" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.CommandLine" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Logging" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="9.3.0" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.0.0" />
+    <PackageVersion Include="Moq" Version="4.20.72" />
+    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.12.0" />
+    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.12.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.12.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.12.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.12.0" />
+    <PackageVersion Include="SharpZipLib" Version="1.4.2" />
+    <PackageVersion Include="SoapCore" Version="1.2.1.11" />
+    <PackageVersion Include="StyleCop.Analyzers" Version="1.2.0-beta.435" />
+    <PackageVersion Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
+    <PackageVersion Include="System.ServiceModel.Duplex" Version="6.0.0" />
+    <PackageVersion Include="System.ServiceModel.Http" Version="8.1.2" />
+    <PackageVersion Include="System.ServiceModel.NetTcp" Version="8.1.2" />
+    <PackageVersion Include="System.ServiceModel.Primitives" Version="8.1.2" />
+    <PackageVersion Include="System.ServiceModel.Security" Version="6.0.0" />
+    <PackageVersion Include="System.Text.Json" Version="10.0.0" />
+    <PackageVersion Include="xunit" Version="2.9.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
+    <PackageVersion Include="Xunit.SkippableFact" Version="1.4.13" />
+  </ItemGroup>
 </Project>

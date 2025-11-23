@@ -4,120 +4,9 @@
 namespace Configuration;
 
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.IO;
 using System.Reflection;
-
-/// <summary>
-/// Extension methods for registering and configuring AppConfig in dependency injection.
-/// Provides centralized configuration management for all environments.
-/// </summary>
-public static class ConfigurationServiceExtensions
-{
-    /// <summary>
-    /// Adds AppConfig to the service collection, binding from IConfiguration.
-    /// This is the main method for configuring the application from appsettings.json files.
-    /// </summary>
-    /// <param name="services">The service collection</param>
-    /// <param name="configuration">The configuration source (usually from appsettings.json)</param>
-    /// <returns>The service collection for chaining</returns>
-    public static IServiceCollection AddAppConfiguration(this IServiceCollection services, IConfiguration configuration)
-    {
-        // Bind the configuration directly to AppConfig
-        var appConfig = new AppConfig();
-        configuration.Bind(appConfig);
-
-        // Validate the configuration
-        appConfig.Validate();
-
-        // Register as singleton
-        services.AddSingleton(appConfig);
-
-        return services;
-    }
-
-    /// <summary>
-    /// Adds AppConfig with shared configuration loading from Configuration project.
-    /// Loads shared base settings, then applies environment-specific overrides.
-    /// </summary>
-    /// <param name="services">The service collection</param>
-    /// <param name="environment">The current environment (Development, Production, etc.)</param>
-    /// <param name="additionalConfiguration">Optional additional configuration to apply</param>
-    /// <returns>The service collection for chaining</returns>
-    public static IServiceCollection AddSharedAppConfiguration(this IServiceCollection services, string environment, IConfiguration? additionalConfiguration = null)
-    {
-        var configBuilder = new ConfigurationBuilder();
-
-        // Get the path to the Configuration project's shared settings
-        var configurationAssembly = Assembly.GetAssembly(typeof(AppConfig));
-        var configDirectory = Path.GetDirectoryName(configurationAssembly?.Location) ?? throw new InvalidOperationException("Cannot locate Configuration assembly");
-        var sharedPath = Path.Combine(configDirectory, "shared");
-
-        // Load defaults first (base configuration)
-        var defaultsPath = Path.Combine(sharedPath, "appsettings.defaults.json");
-        if (File.Exists(defaultsPath))
-        {
-            configBuilder.AddJsonFile(defaultsPath, optional: false, reloadOnChange: false);
-        }
-
-        // Load environment-specific shared configuration
-        var sharedEnvPath = Path.Combine(sharedPath, $"appsettings.{environment}.json");
-        if (File.Exists(sharedEnvPath))
-        {
-            configBuilder.AddJsonFile(sharedEnvPath, optional: true, reloadOnChange: false);
-        }
-
-        // Add any additional configuration (project-specific overrides)
-        if (additionalConfiguration != null)
-        {
-            configBuilder.AddConfiguration(additionalConfiguration);
-        }
-
-        var configuration = configBuilder.Build();
-
-        // Bind to AppConfig and register
-        var appConfig = new AppConfig();
-        configuration.Bind(appConfig);
-        appConfig.Validate();
-
-        services.AddSingleton(appConfig);
-
-        return services;
-    }
-
-    /// <summary>
-    /// Adds AppConfig to the service collection with a pre-configured instance.
-    /// Useful for testing or when configuration comes from sources other than appsettings.json.
-    /// </summary>
-    /// <param name="services">The service collection</param>
-    /// <param name="appConfig">The pre-configured AppConfig instance</param>
-    /// <returns>The service collection for chaining</returns>
-    public static IServiceCollection AddAppConfiguration(this IServiceCollection services, AppConfig appConfig)
-    {
-        appConfig.Validate();
-        services.AddSingleton(appConfig);
-        return services;
-    }
-
-    /// <summary>
-    /// Adds AppConfig to the service collection using a configuration delegate.
-    /// Useful for programmatic configuration.
-    /// </summary>
-    /// <param name="services">The service collection</param>
-    /// <param name="configureOptions">The configuration delegate</param>
-    /// <returns>The service collection for chaining</returns>
-    public static IServiceCollection AddAppConfiguration(this IServiceCollection services, Action<AppConfig> configureOptions)
-    {
-        var appConfig = new AppConfig();
-        configureOptions(appConfig);
-
-        appConfig.Validate();
-        services.AddSingleton(appConfig);
-
-        return services;
-    }
-}
 
 /// <summary>
 /// Extension methods for working with AppConfig instances.
@@ -125,20 +14,16 @@ public static class ConfigurationServiceExtensions
 public static class AppConfigExtensions
 {
     /// <summary>
-    /// Converts a schedule string to a TimeSpan.
-    /// Supports formats like "02:00:00" and "1.02:00:00".
+    /// Binds configuration to an AppConfig instance.
     /// </summary>
-    /// <param name="scheduleString">The schedule string</param>
-    /// <returns>The parsed TimeSpan</returns>
-    public static TimeSpan ParseSchedule(this string scheduleString)
+    /// <param name="configuration">The configuration source</param>
+    /// <returns>A bound AppConfig instance</returns>
+    public static AppConfig BindToAppConfig(this IConfiguration configuration)
     {
-        if (string.IsNullOrWhiteSpace(scheduleString))
-            throw new ArgumentException("Schedule string cannot be null or empty", nameof(scheduleString));
-
-        if (TimeSpan.TryParse(scheduleString, out var timeSpan))
-            return timeSpan;
-
-        throw new ArgumentException($"Invalid schedule format: {scheduleString}", nameof(scheduleString));
+        var appConfig = new AppConfig();
+        configuration.GetSection(AppConfig.SectionName).Bind(appConfig);
+        appConfig.Validate();
+        return appConfig;
     }
 
     /// <summary>
@@ -148,7 +33,7 @@ public static class AppConfigExtensions
     /// <returns>The storage type description</returns>
     public static string GetMetadataStorageType(this AppConfig config)
     {
-        return config.UseAzureStorageForMetadata ? "Azure Blob Storage" : "Local File System";
+        return config.StorageConfiguration.UseAzureStorageForMetadata ? "Azure Blob Storage" : "Local File System";
     }
 
     /// <summary>
@@ -158,7 +43,7 @@ public static class AppConfigExtensions
     /// <returns>The storage type description</returns>
     public static string GetContentStorageType(this AppConfig config)
     {
-        return config.UseAzureStorageForContent ? "Azure Blob Storage" : "Local File System";
+        return config.StorageConfiguration.UseAzureStorageForContent ? "Azure Blob Storage" : "Local File System";
     }
 
     /// <summary>
@@ -169,33 +54,34 @@ public static class AppConfigExtensions
     public static string GetConfigurationSummary(this AppConfig config)
     {
         return $@"Microsoft Update Server Configuration:
-  Service URL: {config.ServiceUrl}
-  Content URL: {config.ContentUrl}
-  Max Updates: {config.MaxUpdateCount}
-  Categories: {string.Join(", ", config.SupportedCategories)}
-  Languages: {string.Join(", ", config.SupportedLanguages)}
+  Service URL: {config.ServiceConfiguration.ServiceUrl}
+  Content URL: {config.ServiceConfiguration.ContentUrl}
+  Max Updates: {config.ServiceConfiguration.MaxUpdateCount}
+  Categories: {string.Join(", ", config.ServiceConfiguration.SupportedCategories)}
+  Languages: {string.Join(", ", config.ServiceConfiguration.SupportedLanguages)}
   
   Storage:
-    Metadata: {config.GetMetadataStorageType()} ({config.MetadataPath})
-    Content: {config.GetContentStorageType()} ({config.ContentPath})
-    Metadata Container: {config.MetadataContainerName}
-    Content Container: {config.ContentContainerName}
-    Reindex on Startup: {config.ReindexOnStartup}
+    Metadata: {config.GetMetadataStorageType()} ({config.StorageConfiguration.MetadataPath})
+    Content: {config.GetContentStorageType()} ({config.StorageConfiguration.ContentPath})
+    Metadata Container: {config.StorageConfiguration.MetadataContainerName}
+    Content Container: {config.StorageConfiguration.ContentContainerName}
+    Reindex on Startup: {config.StorageConfiguration.ReindexOnStartup}
   
   Schedules:
-    Critical Sync: {config.SyncCriticalSchedule}
-    Comprehensive Sync: {config.SyncComprehensiveSchedule}
-    Content Sync: {config.SyncContentSchedule}
-    Health Check: {config.ScheduledHealthCheckSchedule}
-    Maintenance: {config.MaintenanceSchedule}
-    Weekly Maintenance: {config.WeeklyMaintenanceSchedule}
-    Anomaly Detection: {config.AnomalyDetectionSchedule}
+    Critical Sync: {config.SyncConfiguration.SyncCriticalSchedule}
+    Comprehensive Sync: {config.SyncConfiguration.SyncComprehensiveSchedule}
+    Content Sync: {config.SyncConfiguration.SyncContentSchedule}
+    Health Check: {config.SyncConfiguration.ScheduledHealthCheckSchedule}
+    Maintenance: {config.SyncConfiguration.MaintenanceSchedule}
+    Anomaly Detection: {config.SyncConfiguration.AnomalyDetectionSchedule}
   
   Features:
-    Scheduled Sync: {config.EnableScheduledSync}
-    Detailed Logging: {config.EnableDetailedLogging}
-    Metrics: {config.EnableMetrics}
-    Caching: {config.EnableCaching}";
+    Emergency Sync: {config.FeatureFlags.EnableEmergencySync}
+    Comprehensive Sync: {config.FeatureFlags.EnableComprehensiveSync}
+    Content Sync: {config.FeatureFlags.EnableContentSync}
+    Detailed Logging: {config.FeatureFlags.EnableDetailedLogging}
+    Metrics: {config.FeatureFlags.EnableMetrics}
+    Caching: {config.FeatureFlags.EnableCaching}";
     }
 }
 
@@ -213,7 +99,7 @@ public static class SharedConfigurationExtensions
     public static IConfigurationBuilder AddSharedAppConfiguration(this IConfigurationBuilder builder)
     {
         // Get the Configuration assembly location
-        var configAssembly = typeof(ConfigurationServiceExtensions).Assembly;
+        var configAssembly = typeof(AppConfig).Assembly;
         var baseDirectory = Path.GetDirectoryName(configAssembly.Location)
             ?? throw new InvalidOperationException("Could not determine assembly directory");
 

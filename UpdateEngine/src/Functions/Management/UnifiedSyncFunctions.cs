@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-namespace UpdateEngine.Functions;
+namespace UpdateEngine.Functions.Management;
 
 using Azure.Storage.Blobs;
 using Microsoft.Azure.Functions.Worker;

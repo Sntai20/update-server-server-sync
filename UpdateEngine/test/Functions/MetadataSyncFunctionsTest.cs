@@ -14,7 +14,7 @@ using Moq;
 using System.Net;
 using System.Text;
 using System.Text.Json;
-using UpdateEngine.Functions;
+using UpdateEngine.Functions.Management;
 using UpdateEngine.Services;
 using Xunit;
 

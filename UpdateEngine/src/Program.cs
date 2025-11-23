@@ -8,23 +8,22 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.PackageGraph.Storage;
 using System.Text.Json;
-using UpdateEngine.Services;
+using UpdateEngine.Core;
 
 var hostBuilder = new HostBuilder()
     .ConfigureFunctionsWebApplication()
+    .ConfigureAppConfiguration((context, config) =>
+    {
+        // Add shared configuration from Configuration project
+        config.AddSharedAppConfiguration();
+    })
     .ConfigureServices((context, services) =>
     {
         ConfigureLogging(context);
         ConfigureJsonSerialization(services);
         
-        // Configure shared configuration from Configuration project
-        services.AddSharedAppConfiguration(
-            context.HostingEnvironment.EnvironmentName,
-            context.Configuration);
-
-        // Storage services are now configured using the shared AppConfig
-        // that was registered via AddSharedAppConfiguration
-        services.AddMicrosoftUpdateServices(context.Configuration);
+        // Register UpdateEngine core services (stores, orchestrators, health checks)
+        services.AddUpdateEngineCore(context.Configuration);
     });
 
 var host = hostBuilder.Build();

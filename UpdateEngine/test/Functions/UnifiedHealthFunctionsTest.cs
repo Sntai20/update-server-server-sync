@@ -12,7 +12,7 @@ using Moq;
 using System.Collections.Specialized;
 using System.Net;
 using System.Text.Json;
-using UpdateEngine.Functions;
+using UpdateEngine.Functions.Management;
 using UpdateEngine.Models;
 using UpdateEngine.Services;
 using Xunit;
@@ -297,7 +297,7 @@ public class UnifiedHealthFunctionsTest
     {
         // Arrange
         var mockRequest = new Mock<HttpRequestData>(Mock.Of<FunctionContext>());
-        var requestJson = JsonSerializer.Serialize(new UpdateEngine.Functions.StoreManagementRequest { Reindex = true });
+        var requestJson = JsonSerializer.Serialize(new UpdateEngine.Services.StoreManagementRequest { Reindex = true });
         var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(requestJson));
         mockRequest.Setup(r => r.Body).Returns(stream);
 

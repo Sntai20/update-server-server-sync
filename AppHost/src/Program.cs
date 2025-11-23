@@ -20,7 +20,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 // Configure shared configuration loading from Configuration project
 // This loads the shared base settings plus environment-specific overrides
 // Note: Don't pass builder.Configuration to avoid overriding defaults with empty values
-builder.Services.AddSharedAppConfiguration(builder.Environment.EnvironmentName);
+builder.Configuration.AddSharedAppConfiguration();
 
 // Configure additional configuration sources following best practices
 builder.Configuration.AddEnvironmentVariables()
@@ -40,6 +40,13 @@ var storage = builder.Environment.EnvironmentName == Environments.Development
 
 var data = storage.AddBlobs("data");
 
+/// <summary>
+/// Configures Redis for distributed caching.
+/// - Development: Uses Redis container
+/// - Production: Uses Azure Redis Cache with connection string from configuration
+/// </summary>
+var redis = builder.AddRedis("Redis");
+
 // Check if Service Bus should be enabled (disable for minimal testing)
 var enableServiceBus = builder.Configuration.GetValue<bool>("Features:EnableScheduledSync", false);
 
@@ -54,7 +61,9 @@ var updateFunctions = builder.AddAzureFunctionsProject<Projects.UpdateEngine>("U
     .WithHostStorage(storage)
     .WithReference(data, "MetadataStorageConnection")
     .WithReference(data, "ContentStorageConnection")
-    .WaitFor(storage);
+    .WithReference(redis)
+    .WaitFor(storage)
+    .WaitFor(redis);
 
 // Conditionally add Service Bus if enabled
 if (enableServiceBus)
@@ -115,9 +124,9 @@ static void ValidateConfiguration(IConfiguration configuration)
     }
     
     // Additional validation for schedules to ensure they're in correct CRON format
-    ValidateCronExpression(appConfig.SyncCriticalSchedule, nameof(appConfig.SyncCriticalSchedule));
-    ValidateCronExpression(appConfig.SyncComprehensiveSchedule, nameof(appConfig.SyncComprehensiveSchedule)); 
-    ValidateCronExpression(appConfig.ScheduledHealthCheckSchedule, nameof(appConfig.ScheduledHealthCheckSchedule));
+    ValidateCronExpression(appConfig.SyncConfiguration.SyncCriticalSchedule, "SyncCriticalSchedule");
+    ValidateCronExpression(appConfig.SyncConfiguration.SyncComprehensiveSchedule, "SyncComprehensiveSchedule"); 
+    ValidateCronExpression(appConfig.SyncConfiguration.ScheduledHealthCheckSchedule, "ScheduledHealthCheckSchedule");
 }
 
 /// <summary>
