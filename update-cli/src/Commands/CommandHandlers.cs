@@ -21,6 +21,7 @@ public class CommandHandlers
     private readonly UpdateEngineClient? updateEngineClient;
     private readonly ISyncOrchestrator? syncOrchestrator;
     private readonly IMetadataOrchestrator? metadataOrchestrator;
+    private readonly IContentOrchestrator? contentOrchestrator;
     private readonly IHealthService? healthService;
     private readonly IMetadataStore? metadataStore;
     private readonly Server2022DownloadHandler? server2022Handler;
@@ -34,11 +35,13 @@ public class CommandHandlers
     public CommandHandlers(
         ISyncOrchestrator syncOrchestrator,
         IMetadataOrchestrator metadataOrchestrator,
+        IContentOrchestrator contentOrchestrator,
         IHealthService healthService,
         IMetadataStore metadataStore)
     {
         this.syncOrchestrator = syncOrchestrator;
         this.metadataOrchestrator = metadataOrchestrator;
+        this.contentOrchestrator = contentOrchestrator;
         this.healthService = healthService;
         this.metadataStore = metadataStore;
         this.useOrchestrators = true;
@@ -103,15 +106,32 @@ public class CommandHandlers
 
     /// <summary>
     /// Handles the configuration command.
+    /// Note: Configuration is managed via appsettings.json in local mode.
+    /// This command only works in remote HTTP mode.
     /// </summary>
     public async Task<int> HandleConfigurationAsync()
     {
         try
         {
-            var config = await this.updateEngineClient.GetServerConfigurationAsync();
-            Console.WriteLine("UpdateEngine Configuration:");
-            Console.WriteLine(config);
-            return 0;
+            if (this.useOrchestrators)
+            {
+                Console.WriteLine("Configuration in local mode:");
+                Console.WriteLine("Configuration is managed via appsettings.json");
+                Console.WriteLine("Use 'dotnet run --project update-cli.csproj' with appropriate config files.");
+                return 0;
+            }
+            else if (this.updateEngineClient != null)
+            {
+                var config = await this.updateEngineClient.GetServerConfigurationAsync();
+                Console.WriteLine("UpdateEngine Configuration:");
+                Console.WriteLine(config);
+                return 0;
+            }
+            else
+            {
+                Console.WriteLine("Error: No configuration source available");
+                return 1;
+            }
         }
         catch (Exception ex)
         {
@@ -184,10 +204,44 @@ public class CommandHandlers
         try
         {
             Console.WriteLine($"Starting content synchronization (last {daysBack} days)...");
-            var result = await this.updateEngineClient.SyncContentAsync(daysBack);
-            Console.WriteLine("Content Sync Result:");
-            Console.WriteLine(result);
-            return 0;
+            
+            if (this.useOrchestrators && this.contentOrchestrator != null && this.metadataOrchestrator != null)
+            {
+                // Local mode: Use IContentOrchestrator
+                // First, query for recent updates
+                var query = new MetadataQuery
+                {
+                    ReleasedAfter = DateTime.UtcNow.AddDays(-daysBack),
+                    MaxResults = 1000
+                };
+                
+                var updateIds = await this.metadataOrchestrator.QueryUpdatesAsync(query, CancellationToken.None);
+                Console.WriteLine($"Found {updateIds.Count} updates from last {daysBack} days");
+                
+                // Download content for those updates
+                var result = await this.contentOrchestrator.DownloadContentAsync(updateIds, null, CancellationToken.None);
+                
+                Console.WriteLine("Content Sync Result:");
+                Console.WriteLine($"Success: {result.Success}");
+                Console.WriteLine($"Downloaded: {result.DownloadedCount}");
+                Console.WriteLine($"Failed: {result.FailedCount}");
+                Console.WriteLine($"Duration: {result.Duration}");
+                
+                return result.Success ? 0 : 1;
+            }
+            else if (this.updateEngineClient != null)
+            {
+                // Remote mode: Use HTTP client
+                var result = await this.updateEngineClient.SyncContentAsync(daysBack);
+                Console.WriteLine("Content Sync Result:");
+                Console.WriteLine(result);
+                return 0;
+            }
+            else
+            {
+                Console.WriteLine("Error: No content orchestrator or HTTP client available");
+                return 1;
+            }
         }
         catch (Exception ex)
         {
@@ -205,10 +259,53 @@ public class CommandHandlers
         {
             Console.WriteLine("Starting critical updates synchronization...");
             Console.WriteLine("(Security and critical updates only)");
-            var result = await this.updateEngineClient.SyncCriticalUpdatesAsync();
-            Console.WriteLine("Critical Sync Result:");
-            Console.WriteLine(result);
-            return 0;
+            
+            if (this.useOrchestrators && this.syncOrchestrator != null)
+            {
+                // Local mode: Use ISyncOrchestrator with critical classifications filter
+                var request = new UnifiedSyncRequest
+                {
+                    SyncType = SyncType.Updates,
+                    Action = SyncAction.Start,
+                    Filter = new SyncFilter
+                    {
+                        ClassificationIds = new List<Guid>
+                        {
+                            new Guid("0FA1201D-4330-4FA8-8AE9-B877473B6441"), // Security Updates
+                            new Guid("E6CF1350-C01B-414D-A61F-263D14D133B4")  // Critical Updates
+                        }
+                    }
+                };
+                
+                var result = await this.syncOrchestrator.ExecuteSyncAsync(request, CancellationToken.None);
+                
+                Console.WriteLine("Critical Sync Result:");
+                Console.WriteLine($"Success: {result.Success}");
+                Console.WriteLine($"Message: {result.Message}");
+                if (result.ItemsSynced.HasValue)
+                {
+                    Console.WriteLine($"Items Synced: {result.ItemsSynced.Value}");
+                }
+                if (result.Duration.HasValue)
+                {
+                    Console.WriteLine($"Duration: {result.Duration.Value}");
+                }
+                
+                return result.Success ? 0 : 1;
+            }
+            else if (this.updateEngineClient != null)
+            {
+                // Remote mode: Use HTTP client
+                var result = await this.updateEngineClient.SyncCriticalUpdatesAsync();
+                Console.WriteLine("Critical Sync Result:");
+                Console.WriteLine(result);
+                return 0;
+            }
+            else
+            {
+                Console.WriteLine("Error: No sync orchestrator or HTTP client available");
+                return 1;
+            }
         }
         catch (Exception ex)
         {
@@ -276,10 +373,35 @@ public class CommandHandlers
     {
         try
         {
-            var status = await this.updateEngineClient.GetContentStatusAsync();
-            Console.WriteLine("Content Sync Status:");
-            Console.WriteLine(status);
-            return 0;
+            if (this.useOrchestrators && this.contentOrchestrator != null)
+            {
+                // Local mode: Use IContentOrchestrator
+                var stats = await this.contentOrchestrator.GetStatisticsAsync(CancellationToken.None);
+                
+                Console.WriteLine("Content Store Statistics:");
+                Console.WriteLine($"Total Files: {stats.TotalFiles}");
+                Console.WriteLine($"Total Size: {stats.TotalSizeBytes:N0} bytes ({stats.TotalSizeBytes / (1024.0 * 1024.0 * 1024.0):F2} GB)");
+                Console.WriteLine($"Available: {stats.ContentStoreAvailable}");
+                if (stats.LastDownload.HasValue)
+                {
+                    Console.WriteLine($"Last Download: {stats.LastDownload.Value}");
+                }
+                
+                return 0;
+            }
+            else if (this.updateEngineClient != null)
+            {
+                // Remote mode: Use HTTP client
+                var status = await this.updateEngineClient.GetContentStatusAsync();
+                Console.WriteLine("Content Sync Status:");
+                Console.WriteLine(status);
+                return 0;
+            }
+            else
+            {
+                Console.WriteLine("Error: No content orchestrator or HTTP client available");
+                return 1;
+            }
         }
         catch (Exception ex)
         {
@@ -353,10 +475,62 @@ public class CommandHandlers
         try
         {
             Console.WriteLine($"Getting details for update: {updateId}");
-            var details = await this.updateEngineClient.GetUpdateDetailsAsync(updateId);
-            Console.WriteLine("Update Details:");
-            Console.WriteLine(details);
-            return 0;
+            
+            if (this.useOrchestrators && this.metadataOrchestrator != null && this.metadataStore != null)
+            {
+                // Local mode: Use IMetadataOrchestrator
+                // Parse the update ID
+                if (!Guid.TryParse(updateId, out var guid))
+                {
+                    Console.WriteLine($"Error: Invalid update ID format. Expected GUID, got: {updateId}");
+                    return 1;
+                }
+                
+                // Find the package identity
+                var identity = this.metadataStore.FirstOrDefault(p => 
+                    p.Id?.OpenId != null && 
+                    p.Id.OpenId.Length == 16 && 
+                    new Guid(p.Id.OpenId) == guid)?.Id;
+                
+                if (identity == null)
+                {
+                    Console.WriteLine($"Error: Update not found: {updateId}");
+                    return 1;
+                }
+                
+                var package = await this.metadataOrchestrator.GetUpdateDetailsAsync(identity, CancellationToken.None);
+                
+                if (package == null)
+                {
+                    Console.WriteLine($"Error: Update not found: {updateId}");
+                    return 1;
+                }
+                
+                Console.WriteLine("Update Details:");
+                Console.WriteLine($"Title: {package.Title}");
+                Console.WriteLine($"Description: {package.Description}");
+                Console.WriteLine($"ID: {updateId}");
+                if (package is MicrosoftUpdatePackage muPackage)
+                {
+                    Console.WriteLine($"Creation Date: {muPackage.CreationDate}");
+                    Console.WriteLine($"Support URL: {muPackage.SupportUrl}");
+                }
+                
+                return 0;
+            }
+            else if (this.updateEngineClient != null)
+            {
+                // Remote mode: Use HTTP client
+                var details = await this.updateEngineClient.GetUpdateDetailsAsync(updateId);
+                Console.WriteLine("Update Details:");
+                Console.WriteLine(details);
+                return 0;
+            }
+            else
+            {
+                Console.WriteLine("Error: No metadata orchestrator or HTTP client available");
+                return 1;
+            }
         }
         catch (Exception ex)
         {
@@ -373,21 +547,52 @@ public class CommandHandlers
         try
         {
             Console.WriteLine("Checking if reindex is required...");
-            var isRequired = await this.updateEngineClient.IsReindexRequiredAsync();
             
-            if (isRequired)
+            if (this.useOrchestrators && this.metadataOrchestrator != null)
             {
-                Console.WriteLine("Reindex is required. Starting store reindex...");
-                var result = await this.updateEngineClient.ReindexStoreAsync();
-                Console.WriteLine("Reindex Result:");
-                Console.WriteLine(result);
+                // Local mode: Use IMetadataOrchestrator
+                var indexStatus = await this.metadataOrchestrator.GetIndexStatusAsync(CancellationToken.None);
+                
+                if (indexStatus.ReindexingRequired)
+                {
+                    Console.WriteLine("Reindex is required. Starting store reindex...");
+                    var result = await this.metadataOrchestrator.ReindexAsync(null, CancellationToken.None);
+                    
+                    Console.WriteLine("Reindex Result:");
+                    Console.WriteLine($"Success: {result.Success}");
+                    Console.WriteLine($"Packages Reindexed: {result.PackagesReindexed}");
+                    Console.WriteLine($"Duration: {result.Duration}");
+                    if (!string.IsNullOrEmpty(result.ErrorMessage))
+                    {
+                        Console.WriteLine($"Error: {result.ErrorMessage}");
+                    }
+                    
+                    return result.Success ? 0 : 1;
+                }
+                else
+                {
+                    Console.WriteLine("Reindex is not required. Store is up to date.");
+                    return 0;
+                }
             }
-            else
+            else if (this.updateEngineClient != null)
             {
-                Console.WriteLine("Reindex is not required. Store is up to date.");
-            }
-            
-            return 0;
+                // Remote mode: Use HTTP client
+                var isRequired = await this.updateEngineClient.IsReindexRequiredAsync();
+                
+                if (isRequired)
+                {
+                    Console.WriteLine("Reindex is required. Starting store reindex...");
+                    var result = await this.updateEngineClient.ReindexStoreAsync();
+                    Console.WriteLine("Reindex Result:");
+                    Console.WriteLine(result);
+                }
+                else
+                {
+                    Console.WriteLine("Reindex is not required. Store is up to date.");
+                }
+                
+                return 0;
         }
         catch (Exception ex)
         {
