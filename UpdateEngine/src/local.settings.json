@@ -39,7 +39,7 @@
       "SyncComprehensiveSchedule": "0 */5 * * * *",
       "SyncContentSchedule": "0 */3 * * * *",
       "ScheduledHealthCheckSchedule": "0 */1 * * * *",
-      "MaintenanceSchedule": "14.00:00:00",
+      "MaintenanceSchedule": "0 0 2 */7 * *",
       "AnomalyDetectionSchedule": "0 */2 * * * *",
       "EnableScheduledSync": true
     },
