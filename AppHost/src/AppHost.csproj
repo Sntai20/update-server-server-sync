@@ -19,8 +19,8 @@
 
   <ItemGroup>
     <ProjectReference Include="../../UpdateEngine/src/UpdateEngine.csproj" />
-    <ProjectReference Include="../../WorkerService/WorkerService.csproj" />
-    <ProjectReference Include="../../Configuration/Configuration.csproj" IsAspireProjectResource="false" />
+    <ProjectReference Include="../../WorkerService/src/WorkerService.csproj" />
+    <ProjectReference Include="../../Configuration/src/Configuration.csproj" IsAspireProjectResource="false" />
   </ItemGroup>
 
 </Project>

@@ -30,7 +30,7 @@
 
   <ItemGroup>
     <!-- Core domain libraries -->
-    <ProjectReference Include="..\..\Configuration\Configuration.csproj" />
+    <ProjectReference Include="..\..\Configuration\src\Configuration.csproj" />
     <ProjectReference Include="..\..\microsoft-update-partition\src\microsoft-update-partition.csproj" />
     <ProjectReference Include="..\..\microsoft-update-upstream-source\src\microsoft-update-upstream-source.csproj" />
     <ProjectReference Include="..\..\microsoft-update-webservices\src\microsoft-update-webservices.csproj" />

@@ -10,11 +10,11 @@
 
   <ItemGroup>
     <!-- Configuration and ServiceDefaults -->
-    <ProjectReference Include="..\Configuration\Configuration.csproj" />
-    <ProjectReference Include="..\ServiceDefaults\ServiceDefaults\ServiceDefaults.csproj" />
+    <ProjectReference Include="..\..\Configuration\src\Configuration.csproj" />
+    <ProjectReference Include="..\..\ServiceDefaults\src\ServiceDefaults.csproj" />
     
     <!-- UpdateEngine Core components (orchestrators, models, services) -->
-    <ProjectReference Include="..\UpdateEngine\core\UpdateEngine.Core.csproj" />
+    <ProjectReference Include="..\..\UpdateEngine\core\UpdateEngine.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>
