@@ -45,6 +45,13 @@ namespace Microsoft.PackageGraph.Storage.Azure
         internal MetadataStore(BlobContainerClient container)
         {
             this.Container = container;
+            
+            // Ensure container exists before attempting blob operations
+            if (!this.Container.Exists())
+            {
+                this.Container.Create();
+            }
+            
             // Create PageBlobClient using the container client and blob name
             var blobClient = this.Container.GetBlobClient(MetadataBlobName);
             var targetBlob = blobClient.WithSnapshot(null).GetParentBlobContainerClient().GetPageBlobClient(MetadataBlobName);
