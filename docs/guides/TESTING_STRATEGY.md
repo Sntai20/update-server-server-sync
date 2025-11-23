@@ -1,4 +1,4 @@
-# Testing Strategy for Dual Hosting Architecture
+﻿# Testing Strategy for Dual Hosting Architecture
 
 ## ?? Testing Philosophy
 
@@ -95,7 +95,7 @@ UpdateEngine/
 ?       ??? ConcurrencyTests.cs
 ```
 
-## ?? Unit Tests (70%)
+## 🧪 Unit Tests (70%)
 
 ### Purpose
 - Test **orchestrators** (host-agnostic business logic)
@@ -262,6 +262,249 @@ public class SyncOrchestratorTests
 3. **Theory tests** for multiple inputs
 4. **Mock verification** to ensure correct service calls
 5. **Test naming**: `MethodName_Scenario_ExpectedBehavior`
+
+### Caching Unit Tests ✨ **NEW**
+
+**Purpose:**
+- Test `CacheService` cache-aside pattern
+- Test cache invalidation strategies
+- Test graceful degradation when Redis unavailable
+- **Zero Redis dependency** - use `MemoryDistributedCache`
+
+**Example: CacheService Unit Tests**
+
+```csharp
+// UpdateEngine/test/Unit/Services/CacheServiceTests.cs
+
+using FluentAssertions;
+using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Moq;
+using System.Text.Json;
+using UpdateEngine.Core.Services;
+using Configuration;
+using Xunit;
+
+public class CacheServiceTests
+{
+    private readonly Mock<IDistributedCache> mockCache;
+    private readonly IOptionsMonitor<AppConfig> config;
+    private readonly Mock<ILogger<CacheService>> mockLogger;
+    private readonly JsonSerializerOptions jsonOptions;
+
+    public CacheServiceTests()
+    {
+        this.mockCache = new Mock<IDistributedCache>();
+        this.config = CreateTestConfig(enableCache: true);
+        this.mockLogger = new Mock<ILogger<CacheService>>();
+        this.jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        };
+    }
+
+    [Fact]
+    public async Task GetOrSetAsync_CacheMiss_ShouldCallFactory()
+    {
+        // Arrange
+        var cacheService = new CacheService(
+            this.mockCache.Object,
+            this.config,
+            this.mockLogger.Object,
+            this.jsonOptions);
+
+        this.mockCache
+            .Setup(x => x.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((byte[]?)null); // Cache miss
+
+        var factoryCalled = false;
+        Func<Task<TestData>> factory = () =>
+        {
+            factoryCalled = true;
+            return Task.FromResult(new TestData { Value = "test" });
+        };
+
+        // Act
+        var result = await cacheService.GetOrSetAsync("test-key", factory);
+
+        // Assert
+        factoryCalled.Should().BeTrue("factory should be called on cache miss");
+        result.Value.Should().Be("test");
+        
+        // Verify value was stored in cache
+        this.mockCache.Verify(
+            x => x.SetAsync(
+                It.IsAny<string>(),
+                It.IsAny<byte[]>(),
+                It.IsAny<DistributedCacheEntryOptions>(),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task GetOrSetAsync_CacheHit_ShouldNotCallFactory()
+    {
+        // Arrange
+        var cachedValue = new TestData { Value = "cached" };
+        var cachedBytes = JsonSerializer.SerializeToUtf8Bytes(cachedValue, this.jsonOptions);
+
+        this.mockCache
+            .Setup(x => x.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(cachedBytes); // Cache hit
+
+        var cacheService = new CacheService(
+            this.mockCache.Object,
+            this.config,
+            this.mockLogger.Object,
+            this.jsonOptions);
+
+        var factoryCalled = false;
+        Func<Task<TestData>> factory = () =>
+        {
+            factoryCalled = true;
+            return Task.FromResult(new TestData { Value = "fresh" });
+        };
+
+        // Act
+        var result = await cacheService.GetOrSetAsync("test-key", factory);
+
+        // Assert
+        factoryCalled.Should().BeFalse("factory should NOT be called on cache hit");
+        result.Value.Should().Be("cached", "should return cached value");
+        
+        // Verify SetAsync was NOT called
+        this.mockCache.Verify(
+            x => x.SetAsync(
+                It.IsAny<string>(),
+                It.IsAny<byte[]>(),
+                It.IsAny<DistributedCacheEntryOptions>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task InvalidateStatisticsCacheAsync_ShouldRemoveAllStatsCaches()
+    {
+        // Arrange
+        var cacheService = new CacheService(
+            this.mockCache.Object,
+            this.config,
+            this.mockLogger.Object,
+            this.jsonOptions);
+
+        // Act
+        await cacheService.InvalidateStatisticsCacheAsync();
+
+        // Assert - Verify all statistics caches removed
+        this.mockCache.Verify(
+            x => x.RemoveAsync("msupdate:metadata:stats", It.IsAny<CancellationToken>()),
+            Times.Once);
+        
+        this.mockCache.Verify(
+            x => x.RemoveAsync("msupdate:content:stats", It.IsAny<CancellationToken>()),
+            Times.Once);
+        
+        this.mockCache.Verify(
+            x => x.RemoveAsync("msupdate:sync:status", It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task GetOrSetAsync_WhenCachingDisabled_ShouldAlwaysCallFactory()
+    {
+        // Arrange
+        var disabledConfig = CreateTestConfig(enableCache: false);
+        var cacheService = new CacheService(
+            this.mockCache.Object,
+            disabledConfig,
+            this.mockLogger.Object,
+            this.jsonOptions);
+
+        var factoryCalled = false;
+        Func<Task<TestData>> factory = () =>
+        {
+            factoryCalled = true;
+            return Task.FromResult(new TestData { Value = "test" });
+        };
+
+        // Act
+        var result = await cacheService.GetOrSetAsync("test-key", factory);
+
+        // Assert
+        factoryCalled.Should().BeTrue();
+        
+        // Verify cache was never touched
+        this.mockCache.Verify(
+            x => x.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task GetOrSetAsync_WhenCacheThrows_ShouldFallBackToFactory()
+    {
+        // Arrange
+        this.mockCache
+            .Setup(x => x.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("Redis unavailable"));
+
+        var cacheService = new CacheService(
+            this.mockCache.Object,
+            this.config,
+            this.mockLogger.Object,
+            this.jsonOptions);
+
+        var factoryCalled = false;
+        Func<Task<TestData>> factory = () =>
+        {
+            factoryCalled = true;
+            return Task.FromResult(new TestData { Value = "fallback" });
+        };
+
+        // Act
+        var result = await cacheService.GetOrSetAsync("test-key", factory);
+
+        // Assert
+        factoryCalled.Should().BeTrue("should fall back to factory when cache fails");
+        result.Value.Should().Be("fallback");
+        
+        // Verify warning was logged
+        this.mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Cache GET failed")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    private static IOptionsMonitor<AppConfig> CreateTestConfig(bool enableCache)
+    {
+        var appConfig = new AppConfig
+        {
+            CacheConfiguration = new CacheConfiguration
+            {
+                EnableDistributedCache = enableCache,
+                KeyPrefix = "msupdate:",
+                StatisticsCacheMinutes = 5,
+                UpdateDetailsCacheMinutes = 60,
+                ContentAvailabilityCacheMinutes = 15
+            }
+        };
+
+        var mockMonitor = new Mock<IOptionsMonitor<AppConfig>>();
+        mockMonitor.Setup(x => x.CurrentValue).Returns(appConfig);
+        return mockMonitor.Object;
+    }
+
+    private class TestData
+    {
+        public string Value { get; set; } = string.Empty;
+    }
+}
+```
 
 ## ?? Integration Tests (20%)
 
@@ -795,335 +1038,159 @@ public class CLIToolE2ETest
 }
 ```
 
-## ??? Test Infrastructure
+### Caching Integration Tests ✨ **NEW**
 
-### Test Fixtures
+**Purpose:**
+- Test orchestrators with caching enabled
+- Test cache invalidation after sync operations
+- Test hot-reload of cache configuration
+- **Use MemoryDistributedCache** - No Redis required
 
-#### 1. InMemoryFunctionsFixture
+**Example: Orchestrator Caching Integration Test**
+
 ```csharp
-/// <summary>
-/// Fastest fixture - no external dependencies.
-/// Perfect for unit and integration tests.
-/// </summary>
-[CollectionDefinition("InMemory")]
-public class InMemoryCollection : ICollectionFixture<InMemoryFunctionsFixture>
+// UpdateEngine/test/Integration/Orchestrators/MetadataOrchestratorCachingTests.cs
+
+using FluentAssertions;
+using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using UpdateEngine.Core.Orchestrators;
+using UpdateEngine.Core.Services;
+using UpdateEngineTest.Infrastructure;
+using Xunit;
+
+[Collection("InMemory")]
+public class MetadataOrchestratorCachingTests
 {
-}
-```
+    private readonly InMemoryFunctionsFixture fixture;
 
-**Use for:**
-- Unit tests of orchestrators
-- Integration tests of services
-- Tests that don't need HTTP endpoints
-
-#### 2. AspireTestFixture
-```csharp
-/// <summary>
-/// Medium-speed fixture - uses Aspire with Azurite.
-/// Perfect for Azure Functions integration tests.
-/// </summary>
-[CollectionDefinition("AspireIntegration")]
-public class AspireIntegrationCollection : ICollectionFixture<AspireTestFixture>
-{
-}
-```
-
-**Use for:**
-- Azure Functions adapter tests
-- HTTP endpoint tests
-- Aspire configuration tests
-
-#### 3. AspireAppHostTestFixture
-```csharp
-/// <summary>
-/// Full-stack fixture - complete AppHost with all services.
-/// Perfect for end-to-end workflow tests.
-/// </summary>
-[CollectionDefinition("AspireAppHost")]
-public class AspireAppHostCollection : ICollectionFixture<AspireAppHostTestFixture>
-{
-}
-```
-
-**Use for:**
-- End-to-end workflow tests
-- Multi-service integration tests
-- Performance and load tests
-
-#### 4. WorkerServiceTestFixture (NEW)
-```csharp
-/// <summary>
-/// Worker Service fixture using WebApplicationFactory.
-/// Perfect for testing Worker Service hosting model.
-/// </summary>
-public class WorkerServiceTestFixture : WebApplicationFactory<WorkerService.Program>
-{
-    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    public MetadataOrchestratorCachingTests(InMemoryFunctionsFixture fixture)
     {
-        builder.ConfigureServices(services =>
+        this.fixture = fixture;
+    }
+
+    [Fact]
+    public async Task GetStatisticsAsync_WithCachingEnabled_ShouldCacheResults()
+    {
+        // Arrange
+        using var scope = this.fixture.CreateScope();
+        var orchestrator = scope.ServiceProvider.GetRequiredService<IMetadataOrchestrator>();
+        var cache = scope.ServiceProvider.GetRequiredService<IDistributedCache>();
+
+        // Act - First call (cache miss)
+        var result1 = await orchestrator.GetStatisticsAsync();
+        
+        // Assert - Value should be cached
+        var cachedBytes = await cache.GetAsync("msupdate:metadata:stats");
+        cachedBytes.Should().NotBeNull("statistics should be cached after first call");
+
+        // Act - Second call (cache hit)
+        var result2 = await orchestrator.GetStatisticsAsync();
+
+        // Assert - Both results should be identical
+        result2.TotalPackages.Should().Be(result1.TotalPackages);
+        result2.TotalCategories.Should().Be(result1.TotalCategories);
+    }
+
+    [Fact]
+    public async Task GetStatisticsAsync_AfterCacheInvalidation_ShouldRecompute()
+    {
+        // Arrange
+        using var scope = this.fixture.CreateScope();
+        var orchestrator = scope.ServiceProvider.GetRequiredService<IMetadataOrchestrator>();
+        var cacheService = scope.ServiceProvider.GetRequiredService<CacheService>();
+
+        // Act - Get statistics (caches result)
+        var result1 = await orchestrator.GetStatisticsAsync();
+
+        // Invalidate cache
+        await cacheService.InvalidateStatisticsCacheAsync();
+
+        // Get statistics again (should recompute)
+        var result2 = await orchestrator.GetStatisticsAsync();
+
+        // Assert - Results should still be valid
+        result2.Should().NotBeNull();
+        result2.TotalPackages.Should().BeGreaterThanOrEqualTo(0);
+    }
+
+    [Fact]
+    public async Task GetUpdateDetailsAsync_ShouldCacheIndividualUpdates()
+    {
+        // Arrange
+        using var scope = this.fixture.CreateScope();
+        var orchestrator = scope.ServiceProvider.GetRequiredService<IMetadataOrchestrator>();
+        var cache = scope.ServiceProvider.GetRequiredService<IDistributedCache>();
+        
+        var updateId = Guid.NewGuid(); // Test update ID
+
+        // Act - Get update details
+        var update = await orchestrator.GetUpdateDetailsAsync(updateId);
+
+        // Assert - Should be cached with correct key
+        var cacheKey = $"msupdate:metadata:update:{updateId}";
+        var cachedBytes = await cache.GetAsync(cacheKey);
+        
+        if (update != null)
         {
-            // Use in-memory storage for tests
-            services.AddSingleton<IMetadataStore>(/* in-memory store */);
-        });
+            cachedBytes.Should().NotBeNull("update should be cached");
+        }
     }
 }
 ```
 
-**Use for:**
-- Worker Service controller tests
-- Background worker tests
-- ASP.NET Core integration tests
+### Redis Health Check Integration Tests ✨ **NEW**
 
-## ?? Test Execution Strategy
-
-### Local Development
-```bash
-# Run fast tests only (unit + in-memory integration)
-dotnet test --filter "Category!=AspireIntegration&Category!=E2E"
-
-# Run all tests except E2E
-dotnet test --filter "Category!=E2E"
-
-# Run all tests
-dotnet test
-```
-
-### CI/CD Pipeline
-```yaml
-# .github/workflows/test.yml
-
-jobs:
-  unit-tests:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Run Unit Tests
-        run: dotnet test --filter "Category=Unit"
-        timeout-minutes: 5
-
-  integration-tests:
-    runs-on: ubuntu-latest
-    needs: unit-tests
-    steps:
-      - name: Run Integration Tests
-        run: dotnet test --filter "Category=Integration"
-        timeout-minutes: 15
-
-  e2e-tests:
-    runs-on: ubuntu-latest
-    needs: integration-tests
-    steps:
-      - name: Run E2E Tests
-        run: dotnet test --filter "Category=E2E"
-        timeout-minutes: 30
-```
-
-### Test Categories
 ```csharp
-// Categorize tests using Traits
-[Trait("Category", "Unit")]
-public class SyncOrchestratorTests { }
+// UpdateEngine/test/Integration/HealthChecks/RedisHealthCheckTests.cs
 
-[Trait("Category", "Integration")]
-public class UnifiedSyncIntegrationTest { }
+using FluentAssertions;
+using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Options;
+using UpdateEngine.Core.HealthChecks;
+using Xunit;
 
-[Trait("Category", "E2E")]
-public class FullSyncWorkflowTest { }
-```
-
-## ?? Testing Best Practices
-
-### 1. Test Naming Convention
-```csharp
-// Pattern: MethodName_Scenario_ExpectedBehavior
-[Fact]
-public async Task ExecuteSyncAsync_WithStartAction_ShouldCallSyncService()
-
-[Fact]
-public async Task GetStatusAsync_WhenSyncRunning_ShouldReturnProgress()
-
-[Fact]
-public async Task ExecuteSyncAsync_WithInvalidRequest_ShouldReturnError()
-```
-
-### 2. Arrange-Act-Assert (AAA)
-```csharp
-[Fact]
-public async Task ExecuteSyncAsync_WithStartAction_ShouldCallSyncService()
+public class RedisHealthCheckTests
 {
-    // Arrange - Set up test data and mocks
-    var request = new UnifiedSyncRequest { /* ... */ };
-    this.mockService.Setup(/* ... */);
+    [Fact]
+    public async Task CheckHealthAsync_WithHealthyCache_ShouldReturnHealthy()
+    {
+        // Arrange
+        var memoryCache = new MemoryDistributedCache(
+            Options.Create(new MemoryDistributedCacheOptions()));
+        
+        var healthCheck = new RedisHealthCheck(
+            memoryCache,
+            Mock.Of<ILogger<RedisHealthCheck>>());
 
-    // Act - Execute the method under test
-    var result = await this.orchestrator.ExecuteSyncAsync(request);
+        // Act
+        var result = await healthCheck.CheckHealthAsync(new HealthCheckContext());
 
-    // Assert - Verify the outcome
-    result.Success.Should().BeTrue();
-    this.mockService.Verify(/* ... */);
-}
-```
+        // Assert
+        result.Status.Should().Be(HealthStatus.Healthy);
+        result.Data.Should().ContainKey("ResponseTimeMs");
+        result.Data.Should().ContainKey("CacheType");
+        result.Data["CacheType"].Should().Be("Redis");
+    }
 
-### 3. Use FluentAssertions
-```csharp
-// ? BAD
-Assert.True(result.Success);
-Assert.Equal("expected", result.Message);
+    [Fact]
+    public async Task CheckHealthAsync_WithTimeout_ShouldReturnUnhealthy()
+    {
+        // Arrange
+        var mockCache = new Mock<IDistributedCache>();
+        mockCache
+            .Setup(x => x.SetAsync(
+                It.IsAny<string>(),
+                It.IsAny<byte[]>(),
+                It.IsAny<DistributedCacheEntryOptions>(),
+                It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new TimeoutException("Redis timeout"));
 
-// ? GOOD
-result.Success.Should().BeTrue();
-result.Message.Should().Be("expected");
-result.Errors.Should().BeEmpty();
-```
+        var healthCheck = new RedisHealthCheck(
+            mockCache.Object,
+            Mock.Of<ILogger<RedisHealthCheck>>());
 
-### 4. Theory Tests for Multiple Inputs
-```csharp
-[Theory]
-[InlineData(SyncType.Categories, "Categories sync")]
-[InlineData(SyncType.Updates, "Updates sync")]
-[InlineData(SyncType.Comprehensive, "Comprehensive sync")]
-public async Task ExecuteSyncAsync_WithAllSyncTypes_ShouldSucceed(
-    SyncType syncType,
-    string expectedMessage)
-{
-    // Test logic for all sync types
-}
-```
-
-### 5. Async All The Way
-```csharp
-// ? BAD - Blocking on async
-var result = this.orchestrator.ExecuteSyncAsync(request).Result;
-
-// ? GOOD - Async all the way
-var result = await this.orchestrator.ExecuteSyncAsync(request);
-```
-
-### 6. Test Independence
-```csharp
-// ? BAD - Tests depend on each other
-[Fact]
-public async Task Test1_CreateUser() { }
-
-[Fact]
-public async Task Test2_UpdateUser() { } // Depends on Test1
-
-// ? GOOD - Each test is independent
-[Fact]
-public async Task UpdateUser_WithExistingUser_ShouldSucceed()
-{
-    // Arrange - Create user in this test
-    var user = await this.CreateTestUserAsync();
-    
-    // Act & Assert
-}
-```
-
-## ?? Code Coverage Goals
-
-| Component | Target Coverage | Critical Paths |
-|-----------|----------------|----------------|
-| **Orchestrators** | 90%+ | ? All business logic |
-| **Services** | 85%+ | ? Core operations |
-| **Models** | 80%+ | ? Validation logic |
-| **Functions** | 70%+ | ? Adapter layer |
-| **Infrastructure** | 60%+ | ? Configuration |
-
-### Measuring Coverage
-```bash
-# Run tests with coverage
-dotnet test --collect:"XPlat Code Coverage"
-
-# Generate HTML report
-reportgenerator \
-  -reports:**/coverage.cobertura.xml \
-  -targetdir:coverage-report \
-  -reporttypes:Html
-
-# Open report
-start coverage-report/index.html
-```
-
-## ?? Testing Checklist
-
-### When Creating New Orchestrator
-- [ ] ? Write unit tests for all public methods
-- [ ] ? Test all action types (Start, Pause, Resume, Cancel)
-- [ ] ? Test invalid inputs and error handling
-- [ ] ? Test concurrent operations
-- [ ] ? Write integration test using InMemoryFixture
-- [ ] ? Write E2E test using AspireAppHostFixture
-
-### When Creating New Function
-- [ ] ? Write unit test for orchestrator (already done)
-- [ ] ? Write integration test for HTTP adapter
-- [ ] ? Test invalid request handling (400 Bad Request)
-- [ ] ? Test authentication/authorization (if applicable)
-- [ ] ? Verify same behavior as Worker Service controller
-
-### When Creating New Model
-- [ ] ? Test serialization/deserialization
-- [ ] ? Test validation attributes
-- [ ] ? Test default values
-- [ ] ? Test null handling
-
-## ?? Running Tests
-
-### Local Development Workflow
-```bash
-# 1. Quick feedback loop (unit tests only)
-dotnet test --filter "Category=Unit"
-# < 1 minute
-
-# 2. Comprehensive testing (unit + integration)
-dotnet test --filter "Category!=E2E"
-# ~5 minutes
-
-# 3. Full validation (before commit)
-dotnet test
-# ~15 minutes
-
-# 4. Watch mode (for TDD)
-dotnet watch test --filter "Category=Unit"
-```
-
-### CI/CD Pipeline
-```bash
-# Stage 1: Fast feedback (parallel)
-dotnet test --filter "Category=Unit" --no-build
-
-# Stage 2: Integration tests (after unit tests pass)
-dotnet test --filter "Category=Integration" --no-build
-
-# Stage 3: E2E tests (only on main branch or release)
-dotnet test --filter "Category=E2E" --no-build
-```
-
-## ?? Summary
-
-### Key Principles
-1. ? **Test orchestrators once** - works for all hosting models
-2. ? **Fast feedback loop** - unit tests < 1 minute
-3. ? **Minimal E2E tests** - expensive, only for critical workflows
-4. ? **Test independence** - each test runs in isolation
-5. ? **Mock external dependencies** - unit tests have zero dependencies
-
-### Test Distribution
-- **70% Unit Tests**: Fast, isolated, test orchestrators and services
-- **20% Integration Tests**: Moderate speed, test component interactions
-- **10% E2E Tests**: Slow, expensive, test critical workflows
-
-### Result
-With this testing strategy:
-- ? **Fast development**: Unit tests give instant feedback
-- ? **High confidence**: Integration tests validate interactions
-- ? **Production validation**: E2E tests catch system-level issues
-- ? **Code reuse**: Test orchestrators once, deploy anywhere
-
----
-
-**Last Updated**: 2025-01-XX  
-**Status**: Ready for Implementation  
-**Next Steps**: 
-1. Create Unit/Orchestrators/ folder
-2. Write SyncOrchestratorTests.cs
-3. Create WorkerServiceTestFixture.cs

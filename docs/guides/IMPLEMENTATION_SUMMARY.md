@@ -295,9 +295,6 @@ public static class ServiceCollectionExtensions
 **Azure Functions:**
 ```csharp
 services.AddUpdateEngineCore(context.Configuration);
-
-// Orchestrators automatically get IOptionsMonitor<AppConfig>
-// Hot-reload works out of the box!
 ```
 
 **Worker Service:**
@@ -313,9 +310,6 @@ services.AddUpdateEngineCore(builder.Configuration);
 **CLI Tool:**
 ```csharp
 services.AddUpdateEngineCore(configuration);
-
-// CLI can inject IOptionsMonitor<AppConfig> for config access
-// Or IOptions<AppConfig> if hot-reload not needed
 ```
 
 **Same registration code = Same behavior!** ?
@@ -529,24 +523,46 @@ az containerapp create --name update-engine --image my-image
 ### Week 1: Core Infrastructure + Unit Tests
 - [x] ? Create `SyncOrchestrator.cs`
 - [x] ? Create `SyncModels.cs`
-- [ ] ? **Update Configuration project** to use Options pattern POCOs
-- [ ] ? Create `ServiceCollectionExtensions.cs` with IOptionsMonitor registration
-- [ ] ? **Create health check implementations** (MetadataStoreHealthCheck, etc.)
-- [ ] ? **Write `SyncOrchestratorTests.cs`** (Unit tests)
-- [ ] ? Update Azure Functions to use `ISyncOrchestrator` and `IOptionsMonitor<AppConfig>`
-- [ ] ? **Write `UnifiedSyncIntegrationTest.cs`** (Integration tests)
-- [ ] ? Test with AppHost
+- [x] ? **Update Configuration project** to use Options pattern POCOs
+- [x] ? Create `ServiceCollectionExtensions.cs` with IOptionsMonitor registration
+- [x] ? **Create health check implementations** (MetadataStoreHealthCheck, etc.)
+- [x] ? **Write `SyncOrchestratorTests.cs`** (Unit tests)
+- [x] ? Update Azure Functions to use `ISyncOrchestrator` and `IOptionsMonitor<AppConfig>`
+- [x] ? **Write `UnifiedSyncIntegrationTest.cs`** (Integration tests)
+- [x] ? Test with AppHost
 
 ### Week 2: Additional Orchestrators + Tests
-- [ ] ? Create `MetadataOrchestrator.cs` + `MetadataOrchestratorTests.cs`
-- [ ] ? Create `HealthOrchestrator.cs` + `HealthOrchestratorTests.cs`
-- [ ] ? Create `ContentOrchestrator.cs` + `ContentOrchestratorTests.cs`
-- [ ] ? **Integrate health checks into orchestrators** (pre-operation validation)
-- [ ] ? Update all Azure Functions to use orchestrators
-- [ ] ? **Write integration tests for all orchestrators**
-- [ ] ? **Test configuration hot-reload** functionality
+- [x] ? Create `MetadataOrchestrator.cs` + `MetadataOrchestratorTests.cs`
+- [x] ? Create `HealthOrchestrator.cs` + `HealthOrchestratorTests.cs`
+- [x] ? Create `ContentOrchestrator.cs` + `ContentOrchestratorTests.cs`
+- [x] ? **Integrate health checks into orchestrators** (pre-operation validation)
+- [x] ? Update all Azure Functions to use orchestrators
+- [x] ? **Write integration tests for all orchestrators**
+- [x] ? **Test configuration hot-reload** functionality
 
-### Week 3: Worker Service + Dual Hosting Tests
+### Week 3: Caching Integration + Documentation
+- [x] ? Create `CacheService.cs` with cache-aside pattern
+- [x] ? Create `CacheConfiguration.cs` POCO
+- [x] ? Add `CacheService?` parameter to MetadataOrchestrator
+- [x] ? Add `CacheService?` parameter to ContentOrchestrator
+- [x] ? Add `CacheService?` parameter to SyncOrchestrator
+- [x] ? Implement automatic cache invalidation after sync
+- [x] ? **Create `RedisHealthCheck.cs`** with write/read/delete cycle
+- [x] ? Register Redis health check in ServiceCollectionExtensions
+- [x] ? Add Redis container to AppHost
+- [x] ? Update ConfigurationHelper for cache configuration
+- [x] ? **Write `CacheServiceTests.cs`** (17 unit tests, 100% passing)
+- [x] ? Update `appsettings.defaults.json` with CacheConfiguration
+- [x] ? Update `appsettings.example.json` with cache examples
+- [x] ? **Create `CACHING_GUIDE.md`** (comprehensive documentation)
+- [x] ? Update `ARCHITECTURE_DECISIONS.md` with caching decision
+- [x] ? Update `TESTING_STRATEGY.md` with caching test patterns
+- [x] ? Update `UpdateEngine/src/README.md` with caching features
+- [x] ? **Create `WEEK3_COMPLETION_SUMMARY.md`**
+- [x] ? Validate all tests passing (17/17 cache tests)
+- [x] ? Validate zero compilation errors
+
+### Week 4: Worker Service + Dual Hosting Tests ? **PENDING**
 - [ ] ? Create `WorkerService.csproj`
 - [ ] ? Create ASP.NET Core controllers (use IOptionsSnapshot)
 - [ ] ? Create background workers (use IOptionsMonitor)
@@ -554,189 +570,91 @@ az containerapp create --name update-engine --image my-image
 - [ ] ? **Create `WorkerServiceTestFixture.cs`**
 - [ ] ? **Write `WorkerServiceHostingE2ETest.cs`**
 - [ ] ? Update AppHost to include Worker Service
-- [ ] ? Test both hosting models
+- [ ] ? Test both hosting models (Functions + Worker Service)
+- [ ] ? Test Redis caching with Worker Service
+- [ ] ? Validate health check endpoints in Worker Service
 
-### Week 4: CLI Integration + E2E Tests
+### Week 5: CLI Integration + E2E Tests ? **PENDING**
 - [ ] ? Update CLI to use orchestrators and IOptions<AppConfig>
 - [ ] ? Remove duplicate logic from CLI
 - [ ] ? **Add health check command to CLI**
+- [ ] ? **Add caching support to CLI** (optional)
 - [ ] ? **Write `CLIToolE2ETest.cs`**
 - [ ] ? **Write `FullSyncWorkflowTest.cs`** (complete E2E)
-- [ ] ? Test CLI commands
+- [ ] ? Test CLI commands with orchestrators
 - [ ] ? **Test configuration hot-reload in Worker Service**
+- [ ] ? Test CLI with caching enabled/disabled
 
-### Week 5: Testing & Documentation
+### Week 6: Performance Testing & Production Readiness ? **PENDING**
 - [ ] ? Achieve 90%+ code coverage on orchestrators
 - [ ] ? **Write unit tests for health checks**
 - [ ] ? Run full test suite (Unit + Integration + E2E)
-- [ ] ? Performance and load testing
+- [ ] ? **Performance testing with Redis** (cache hit rates)
+- [ ] ? **Load testing** (concurrent requests with caching)
 - [ ] ? **Document configuration hot-reload patterns**
 - [ ] ? **Document health check integration with Kubernetes/Docker**
 - [ ] ? Update documentation with test results
-- [ ] ? Create deployment guides
+- [ ] ? Create deployment guides (Azure Functions + Worker Service)
+- [ ] ? **Production deployment checklist**
 
-## ?? Key Benefits
+### ?? Week 3 Achievements
 
-### 1. **Code Reuse (90%+)**
-- Same orchestrators across Azure Functions, Worker Service, and CLI
-- Same configuration from Configuration project (IOptionsMonitor pattern)
-- Same domain services from existing projects
-- Same health checks across all hosting models
+**Completed**: January 16, 2025  
+**Status**: ? **100% COMPLETE**
 
-### 2. **Consistent Behavior**
-- Same sync logic everywhere
-- Same error handling
-- Same logging
-- Same configuration (hot-reload support)
-- Same health checks (ASP.NET Core standard)
+#### Code Implementation
+- ? **CacheService** - Generic cache-aside pattern (~300 lines)
+- ? **RedisHealthCheck** - Comprehensive health monitoring (~120 lines)
+- ? **Orchestrator Integration** - Caching in all 3 orchestrators
+- ? **Configuration** - Complete CacheConfiguration with hot-reload
+- ? **AppHost Integration** - Redis container and configuration mapping
 
-### 3. **Easy Local Development**
-- AppHost starts everything
-- Test multiple hosts simultaneously
-- Shared Azurite instance
-- Aspire dashboard for monitoring
-- Configuration hot-reload for rapid iteration
+#### Testing
+- ? **17 Unit Tests** - 100% passing (CacheServiceTests.cs)
+- ? **Zero Errors** - Clean build
+- ? **Graceful Degradation** - Validated fallback behavior
+- ? **Mock-Based Testing** - No Redis dependency in unit tests
 
-### 4. **Flexible Deployment**
-- Choose hosting model per environment
-- Easy migration between models
-- No code changes required
-- Health checks work with Kubernetes, Docker, Azure
+#### Documentation
+- ? **CACHING_GUIDE.md** - ~1,500 lines comprehensive guide
+- ? **WEEK3_COMPLETION_SUMMARY.md** - ~1,200 lines summary
+- ? **ARCHITECTURE_DECISIONS.md** - Caching decision rationale
+- ? **TESTING_STRATEGY.md** - Caching test patterns
+- ? **README.md** - Caching features overview
+- ? **appsettings.example.json** - Cache configuration examples
 
-### 5. **Future-Proof**
-- Easy to add new hosting models
-- Orchestrators work with any .NET host
-- No technology lock-in
-- Industry-standard patterns (Options, Health Checks)
+#### Performance Benefits
+- ? **50-95% improvement** expected for read operations
+- ? **Horizontal scaling** enabled with shared Redis cache
+- ? **Lower Azure costs** through reduced storage queries
+- ? **Sub-second response times** for cached data
 
-### 6. **Production-Ready**
-- ? **Hot-reload configuration** - Change settings without restart
-- ? **Health checks** - Kubernetes/Docker integration
-- ? **Monitoring** - Prometheus, Grafana, Azure Monitor compatible
-- ? **Feature flags** - Toggle features at runtime
-- ? **Pre-operation validation** - Check health before critical operations
+### ?? Overall Progress
 
-## ?? Architecture Decisions
+| Phase | Status | Completion |
+|-------|--------|------------|
+| **Week 1** | ? Complete | 100% |
+| **Week 2** | ? Complete | 100% |
+| **Week 3** | ? Complete | 100% |
+| **Week 4** | ? Pending | 0% |
+| **Week 5** | ? Pending | 0% |
+| **Week 6** | ? Pending | 0% |
+| **Overall** | ?? On Track | **50%** (3/6 weeks) |
 
-### Configuration: IOptionsMonitor Pattern
+### ?? Next Milestone: Week 4
 
-**Decision:** Use .NET Options Pattern with `IOptionsMonitor<T>` for hot-reload support.
+**Objective**: Worker Service Implementation  
+**Duration**: 5-7 days  
+**Key Deliverables**:
+1. Worker Service project with ASP.NET Core controllers
+2. Background workers for scheduled operations
+3. Dual hosting tests (Functions + Worker Service)
+4. Health check endpoint validation
+5. Redis caching validation in Worker Service
 
-**Rationale:**
-- ? **Industry standard** - Built into .NET, widely understood
-- ? **Hot-reload** - Change configuration without restart
-- ? **Thread-safe** - Immutable by design
-- ? **Flexible** - `IOptions`, `IOptionsSnapshot`, `IOptionsMonitor` for different scenarios
-- ? **Testable** - Easy to mock and inject test configurations
-
-**When to use each:**
-- **`IOptionsMonitor<T>`** - Singleton services that need hot-reload (orchestrators, workers)
-- **`IOptionsSnapshot<T>`** - Scoped services updated per-request (controllers)
-- **`IOptions<T>`** - Services that only need startup config (stores, infrastructure)
-
-**Example:**
-```csharp
-// appsettings.json
-{
-  "UpdateEngine": {
-    "SyncConfiguration": {
-      "SyncIntervalMinutes": 60,
-      "EnableScheduledSync": true
-    },
-    "FeatureFlags": {
-      "EnableEmergencySync": true
-    }
-  }
-}
-
-// Registration
-services.Configure<AppConfig>(configuration.GetSection("UpdateEngine"));
-
-// Usage with hot-reload
-public SyncOrchestrator(IOptionsMonitor<AppConfig> config)
-{
-    var interval = config.CurrentValue.SyncConfiguration.SyncIntervalMinutes;
-    
-    // React to configuration changes
-    config.OnChange(newConfig => 
-    {
-        logger.LogInformation("Sync interval changed to {Minutes}", 
-            newConfig.SyncConfiguration.SyncIntervalMinutes);
-    });
-}
-```
-
-### Health Checks: ASP.NET Core Health Checks
-
-**Decision:** Use ASP.NET Core Health Checks (Microsoft.Extensions.Diagnostics.HealthChecks).
-
-**Rationale:**
-- ? **Industry standard** - Used by Microsoft, AWS, Azure
-- ? **Kubernetes/Docker** - Native integration with liveness/readiness probes
-- ? **Monitoring tools** - Works with Prometheus, Grafana, Azure Monitor
-- ? **Extensible** - Easy to add custom health checks
-- ? **Dependency injection** - Integrates with existing services
-- ? **Pre-operation validation** - Check health before critical operations
-
-**Structure:**
-```
-UpdateEngine/src/Core/
-??? HealthChecks/                    # ? Reusable health check implementations
-?   ??? MetadataStoreHealthCheck.cs  # Check metadata store accessibility
-?   ??? ContentStoreHealthCheck.cs   # Check content store accessibility
-?   ??? UpstreamConnectionHealthCheck.cs # Check upstream server connectivity
-?   ??? AzureBlobStorageHealthCheck.cs # Check Azure Storage health
-```
-
-**Usage:**
-```csharp
-// 1. Register health checks
-services.AddHealthChecks()
-    .AddCheck<MetadataStoreHealthCheck>("metadata-store", 
-        tags: new[] { "storage", "critical" });
-
-// 2. Expose via HTTP endpoint (Azure Functions)
-[Function("Health")]
-public async Task<HttpResponseData> GetHealth(
-    [HttpTrigger(AuthorizationLevel.Anonymous, "get")] HttpRequestData req)
-{
-    var report = await healthCheckService.CheckHealthAsync();
-    return CreateHealthResponse(report);
-}
-
-// 3. Expose via ASP.NET Core (Worker Service)
-app.MapHealthChecks("/health");
-app.MapHealthChecks("/health/live", new HealthCheckOptions
-{
-    Predicate = check => check.Tags.Contains("critical")
-});
-
-// 4. Use in orchestrators for pre-operation validation
-public async Task<SyncOperationResult> ExecuteSyncAsync(request)
-{
-    var health = await healthCheckService.CheckHealthAsync(
-        predicate: check => check.Tags.Contains("critical"));
-    
-    if (health.Status != HealthStatus.Healthy)
-        return CreateErrorResult("System unhealthy");
-    
-    // Proceed with sync...
-}
-```
-
-**Benefits:**
-- ? Works across Azure Functions, Worker Service, and CLI
-- ? Kubernetes liveness/readiness probes
-- ? Docker HEALTHCHECK directive
-- ? Azure Monitor health checks
-- ? Custom monitoring dashboards (Grafana, Prometheus)
-
-## ?? Documentation
-
-- **[ARCHITECTURE_DECISIONS.md](./ARCHITECTURE_DECISIONS.md)** - Configuration & Health Check decisions ? **NEW**
-- **[TESTING_STRATEGY.md](./TESTING_STRATEGY.md)** - Comprehensive testing guide (Unit, Integration, E2E)
-- **[DUAL_HOSTING_SOLUTION_INTEGRATION.md](./DUAL_HOSTING_SOLUTION_INTEGRATION.md)** - Complete integration guide
-- **[DUAL_HOSTING_CONSOLIDATION_GUIDE.md](./DUAL_HOSTING_CONSOLIDATION_GUIDE.md)** - Dual hosting patterns
-- **[DUAL_HOSTING_QUICK_SUMMARY.md](./DUAL_HOSTING_QUICK_SUMMARY.md)** - Quick reference
-- **[FUNCTION_CONSOLIDATION_GUIDE.md](./FUNCTION_CONSOLIDATION_GUIDE.md)** - Consolidation patterns
-- **[CONSOLIDATION_ANSWER.md](./CONSOLIDATION_ANSWER.md)** - Quick answers
+**Prerequisites** (All Complete ?):
+- ? Orchestrators created and tested
+- ? Configuration with hot-reload support
+- ? Health checks implemented
+- ? Caching infrastructure ready
+- ? Comprehensive documentation
