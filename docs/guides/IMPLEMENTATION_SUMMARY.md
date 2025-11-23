@@ -313,14 +313,17 @@ cd AppHost/src && dotnet run
 
 **Achievement**: All projects now follow consistent folder structure pattern: `ProjectName/src/ProjectName.csproj`
 
-### 📋 Phase 4: CLI Tool Integration (Future Work) - PENDING
+### 🔄 Phase 4: CLI Tool Integration (In Progress) - November 23, 2025
 
-#### Week 5: CLI Tool Integration 📋 PENDING
-- [ ] 📋 Update `update-cli` to use UpdateEngine.Core orchestrators
-- [ ] 📋 Refactor `SyncCommand.cs` to use `ISyncOrchestrator`
-- [ ] 📋 Refactor `QueryCommand.cs` to use `IMetadataOrchestrator`
-- [ ] 📋 Add `HealthCommand.cs` using `IHealthService`
-- [ ] 📋 Update CLI dependency injection to use ServiceCollectionExtensions
+#### Week 5: CLI Tool Integration 🔄 IN PROGRESS
+- [x] ✅ Add UpdateEngine.Core project reference to update-cli
+- [x] ✅ Add Configuration project reference to update-cli
+- [x] ✅ Update CLI dependency injection to use ServiceCollectionExtensions
+- [ ] 🔄 Refactor CommandHandlers to use orchestrators (instead of HTTP client)
+- [ ] 🔄 Update commands to use `ISyncOrchestrator`
+- [ ] 🔄 Update commands to use `IMetadataOrchestrator`
+- [ ] 🔄 Update commands to use `IHealthService`
+- [ ] 📋 Add configuration for metadata and content store paths
 - [ ] 📋 Test CLI tool with same orchestrators as Functions/Worker
 - [ ] 📋 Write CLI integration tests
 - [ ] 📋 Update CLI documentation

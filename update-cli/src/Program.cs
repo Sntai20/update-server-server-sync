@@ -11,6 +11,7 @@ using System.CommandLine;
 using UpdateCli.Commands;
 using UpdateCli.Configuration;
 using UpdateCli.Services;
+using UpdateEngine.Core;
 
 /// <summary>
 /// UpdateEngine CLI tool for querying and managing updates.
@@ -73,15 +74,18 @@ public static class Program
 
     private static void ConfigureServices(IServiceCollection services, IConfiguration configuration)
     {
-        services.Configure<UpdateEngineConfiguration>(configuration.GetSection("UpdateEngine"));
-
+        // Configure logging
         services.AddLogging(builder =>
         {
             builder.AddConfiguration(configuration.GetSection("Logging"));
             builder.AddConsole();
         });
 
-        services.AddHttpClient<UpdateEngineClient>();
+        // Add UpdateEngine.Core services (orchestrators, services, stores, health checks)
+        services.AddUpdateEngineCore(configuration);
+
+        // Add CLI-specific services
+        services.AddHttpClient<UpdateEngineClient>(); // Keep for backward compatibility
         services.AddTransient<CommandHandlers>();
     }
 
