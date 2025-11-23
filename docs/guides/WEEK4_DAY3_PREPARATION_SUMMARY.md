@@ -94,14 +94,15 @@ ErrorCode: ContainerNotFound
 **Problem**: Application failed to start with error:
 ```
 System.InvalidOperationException: Azure Storage connection string not found.
-Ensure either ConnectionStrings:MetadataStorageConnection or 
-StorageConfiguration:AzureStorageConnectionString is configured.
+System.IO.DirectoryNotFoundException: The store does not exist or is corrupt: ./LocalMetadataStore
 ```
 
-**Root Cause**: The `ServiceCollectionExtensions.cs` had rigid Azure Storage configuration logic that would throw an exception if `UseAzureStorageForMetadata: true` was set but no connection string was available. This prevented:
-- Standalone development without Aspire
-- Quick testing without Azurite
-- Flexible migration from local to cloud storage
+**Root Cause**: Two issues:
+1. The `ServiceCollectionExtensions.cs` had rigid Azure Storage configuration logic that would throw an exception if `UseAzureStorageForMetadata: true` was set but no connection string was available. This prevented:
+   - Standalone development without Aspire
+   - Quick testing without Azurite
+   - Flexible migration from local to cloud storage
+2. Even after fixing the connection string logic, the code was calling `PackageStore.Open()` which uses `FileMode.Open` - requiring an existing store structure. Empty directories would fail validation.
 
 **Fix Applied**:
 - Updated `ServiceCollectionExtensions.cs` with intelligent storage resolution:
@@ -109,6 +110,7 @@ StorageConfiguration:AzureStorageConnectionString is configured.
   - Gracefully falls back to local storage with warning logging
   - Decides Azure vs Local based on both configuration AND connection string availability
   - Added comprehensive debug logging for storage decisions
+  - **Changed `PackageStore.Open()` to `PackageStore.OpenOrCreate()`** to create store structure on first run
 - Updated `UpdateEngine/src/appsettings.json`:
   - Changed `UseAzureStorageForMetadata` from `true` to `false`
   - Changed `UseAzureStorageForContent` from `true` to `false`
@@ -125,11 +127,15 @@ var useAzureStorage = (config.UseAzureStorageForMetadata && !string.IsNullOrEmpt
 if (useAzureStorage && string.IsNullOrEmpty(connectionString))
 {
     logger.LogWarning("Falling back to local storage");
-    return LocalPackageStore.Open(config.MetadataPath);
+    return PackageStore.OpenOrCreate(config.MetadataPath);  // OpenOrCreate, not Open!
+}
+else
+{
+    return PackageStore.OpenOrCreate(config.MetadataPath);  // Creates store if needed
 }
 ```
 
-**Result**: ? Supports all deployment scenarios (standalone local, Aspire with Azurite, Azure production)
+**Result**: ? Supports all deployment scenarios (standalone local, Aspire with Azurite, Azure production) and creates stores on first run
 
 ## ?? Current State
 

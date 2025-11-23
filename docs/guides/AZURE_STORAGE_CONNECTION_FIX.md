@@ -39,6 +39,9 @@ This prevented flexible deployment scenarios:
 
 The configuration in `appsettings.json` had `UseAzureStorageForMetadata: true` but when running standalone (without Aspire providing connection strings via `.WithReference()`), no connection string was available, causing immediate startup failure.
 
+**Additional Issue - Store Creation**:
+Even after creating the directory, the code was calling `PackageStore.Open()` which uses `FileMode.Open`. This method requires an existing store structure (table of contents, identities files, etc.) and throws `DirectoryNotFoundException` when called on an empty directory. The fix was to use `PackageStore.OpenOrCreate()` which uses `FileMode.OpenOrCreate` to create the store structure if it doesn't exist.
+
 ## Solution Implemented
 
 ### 1. **Flexible Storage Resolution Logic** (`ServiceCollectionExtensions.cs`)
@@ -75,9 +78,18 @@ if (useAzureStorage && string.IsNullOrEmpty(connectionString))
         "Falling back to local file system storage at: {Path}", 
         storageConfig.MetadataPath);
     
-    // Create directory and return local store
-    return PackageStore.Open(storageConfig.MetadataPath);
+    // Use OpenOrCreate to create store if it doesn't exist
+    return PackageStore.OpenOrCreate(storageConfig.MetadataPath);
 }
+```
+
+**Fixed Store Creation** (Critical Fix):
+```csharp
+// ? OLD: Would fail if directory was empty or newly created
+return PackageStore.Open(storageConfig.MetadataPath);
+
+// ? NEW: Creates store structure if it doesn't exist
+return PackageStore.OpenOrCreate(storageConfig.MetadataPath);
 ```
 
 **Comprehensive debug logging**:
@@ -294,15 +306,33 @@ Connection strings provided via `.WithReference()` are available at runtime thro
 if (config.UseAzure && string.IsNullOrEmpty(connectionString))
     throw new Exception("Connection string required");
 
+```
+
+```csharp
 // ? GOOD: Graceful fallback with logging
 if (config.UseAzure && string.IsNullOrEmpty(connectionString))
 {
     logger.LogWarning("Falling back to local storage");
-    return LocalStore.Open(config.LocalPath);
+    return LocalStore.OpenOrCreate(config.LocalPath);
 }
 ```
 
-### 3. **Multi-Source Configuration**
+### 3. **Store Initialization - Open vs OpenOrCreate**
+```csharp
+// ? BAD: Fails on empty directories
+PackageStore.Open(path);  // FileMode.Open - requires existing store
+
+// ? GOOD: Creates store structure if needed
+PackageStore.OpenOrCreate(path);  // FileMode.OpenOrCreate - creates if needed
+```
+
+**Why this matters**:
+- `Open()` expects a complete store structure (TOC, identities, indexes)
+- Empty directories fail validation even if directory exists
+- First-time setup requires `OpenOrCreate()` to initialize structure
+- `OpenOrCreate()` is safe for existing stores (just opens them)
+
+### 4. **Multi-Source Configuration**
 Support multiple configuration sources with clear priority:
 ```csharp
 var value = aspireProvidedValue 
@@ -311,7 +341,7 @@ var value = aspireProvidedValue
     ?? defaultValue;
 ```
 
-### 4. **Comprehensive Logging**
+### 5. **Comprehensive Logging**
 Log ALL configuration decisions for debugging:
 - What was requested (config flags)
 - What was available (connection strings)

@@ -118,13 +118,8 @@ public static class ServiceCollectionExtensions
                         "Falling back to local file system storage at: {Path}", 
                         storageConfig.MetadataPath);
                     
-                    // Fall back to local storage
-                    if (!System.IO.Directory.Exists(storageConfig.MetadataPath))
-                    {
-                        logger?.LogWarning("Metadata store directory does not exist, creating: {Path}", storageConfig.MetadataPath);
-                        System.IO.Directory.CreateDirectory(storageConfig.MetadataPath);
-                    }
-                    return Microsoft.PackageGraph.Storage.Local.PackageStore.Open(storageConfig.MetadataPath);
+                    // Fall back to local storage - use OpenOrCreate to create if needed
+                    return Microsoft.PackageGraph.Storage.Local.PackageStore.OpenOrCreate(storageConfig.MetadataPath);
                 }
 
                 logger?.LogInformation("Opening Azure Blob Storage metadata store (container: {Container})", storageConfig.MetadataContainerName);
@@ -136,13 +131,8 @@ public static class ServiceCollectionExtensions
             else
             {
                 logger?.LogInformation("Opening local file system metadata store at: {Path}", storageConfig.MetadataPath);
-                // Local File System - create directory if it doesn't exist
-                if (!System.IO.Directory.Exists(storageConfig.MetadataPath))
-                {
-                    logger?.LogWarning("Metadata store directory does not exist, creating: {Path}", storageConfig.MetadataPath);
-                    System.IO.Directory.CreateDirectory(storageConfig.MetadataPath);
-                }
-                return Microsoft.PackageGraph.Storage.Local.PackageStore.Open(storageConfig.MetadataPath);
+                // Local File System - use OpenOrCreate to create if needed
+                return Microsoft.PackageGraph.Storage.Local.PackageStore.OpenOrCreate(storageConfig.MetadataPath);
             }
         });
 
