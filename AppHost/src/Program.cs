@@ -97,6 +97,23 @@ if (enableServiceBus)
 /// </summary>
 ConfigurationHelper.ConfigureUpdateFunctions(updateFunctions, builder.Configuration);
 
+/// <summary>
+/// Configures the Worker Service ASP.NET Core project with dependencies.
+/// Worker Service provides REST API endpoints and background workers for sync operations.
+/// Runs on port 8080 with health check endpoints for Kubernetes/Docker compatibility.
+/// Shares the same storage and Redis infrastructure as Azure Functions for dual hosting validation.
+/// </summary>
+var workerService = builder.AddProject<Projects.WorkerService>("WorkerService")
+    .WithHttpEndpoint(port: 8080, name: "http")
+    .WithReference(data, "MetadataStorageConnection")
+    .WithReference(data, "ContentStorageConnection")
+    .WithReference(redis)
+    .WaitFor(storage)
+    .WaitFor(redis);
+
+// Apply configuration to Worker Service using generic method
+ConfigurationHelper.ConfigureUpdateEngine(workerService, builder.Configuration);
+
 var app = builder.Build();
 
 app.Run();
