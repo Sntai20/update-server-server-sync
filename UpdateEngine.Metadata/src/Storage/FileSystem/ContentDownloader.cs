@@ -70,22 +70,52 @@ namespace UpdateEngine.Metadata.Storage.Local
             IContentFile updateFile,
             CancellationToken cancellationToken)
         {
-            if (!File.Exists(destinationFilePath))
+            // Check if file already exists and is complete
+            if (File.Exists(destinationFilePath))
             {
-                // Destination file does not exist; create it and then download it
-                using var fileStream = File.Create(destinationFilePath);
-                DownloadToStream(fileStream, updateFile, 0, cancellationToken);
-            }
-            else
-            {
-                // Destination file exists; if only partially downloaded, seek to the end and resume download
-                // from where we left off
-                using var fileStream = File.Open(destinationFilePath, FileMode.Open, FileAccess.Write);
-                if (fileStream.Length != (long)updateFile.Size)
+                try
                 {
-                    fileStream.Seek(0, SeekOrigin.End);
-                    DownloadToStream(fileStream, updateFile, fileStream.Length, cancellationToken);
+                    var fileInfo = new FileInfo(destinationFilePath);
+                    if (fileInfo.Length == (long)updateFile.Size)
+                    {
+                        // File is already complete, skip download
+                        return;
+                    }
                 }
+                catch (IOException)
+                {
+                    // File might be locked by another process downloading it
+                    // Skip this file and let the other process complete it
+                    return;
+                }
+            }
+
+            try
+            {
+                if (!File.Exists(destinationFilePath))
+                {
+                    // Destination file does not exist; create it and then download it
+                    using var fileStream = File.Create(destinationFilePath);
+                    DownloadToStream(fileStream, updateFile, 0, cancellationToken);
+                }
+                else
+                {
+                    // Destination file exists; if only partially downloaded, seek to the end and resume download
+                    // from where we left off
+                    // Use FileShare.Read to allow other processes to read while we write
+                    using var fileStream = File.Open(destinationFilePath, FileMode.Open, FileAccess.Write, FileShare.Read);
+                    if (fileStream.Length != (long)updateFile.Size)
+                    {
+                        fileStream.Seek(0, SeekOrigin.End);
+                        DownloadToStream(fileStream, updateFile, fileStream.Length, cancellationToken);
+                    }
+                }
+            }
+            catch (IOException ex) when (ex.Message.Contains("being used by another process"))
+            {
+                // Another process is already downloading this file, skip it
+                // The other process will complete the download
+                return;
             }
         }
 

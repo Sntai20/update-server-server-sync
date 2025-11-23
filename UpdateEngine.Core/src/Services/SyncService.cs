@@ -19,6 +19,10 @@ public class SyncService : ISyncService
     private readonly ILogger<SyncService> logger;
     private readonly IMetadataStore metadataStore;
     
+    // Sync locking to prevent concurrent operations
+    private readonly SemaphoreSlim syncLock = new SemaphoreSlim(1, 1);
+    private readonly SemaphoreSlim contentLock = new SemaphoreSlim(1, 1);
+    
     // Simple in-memory state tracking (in production, use distributed cache like Redis)
     private bool isRunning = false;
     private bool isPaused = false;
@@ -33,57 +37,96 @@ public class SyncService : ISyncService
 
     public async Task SyncCategoriesAsync(CancellationToken cancellationToken = default)
     {
-        this.logger.LogInformation("Starting categories synchronization");
+        if (!await this.syncLock.WaitAsync(0, cancellationToken))
+        {
+            this.logger.LogWarning("Categories sync skipped - another sync operation is in progress");
+            return;
+        }
 
-        var upstreamEndpoint = Endpoint.Default;
-        var categoriesSource = new UpstreamCategoriesSource(upstreamEndpoint);
-        
-        categoriesSource.CopyTo(this.metadataStore, cancellationToken);
-        
-        this.logger.LogInformation("Categories synchronization completed");
+        try
+        {
+            this.logger.LogInformation("Starting categories synchronization");
+
+            var upstreamEndpoint = Endpoint.Default;
+            var categoriesSource = new UpstreamCategoriesSource(upstreamEndpoint);
+            
+            categoriesSource.CopyTo(this.metadataStore, cancellationToken);
+            
+            this.logger.LogInformation("Categories synchronization completed");
+        }
+        finally
+        {
+            this.syncLock.Release();
+        }
     }
 
     public async Task SyncUpdatesAsync(UpstreamSourceFilter filter, CancellationToken cancellationToken = default)
     {
-        this.logger.LogInformation("Starting updates synchronization with filter");
+        if (!await this.syncLock.WaitAsync(0, cancellationToken))
+        {
+            this.logger.LogWarning("Updates sync skipped - another sync operation is in progress");
+            return;
+        }
 
-        var upstreamEndpoint = Endpoint.Default;
-        var updatesSource = new UpstreamUpdatesSource(upstreamEndpoint, filter);
-        
-        updatesSource.CopyTo(this.metadataStore, cancellationToken);
-        
-        this.logger.LogInformation("Updates synchronization completed");
+        try
+        {
+            this.logger.LogInformation("Starting updates synchronization with filter");
+
+            var upstreamEndpoint = Endpoint.Default;
+            var updatesSource = new UpstreamUpdatesSource(upstreamEndpoint, filter);
+            
+            updatesSource.CopyTo(this.metadataStore, cancellationToken);
+            
+            this.logger.LogInformation("Updates synchronization completed");
+        }
+        finally
+        {
+            this.syncLock.Release();
+        }
     }
 
     public async Task SyncContentAsync(ServiceMetadataFilter filter, IContentStore contentStore, CancellationToken cancellationToken = default)
     {
-        this.logger.LogInformation("Starting content synchronization");
-
-        // Convert ServiceMetadataFilter to library MetadataFilter
-        var metadataFilter = this.ConvertToMetadataFilter(filter);
-        
-        var filteredPackages = metadataFilter.Apply(this.metadataStore);
-        var filesToDownload = filteredPackages
-            .Where(p => p.Files != null)
-            .SelectMany(p => p.Files)
-            .ToList();
-
-        // Add bundled update files for Microsoft Update packages
-        foreach (var microsoftUpdatePackage in filteredPackages.OfType<MicrosoftUpdatePackage>())
+        if (!await this.contentLock.WaitAsync(0, cancellationToken))
         {
-            filesToDownload.AddRange(this.GetAllUpdateFiles(microsoftUpdatePackage));
+            this.logger.LogWarning("Content sync skipped - another content download is in progress");
+            return;
         }
 
-        filesToDownload = filesToDownload.Distinct().ToList();
+        try
+        {
+            this.logger.LogInformation("Starting content synchronization");
 
-        if (filesToDownload.Any())
-        {
-            contentStore.Download(filesToDownload, cancellationToken);
-            this.logger.LogInformation("Content synchronization completed: {FileCount} files", filesToDownload.Count);
+            // Convert ServiceMetadataFilter to library MetadataFilter
+            var metadataFilter = this.ConvertToMetadataFilter(filter);
+            
+            var filteredPackages = metadataFilter.Apply(this.metadataStore);
+            var filesToDownload = filteredPackages
+                .Where(p => p.Files != null)
+                .SelectMany(p => p.Files)
+                .ToList();
+
+            // Add bundled update files for Microsoft Update packages
+            foreach (var microsoftUpdatePackage in filteredPackages.OfType<MicrosoftUpdatePackage>())
+            {
+                filesToDownload.AddRange(this.GetAllUpdateFiles(microsoftUpdatePackage));
+            }
+
+            filesToDownload = filesToDownload.Distinct().ToList();
+
+            if (filesToDownload.Any())
+            {
+                contentStore.Download(filesToDownload, cancellationToken);
+                this.logger.LogInformation("Content synchronization completed: {FileCount} files", filesToDownload.Count);
+            }
+            else
+            {
+                this.logger.LogInformation("No files to download");
+            }
         }
-        else
+        finally
         {
-            this.logger.LogInformation("No files to download");
+            this.contentLock.Release();
         }
     }
 
