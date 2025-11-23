@@ -97,6 +97,15 @@ if (enableServiceBus)
 /// </summary>
 ConfigurationHelper.ConfigureUpdateFunctions(updateFunctions, builder.Configuration);
 
+
+/// <summary>
+/// Configures WorkerService with conditional storage based on configuration.
+/// - When WorkerService:UseFileSystem is false/absent (default): Uses Azurite (cloud emulation)
+/// - When WorkerService:UseFileSystem is true: Uses local filesystem (../../out/data/ from appsettings)
+/// This provides flexibility for different development scenarios while maintaining cloud-first defaults.
+/// </summary>
+var workerServiceUseFileSystem = builder.Configuration.GetValue<bool>("WorkerService:UseFileSystem", false);
+
 /// <summary>
 /// Configures the Worker Service ASP.NET Core project with dependencies.
 /// Worker Service provides REST API endpoints and background workers for sync operations.
@@ -104,11 +113,24 @@ ConfigurationHelper.ConfigureUpdateFunctions(updateFunctions, builder.Configurat
 /// Shares the same storage and Redis infrastructure as Azure Functions for dual hosting validation.
 /// </summary>
 var workerService = builder.AddProject<Projects.WorkerService>("WorkerService")
-    .WithReference(data, "MetadataStorageConnection")
-    .WithReference(data, "ContentStorageConnection")
-    .WithReference(redis)
-    .WaitFor(storage)
-    .WaitFor(redis);
+    .WithReference(redis);
+
+// Conditionally add storage references only when using Azurite
+if (!workerServiceUseFileSystem)
+{
+    workerService
+        .WithReference(data, "MetadataStorageConnection")
+        .WithReference(data, "ContentStorageConnection")
+        .WaitFor(storage);
+    
+    Console.WriteLine("WorkerService: Using Azurite storage emulator (cloud emulation mode)");
+}
+else
+{
+    Console.WriteLine("WorkerService: Using local filesystem storage (paths from appsettings.Development.json)");
+}
+
+workerService.WaitFor(redis);
 
 // Apply configuration to Worker Service using generic method
 ConfigurationHelper.ConfigureUpdateEngine(workerService, builder.Configuration);
