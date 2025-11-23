@@ -16,6 +16,7 @@ using System.Text;
 using System.Text.Json;
 using UpdateEngine.Functions.Management;
 using UpdateEngine.Core.Services;
+using UpdateEngine.Core.Models;
 using Xunit;
 
 /// <summary>
@@ -54,7 +55,7 @@ public class MetadataSyncFunctionsTest
     public async Task UniversalSync_WithValidRequest_ShouldReturnSuccess()
     {
         // Arrange
-        var request = new UpdateEngine.Services.UniversalSyncRequest
+        var request = new UniversalSyncRequest
         {
             SyncType = "critical",
             SyncCategories = false,

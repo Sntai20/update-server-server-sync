@@ -297,7 +297,7 @@ public class UnifiedHealthFunctionsTest
     {
         // Arrange
         var mockRequest = new Mock<HttpRequestData>(Mock.Of<FunctionContext>());
-        var requestJson = JsonSerializer.Serialize(new UpdateEngine.Services.StoreManagementRequest { Reindex = true });
+        var requestJson = JsonSerializer.Serialize(new UpdateEngine.Functions.Management.StoreManagementRequest { Reindex = true }); // Use fully qualified type
         var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(requestJson));
         mockRequest.Setup(r => r.Body).Returns(stream);
 
