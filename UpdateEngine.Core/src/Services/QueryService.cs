@@ -4,10 +4,10 @@
 namespace UpdateEngine.Core.Services;
 
 using Microsoft.Extensions.Logging;
-using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
-using Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Drivers;
-using Microsoft.PackageGraph.ObjectModel;
-using Microsoft.PackageGraph.Storage;
+using UpdateEngine.Metadata.Metadata;
+using UpdateEngine.Metadata.Metadata.Drivers;
+using UpdateEngine.Metadata.ObjectModel;
+using UpdateEngine.Metadata.Storage;
 
 /// <summary>
 /// Implementation of query service providing metadata query and analysis operations.

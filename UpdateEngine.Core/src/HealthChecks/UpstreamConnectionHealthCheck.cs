@@ -5,7 +5,7 @@ namespace UpdateEngine.Core.HealthChecks;
 
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
-using Configuration;
+using UpdateEngine.Configuration;
 using System;
 using System.Net.Http;
 using System.Threading;

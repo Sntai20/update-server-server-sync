@@ -1,5 +1,5 @@
 using System.Text.Json;
-using Configuration;
+using UpdateEngine.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using UpdateEngine.Core.Models;

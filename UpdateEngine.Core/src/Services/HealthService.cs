@@ -4,7 +4,7 @@
 namespace UpdateEngine.Core.Services;
 
 using Microsoft.Extensions.Logging;
-using Microsoft.PackageGraph.Storage;
+using UpdateEngine.Metadata.Storage;
 
 /// <summary>
 /// Implementation of health service providing health check and maintenance operations.
@@ -35,7 +35,7 @@ public class HealthService : IHealthService
         {
             try
             {
-                result.PackageCount = this.metadataStore.Cast<Microsoft.PackageGraph.ObjectModel.IPackage>().Count();
+                result.PackageCount = this.metadataStore.Cast<UpdateEngine.Metadata.ObjectModel.IPackage>().Count();
                 result.ReindexingRequired = this.metadataStore.IsReindexingRequired;
                 
                 this.logger.LogInformation("Health check: {PackageCount} packages in metadata store", result.PackageCount);
@@ -77,7 +77,7 @@ public class HealthService : IHealthService
         {
             try
             {
-                var packageCount = this.metadataStore.Cast<Microsoft.PackageGraph.ObjectModel.IPackage>().Count();
+                var packageCount = this.metadataStore.Cast<UpdateEngine.Metadata.ObjectModel.IPackage>().Count();
                 health.Metrics.Add(new HealthMetric { Name = "PackageCount", Value = packageCount.ToString(), Unit = "packages" });
                 
                 if (this.metadataStore.IsReindexingRequired)
@@ -142,7 +142,7 @@ public class HealthService : IHealthService
         {
             try
             {
-                var packageCount = this.metadataStore.Cast<Microsoft.PackageGraph.ObjectModel.IPackage>().Count();
+                var packageCount = this.metadataStore.Cast<UpdateEngine.Metadata.ObjectModel.IPackage>().Count();
                 health.Metrics.Add(new HealthMetric { Name = "SyncablePackages", Value = packageCount.ToString(), Unit = "packages" });
                 
                 if (this.metadataStore.IsReindexingRequired)

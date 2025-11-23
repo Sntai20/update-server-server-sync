@@ -30,10 +30,10 @@
 
   <ItemGroup>
     <!-- Core domain libraries -->
-    <ProjectReference Include="..\..\Configuration\src\Configuration.csproj" />
-    <ProjectReference Include="..\..\microsoft-update-partition\src\microsoft-update-partition.csproj" />
-    <ProjectReference Include="..\..\microsoft-update-upstream-source\src\microsoft-update-upstream-source.csproj" />
-    <ProjectReference Include="..\..\microsoft-update-webservices\src\microsoft-update-webservices.csproj" />
+    <ProjectReference Include="..\..\UpdateEngine.Configuration\src\Configuration.csproj" />
+    <ProjectReference Include="..\..\UpdateEngine.Metadata\src\microsoft-update-partition.csproj" />
+    <ProjectReference Include="..\..\UpdateEngine.UpstreamSource\src\microsoft-update-upstream-source.csproj" />
+    <ProjectReference Include="..\..\UpdateEngine.WebServices\src\microsoft-update-webservices.csproj" />
   </ItemGroup>
 
 </Project>

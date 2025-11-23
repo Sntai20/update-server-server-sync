@@ -3,8 +3,8 @@
 
 namespace UpdateEngine.Core.Services;
 
-using Microsoft.PackageGraph.MicrosoftUpdate.Source;
-using Microsoft.PackageGraph.Storage;
+using UpdateEngine.Metadata.Source;
+using UpdateEngine.Metadata.Storage;
 using UpdateEngine.Core.Models;
 
 /// <summary>

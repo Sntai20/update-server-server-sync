@@ -1,0 +1,49 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+using System.Text.Json.Serialization;
+using System.Xml;
+using System.Xml.XPath;
+
+namespace UpdateEngine.Metadata.Metadata.Handlers
+{
+    /// <summary>
+    /// Metadata for a Windows patch handler
+    /// </summary>
+    public class WindowsPatchHandler : HandlerMetadata
+    {
+        /// <summary>
+        /// Install parameters for the patch
+        /// </summary>
+        [JsonPropertyName("InstallParameters")]
+        public string InstallParameters {get; private set; }
+
+        /// <summary>
+        /// Unpacking parameters for the patch
+        /// </summary>
+        [JsonPropertyName("UnpackParameters")]
+        public string UnpackParameters { get; private set; }
+
+        [JsonConstructor]
+        private WindowsPatchHandler()
+        {
+
+        }
+
+        internal static new WindowsPatchHandler FromXml(XPathNavigator metadataNavigator, XmlNamespaceManager namespaceManager)
+        {
+            var windowsPatchHandler = new WindowsPatchHandler()
+            {
+                HandlerType = UpdateHandlerType.WindowsPatch
+            };
+
+            windowsPatchHandler.ExtractAttributesFromXml(
+                new string[] { "InstallParameters", "UnpackParameters" },
+                "psf:WindowsPatchData/@*",
+                metadataNavigator,
+                namespaceManager);
+
+            return windowsPatchHandler;
+        }
+    }
+}

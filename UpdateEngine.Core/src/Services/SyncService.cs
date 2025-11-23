@@ -4,9 +4,9 @@
 namespace UpdateEngine.Core.Services;
 
 using Microsoft.Extensions.Logging;
-using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
-using Microsoft.PackageGraph.MicrosoftUpdate.Source;
-using Microsoft.PackageGraph.Storage;
+using UpdateEngine.Metadata.Metadata;
+using UpdateEngine.Metadata.Source;
+using UpdateEngine.Metadata.Storage;
 using System.Linq;
 using System.Threading;
 
@@ -224,9 +224,9 @@ public class SyncService : ISyncService
     /// <summary>
     /// Gets all files for an update, including files in bundled updates (recursive)
     /// </summary>
-    private List<Microsoft.PackageGraph.ObjectModel.IContentFile> GetAllUpdateFiles(MicrosoftUpdatePackage update)
+    private List<UpdateEngine.Metadata.ObjectModel.IContentFile> GetAllUpdateFiles(MicrosoftUpdatePackage update)
     {
-        var filesList = new List<Microsoft.PackageGraph.ObjectModel.IContentFile>();
+        var filesList = new List<UpdateEngine.Metadata.ObjectModel.IContentFile>();
         
         if (update.Files != null)
         {

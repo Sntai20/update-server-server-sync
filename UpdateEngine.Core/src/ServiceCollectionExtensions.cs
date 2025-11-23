@@ -3,14 +3,14 @@
 
 namespace UpdateEngine.Core;
 
-using Configuration;
+using UpdateEngine.Configuration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Microsoft.PackageGraph.Storage;
-using Microsoft.PackageGraph.Storage.Local;
-using Microsoft.PackageGraph.Storage.Azure;
+using UpdateEngine.Metadata.Storage;
+using UpdateEngine.Metadata.Storage.Local;
+using UpdateEngine.Metadata.Storage.Azure;
 using System;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -119,20 +119,20 @@ public static class ServiceCollectionExtensions
                         storageConfig.MetadataPath);
                     
                     // Fall back to local storage - use OpenOrCreate to create if needed
-                    return Microsoft.PackageGraph.Storage.Local.PackageStore.OpenOrCreate(storageConfig.MetadataPath);
+                    return UpdateEngine.Metadata.Storage.Local.PackageStore.OpenOrCreate(storageConfig.MetadataPath);
                 }
 
                 logger?.LogInformation("Opening Azure Blob Storage metadata store (container: {Container})", storageConfig.MetadataContainerName);
                 // Azure Blob Storage
                 var blobServiceClient = new Azure.Storage.Blobs.BlobServiceClient(connectionString);
                 var container = blobServiceClient.GetBlobContainerClient(storageConfig.MetadataContainerName);
-                return Microsoft.PackageGraph.Storage.Azure.PackageStore.Open(container);
+                return UpdateEngine.Metadata.Storage.Azure.PackageStore.Open(container);
             }
             else
             {
                 logger?.LogInformation("Opening local file system metadata store at: {Path}", storageConfig.MetadataPath);
                 // Local File System - use OpenOrCreate to create if needed
-                return Microsoft.PackageGraph.Storage.Local.PackageStore.OpenOrCreate(storageConfig.MetadataPath);
+                return UpdateEngine.Metadata.Storage.Local.PackageStore.OpenOrCreate(storageConfig.MetadataPath);
             }
         });
 
@@ -175,7 +175,7 @@ public static class ServiceCollectionExtensions
                 logger?.LogInformation("Opening Azure Blob Storage content store (container: {Container})", storageConfig.ContentContainerName);
                 // Azure Blob Storage
                 var blobServiceClient = new Azure.Storage.Blobs.BlobServiceClient(connectionString);
-                return (IContentStore?)Microsoft.PackageGraph.Storage.Azure.BlobContentStore.OpenOrCreate(
+                return (IContentStore?)UpdateEngine.Metadata.Storage.Azure.BlobContentStore.OpenOrCreate(
                     blobServiceClient, 
                     storageConfig.ContentContainerName, 
                     pathPrefix: "content");

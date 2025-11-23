@@ -7,9 +7,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.ML;
 using Microsoft.ML.Data;
-using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
-using Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Applicability;
-using Microsoft.PackageGraph.Storage;
+using UpdateEngine.Metadata.Metadata;
+using UpdateEngine.Metadata.Metadata.Applicability;
+using UpdateEngine.Metadata.Storage;
 using UpdateEngine.Core.Models;
 
 /// <summary>

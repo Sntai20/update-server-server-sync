@@ -3,7 +3,7 @@
 
 namespace UpdateEngine.Core.Orchestrators;
 
-using Microsoft.PackageGraph.ObjectModel;
+using UpdateEngine.Metadata.ObjectModel;
 using System;
 using System.Collections.Generic;
 using System.Threading;

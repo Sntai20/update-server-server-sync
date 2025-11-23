@@ -3,8 +3,8 @@
 
 namespace UpdateEngine.Core.Services;
 
-using Microsoft.PackageGraph.MicrosoftUpdate.Metadata;
-using Microsoft.PackageGraph.MicrosoftUpdate.Metadata.Drivers;
+using UpdateEngine.Metadata.Metadata;
+using UpdateEngine.Metadata.Metadata.Drivers;
 
 /// <summary>
 /// Service interface for metadata querying operations.

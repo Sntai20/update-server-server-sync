@@ -3,11 +3,11 @@
 
 namespace UpdateEngine.Core.Orchestrators;
 
-using Configuration;
+using UpdateEngine.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Microsoft.PackageGraph.ObjectModel;
-using Microsoft.PackageGraph.Storage;
+using UpdateEngine.Metadata.ObjectModel;
+using UpdateEngine.Metadata.Storage;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;

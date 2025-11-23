@@ -3,8 +3,8 @@
 
 namespace UpdateEngine.Core.Orchestrators;
 
-using Microsoft.PackageGraph.ObjectModel;
-using Microsoft.PackageGraph.Storage;
+using UpdateEngine.Metadata.ObjectModel;
+using UpdateEngine.Metadata.Storage;
 using System;
 using System.Collections.Generic;
 using System.Threading;

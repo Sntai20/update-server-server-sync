@@ -1,0 +1,43 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+using System.Text.Json.Serialization;
+using System.Xml;
+using System.Xml.XPath;
+
+namespace UpdateEngine.Metadata.Metadata.Handlers
+{
+    /// <summary>
+    /// Microsoft Update handler for updating individual Windows CBS packages
+    /// </summary>
+    public class CbsHandler : HandlerMetadata
+    {
+        /// <summary>
+        /// The identity of the package being updated
+        /// </summary>
+        [JsonPropertyName("PackageIdentity")]
+        public string PackageIdentity { get; private set; }
+
+        [JsonConstructor]
+        private CbsHandler()
+        {
+
+        }
+
+        internal static new CbsHandler FromXml(XPathNavigator metadataNavigator, XmlNamespaceManager namespaceManager)
+        {
+            var cbsHandler = new CbsHandler()
+            {
+                HandlerType = UpdateHandlerType.CBS
+            };
+
+            cbsHandler.ExtractAttributesFromXml(
+                new string[] { "PackageIdentity" },
+                "cbs:CbsData/@*",
+                metadataNavigator,
+                namespaceManager);
+
+            return cbsHandler;
+        }
+    }
+}

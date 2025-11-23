@@ -6,7 +6,7 @@ namespace UpdateEngine.Core.HealthChecks;
 using Azure.Storage.Blobs;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
-using Configuration;
+using UpdateEngine.Configuration;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Threading;

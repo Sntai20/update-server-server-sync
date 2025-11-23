@@ -4,7 +4,7 @@
 namespace UpdateEngine.Core.HealthChecks;
 
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Microsoft.PackageGraph.Storage;
+using UpdateEngine.Metadata.Storage;
 using System;
 using System.Threading;
 using System.Threading.Tasks;

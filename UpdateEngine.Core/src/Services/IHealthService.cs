@@ -3,7 +3,7 @@
 
 namespace UpdateEngine.Core.Services;
 
-using Microsoft.PackageGraph.Storage;
+using UpdateEngine.Metadata.Storage;
 
 /// <summary>
 /// Service interface for health check and maintenance operations.

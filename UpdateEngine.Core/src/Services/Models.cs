@@ -3,7 +3,7 @@
 
 namespace UpdateEngine.Core.Services;
 
-using Microsoft.PackageGraph.MicrosoftUpdate.Source;
+using UpdateEngine.Metadata.Source;
 using System.ComponentModel.DataAnnotations;
 
 /// <summary>

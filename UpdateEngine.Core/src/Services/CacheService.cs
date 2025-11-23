@@ -3,7 +3,7 @@
 
 namespace UpdateEngine.Core.Services;
 
-using Configuration;
+using UpdateEngine.Configuration;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
