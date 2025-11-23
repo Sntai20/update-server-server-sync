@@ -1,7 +1,9 @@
 # Week 4 Day 2: Dual Hosting Test Script
-# Tests both Azure Functions (port 7071) and Worker Service (port 8080)
+# Tests both Azure Functions (dynamic port) and Worker Service (port 8080)
 
 param(
+    [int]$FunctionsPort = 7071,  # Default to 7071, but can be overridden for Aspire dynamic ports
+    [int]$WorkerPort = 8080,
     [int]$MaxRetries = 30,
     [int]$RetryDelaySeconds = 2
 )
@@ -9,6 +11,10 @@ param(
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "Week 4 Day 2: Dual Hosting Testing" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "Configuration:" -ForegroundColor Yellow
+Write-Host "  Azure Functions Port: $FunctionsPort" -ForegroundColor Gray
+Write-Host "  Worker Service Port: $WorkerPort" -ForegroundColor Gray
 Write-Host ""
 
 # Function to wait for endpoint to be ready
@@ -83,26 +89,31 @@ function Test-Endpoint {
 Write-Host "Step 1: Waiting for services to start..." -ForegroundColor Yellow
 Write-Host ""
 
-$functionsReady = Wait-ForEndpoint -Url "http://localhost:7071/api/health" -Name "Azure Functions" -MaxRetries $MaxRetries -RetryDelay $RetryDelaySeconds
-$workerReady = Wait-ForEndpoint -Url "http://localhost:8080/health/live" -Name "Worker Service" -MaxRetries $MaxRetries -RetryDelay $RetryDelaySeconds
+$functionsReady = Wait-ForEndpoint -Url "http://localhost:$FunctionsPort/api/health" -Name "Azure Functions" -MaxRetries $MaxRetries -RetryDelay $RetryDelaySeconds
+$workerReady = Wait-ForEndpoint -Url "http://localhost:$WorkerPort/health/live" -Name "Worker Service" -MaxRetries $MaxRetries -RetryDelay $RetryDelaySeconds
 
 if (-not $functionsReady -or -not $workerReady) {
     Write-Host ""
     Write-Host "========================================" -ForegroundColor Red
     Write-Host "FAILED: Services did not start" -ForegroundColor Red
     Write-Host "========================================" -ForegroundColor Red
+    Write-Host ""
+    Write-Host "Troubleshooting:" -ForegroundColor Yellow
+    Write-Host "  • Check if Aspire AppHost is running" -ForegroundColor Gray
+    Write-Host "  • Verify ports are not in use: $FunctionsPort (Functions), $WorkerPort (Worker)" -ForegroundColor Gray
+    Write-Host "  • Check Aspire dashboard for service status" -ForegroundColor Gray
     exit 1
 }
 
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Green
-Write-Host "Step 2: Testing Azure Functions (7071)" -ForegroundColor Green
+Write-Host "Step 2: Testing Azure Functions ($FunctionsPort)" -ForegroundColor Green
 Write-Host "========================================" -ForegroundColor Green
 
 $functionsTests = @(
-    @{ Url = "http://localhost:7071/api/health"; Description = "Health Check" }
-    @{ Url = "http://localhost:7071/api/sync/status"; Description = "Sync Status" }
-    @{ Url = "http://localhost:7071/api/metadata/statistics"; Description = "Metadata Statistics" }
+    @{ Url = "http://localhost:$FunctionsPort/api/health"; Description = "Health Check" }
+    @{ Url = "http://localhost:$FunctionsPort/api/sync/status"; Description = "Sync Status" }
+    @{ Url = "http://localhost:$FunctionsPort/api/metadata/statistics"; Description = "Metadata Statistics" }
 )
 
 $functionsPassed = 0
@@ -114,15 +125,15 @@ foreach ($test in $functionsTests) {
 
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Green
-Write-Host "Step 3: Testing Worker Service (8080)" -ForegroundColor Green
+Write-Host "Step 3: Testing Worker Service ($WorkerPort)" -ForegroundColor Green
 Write-Host "========================================" -ForegroundColor Green
 
 $workerTests = @(
-    @{ Url = "http://localhost:8080/health"; Description = "Health Check - Comprehensive" }
-    @{ Url = "http://localhost:8080/health/live"; Description = "Health Check - Liveness" }
-    @{ Url = "http://localhost:8080/health/ready"; Description = "Health Check - Readiness" }
-    @{ Url = "http://localhost:8080/api/sync/status"; Description = "Sync Status" }
-    @{ Url = "http://localhost:8080/api/metadata/statistics"; Description = "Metadata Statistics" }
+    @{ Url = "http://localhost:$WorkerPort/health"; Description = "Health Check - Comprehensive" }
+    @{ Url = "http://localhost:$WorkerPort/health/live"; Description = "Health Check - Liveness" }
+    @{ Url = "http://localhost:$WorkerPort/health/ready"; Description = "Health Check - Readiness" }
+    @{ Url = "http://localhost:$WorkerPort/api/sync/status"; Description = "Sync Status" }
+    @{ Url = "http://localhost:$WorkerPort/api/metadata/statistics"; Description = "Metadata Statistics" }
 )
 
 $workerPassed = 0
@@ -137,7 +148,7 @@ Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "Step 4: Testing Swagger UI (Worker Service)" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 
-Test-Endpoint -Url "http://localhost:8080/swagger/index.html" -Description "Swagger UI" | Out-Null
+Test-Endpoint -Url "http://localhost:$WorkerPort/swagger/index.html" -Description "Swagger UI" | Out-Null
 
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
@@ -147,8 +158,8 @@ Write-Host ""
 Write-Host "Comparing sync status between both hosts..." -ForegroundColor Yellow
 
 try {
-    $functionsStatus = Invoke-RestMethod -Uri "http://localhost:7071/api/sync/status" -Method Get
-    $workerStatus = Invoke-RestMethod -Uri "http://localhost:8080/api/sync/status" -Method Get
+    $functionsStatus = Invoke-RestMethod -Uri "http://localhost:$FunctionsPort/api/sync/status" -Method Get
+    $workerStatus = Invoke-RestMethod -Uri "http://localhost:$WorkerPort/api/sync/status" -Method Get
     
     Write-Host "? Both hosts returned sync status" -ForegroundColor Green
     Write-Host "  Functions Status: $($functionsStatus | ConvertTo-Json -Compress)" -ForegroundColor Gray
@@ -176,14 +187,14 @@ if ($totalPassed -eq $totalTests) {
     Write-Host "========================================" -ForegroundColor Green
     Write-Host ""
     Write-Host "Dual hosting is working correctly!" -ForegroundColor Green
-    Write-Host "  - Azure Functions running on port 7071" -ForegroundColor Gray
-    Write-Host "  - Worker Service running on port 8080" -ForegroundColor Gray
+    Write-Host "  - Azure Functions running on port $FunctionsPort" -ForegroundColor Gray
+    Write-Host "  - Worker Service running on port $WorkerPort" -ForegroundColor Gray
     Write-Host "  - Both using same orchestrators and infrastructure" -ForegroundColor Gray
     exit 0
 }
 else {
     Write-Host "========================================" -ForegroundColor Yellow
-    Write-Host "? SOME TESTS FAILED ($totalPassed/$totalTests passed)" -ForegroundColor Yellow
+    Write-Host "??  SOME TESTS FAILED ($totalPassed/$totalTests passed)" -ForegroundColor Yellow
     Write-Host "========================================" -ForegroundColor Yellow
     exit 1
 }
