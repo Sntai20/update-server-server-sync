@@ -30,28 +30,10 @@ update-server-server-sync/
 │           ├── AddServiceDefaults()             # Telemetry, health checks, resilience
 │           └── ConfigureOpenTelemetry()         # Distributed tracing
 │
-├── 🚀 UpdateEngine/                             # Main Application
+├── 🚀 UpdateEngine/                             # Azure Functions Host
 │   ├── src/
 │   │   ├── UpdateEngine.csproj                  # Azure Functions
 │   │   ├── Program.cs                           # Azure Functions host
-│   │   │
-│   │   ├── 🎯 Core/                            # HOST-AGNOSTIC (90% of code)
-│   │   │   ├── Orchestrators/                   # Business logic layer
-│   │   │   │   ├── ISyncOrchestrator.cs
-│   │   │   │   ├── SyncOrchestrator.cs         ✓ SHARED: Functions + Worker + CLI
-│   │   │   │   ├── IMetadataOrchestrator.cs
-│   │   │   │   ├── MetadataOrchestrator.cs     ✓ SHARED: Functions + Worker + CLI
-│   │   │   │   ├── IHealthOrchestrator.cs
-│   │   │   │   ├── HealthOrchestrator.cs       ✓ SHARED: Functions + Worker + CLI
-│   │   │   │   └── IContentOrchestrator.cs
-│   │   │   │
-│   │   │   ├── Models/                          # Shared request/response models
-│   │   │   │   ├── SyncModels.cs               ✓ SHARED: All hosts
-│   │   │   │   ├── MetadataModels.cs           ✓ SHARED: All hosts
-│   │   │   │   ├── HealthModels.cs             ✓ SHARED: All hosts
-│   │   │   │   └── ContentModels.cs            ✓ SHARED: All hosts
-│   │   │   │
-│   │   │   └── ServiceCollectionExtensions.cs  ✓ SHARED: DI registration
 │   │   │
 │   │   └── 🔌 Functions/                       # Azure Functions Adapters (5% of code)
 │   │       ├── Core/
@@ -72,7 +54,36 @@ update-server-server-sync/
 │               ├── MetadataOrchestratorTests.cs
 │               └── HealthOrchestratorTests.cs
 │
-├── 🌐 WorkerService/                            # ASP.NET Core Worker Service
+├── 🎯 UpdateEngine.Core/                        # HOST-AGNOSTIC Core Library (90% of code)
+│   └── src/
+│       ├── UpdateEngine.Core.csproj
+│       │
+│       ├── Orchestrators/                       # Business logic layer
+│       │   ├── ISyncOrchestrator.cs
+│       │   ├── SyncOrchestrator.cs             ✓ SHARED: Functions + Worker + CLI
+│       │   ├── IMetadataOrchestrator.cs
+│       │   ├── MetadataOrchestrator.cs         ✓ SHARED: Functions + Worker + CLI
+│       │   ├── IHealthOrchestrator.cs
+│       │   ├── HealthOrchestrator.cs           ✓ SHARED: Functions + Worker + CLI
+│       │   └── IContentOrchestrator.cs
+│       │
+│       ├── Services/                            # Domain services
+│       │   ├── CacheService.cs                 ✓ SHARED: All hosts
+│       │   ├── QueryService.cs                 ✓ SHARED: All hosts
+│       │   └── SyncService.cs                  ✓ SHARED: All hosts
+│       │
+│       ├── Models/                              # Shared request/response models
+│       │   ├── SyncModels.cs                   ✓ SHARED: All hosts
+│       │   ├── MetadataModels.cs               ✓ SHARED: All hosts
+│       │   ├── HealthModels.cs                 ✓ SHARED: All hosts
+│       │   └── ContentModels.cs                ✓ SHARED: All hosts
+│       │
+│       ├── HealthChecks/                        # Custom health checks
+│       │   ├── MetadataStoreHealthCheck.cs
+│       │   ├── ContentStoreHealthCheck.cs
+│       │   └── RedisHealthCheck.cs
+│       │
+│       └── ServiceCollectionExtensions.cs      ✓ SHARED: DI registrationService/                            # ASP.NET Core Worker Service
 │   ├── src/
 │   │   ├── WorkerService.csproj
 │   │   ├── Program.cs                           # Worker Service host

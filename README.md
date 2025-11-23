@@ -37,6 +37,7 @@ This repository is organized as follows:
 - **[scripts/](./scripts/)** - All automation scripts (setup, build, test, maintenance)
 - **[src/](./src/)** - Core libraries and implementation
 - **[UpdateEngine/](./UpdateEngine/)** - Azure Functions implementation (.NET 9)
+- **[UpdateEngine.Core/](./UpdateEngine.Core/)** - Shared core library (orchestrators, services, models)
 - **[AppHost/](./AppHost/)** - .NET Aspire application host
 - **[test/](./test/)** - Test projects
 
@@ -59,6 +60,7 @@ This repository is organized as follows:
 - **[Dual Hosting Solution Integration](./docs/guides/DUAL_HOSTING_SOLUTION_INTEGRATION.md)** - Integration with AppHost, Configuration, and update-cli
 - **[Dual Hosting Model Guide](./docs/guides/DUAL_HOSTING_CONSOLIDATION_GUIDE.md)** - Support both Azure Functions AND Worker Service hosting
 - **[Dual Hosting Quick Summary](./docs/guides/DUAL_HOSTING_QUICK_SUMMARY.md)** - Quick reference for dual hosting
+- **[UpdateEngine.Core Restructuring](./docs/guides/UPDATEENGINE_CORE_RESTRUCTURING.md)** - Folder structure standardization (Nov 2025)
 - **[Function Consolidation Guide](./docs/guides/FUNCTION_CONSOLIDATION_GUIDE.md)** - Comprehensive plan to consolidate 35+ functions to ~20
 - **[Function Consolidation Comparison](./docs/guides/FUNCTION_CONSOLIDATION_COMPARISON.md)** - Before/after visual comparison
 - **[Consolidation Answer](./docs/guides/CONSOLIDATION_ANSWER.md)** - Quick answers to consolidation questions

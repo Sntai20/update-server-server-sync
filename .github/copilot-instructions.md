@@ -307,6 +307,9 @@ update-server-server-sync/
 │   ├── src/                       # Function implementations
 │   └── test/                      # Function tests
 │
+├── UpdateEngine.Core/             # Shared UpdateEngine core library
+│   └── src/                       # Core orchestrators, services, models
+│
 ├── AppHost/                       # .NET Aspire application host
 │   └── src/                       # Aspire orchestration
 │
@@ -323,9 +326,10 @@ update-server-server-sync/
 ### Key Paths
 
 - **Azure Functions**: `UpdateEngine/src/`
+- **UpdateEngine Core**: `UpdateEngine.Core/src/` (orchestrators, services, models)
 - **Aspire AppHost**: `AppHost/src/AppHost.csproj`
 - **Core Libraries**: `src/microsoft-update-*/`
-- **Tests**: `test/MicrosoftUpdateFunctions.Tests/`
+- **Tests**: `UpdateEngine/test/`
 - **Scripts**: `scripts/{setup|build|test|maintenance}/`
 - **Documentation**: `docs/{guides|troubleshooting|development}/`
 
