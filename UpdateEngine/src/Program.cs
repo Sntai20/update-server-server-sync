@@ -38,20 +38,34 @@ static void ConfigureLogging(HostBuilderContext context)
     var tempLogger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger("Startup");
 
     tempLogger.LogInformation("=== UpdateEngine Configuration ===");
-    tempLogger.LogInformation("ServiceUrl: {ServiceUrl}", context.Configuration["ServiceUrl"]);
-    tempLogger.LogInformation("UseAzureStorageForMetadata: {UseAzureStorageForMetadata}", context.Configuration["UseAzureStorageForMetadata"]);
-    tempLogger.LogInformation("UseAzureStorageForContent: {UseAzureStorageForContent}", context.Configuration["UseAzureStorageForContent"]);
+    
+    // Read from hierarchical UpdateEngine section
+    var updateEngineSection = context.Configuration.GetSection("UpdateEngine");
+    var serviceConfig = updateEngineSection.GetSection("ServiceConfiguration");
+    var storageConfig = updateEngineSection.GetSection("StorageConfiguration");
+    
+    tempLogger.LogInformation("ServiceUrl: {ServiceUrl}", serviceConfig["ServiceUrl"]);
+    tempLogger.LogInformation("UseAzureStorageForMetadata: {UseAzureStorageForMetadata}", storageConfig["UseAzureStorageForMetadata"]);
+    tempLogger.LogInformation("UseAzureStorageForContent: {UseAzureStorageForContent}", storageConfig["UseAzureStorageForContent"]);
 
-    var useAzureStorageForMetadata = context.Configuration.GetValue<bool>("UseAzureStorageForMetadata");
+    var useAzureStorageForMetadata = storageConfig.GetValue<bool>("UseAzureStorageForMetadata");
     if (!useAzureStorageForMetadata)
     {
-        tempLogger.LogInformation("MetadataPath: {MetadataPath}", context.Configuration["MetadataPath"]);
+        tempLogger.LogInformation("MetadataPath: {MetadataPath}", storageConfig["MetadataPath"]);
+    }
+    else
+    {
+        tempLogger.LogInformation("MetadataContainerName: {ContainerName}", storageConfig["MetadataContainerName"]);
     }
 
-    var useAzureStorageForContent = context.Configuration.GetValue<bool>("UseAzureStorageForContent");
+    var useAzureStorageForContent = storageConfig.GetValue<bool>("UseAzureStorageForContent");
     if (!useAzureStorageForContent)
     {
-        tempLogger.LogInformation("ContentPath: {ContentPath}", context.Configuration["ContentPath"]);
+        tempLogger.LogInformation("ContentPath: {ContentPath}", storageConfig["ContentPath"]);
+    }
+    else
+    {
+        tempLogger.LogInformation("ContentContainerName: {ContainerName}", storageConfig["ContentContainerName"]);
     }
 }
 

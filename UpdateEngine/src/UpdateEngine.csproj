@@ -35,4 +35,8 @@
   <ItemGroup>
     <Using Include="System.Threading.ExecutionContext" Alias="ExecutionContext" />
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="WorkerService\Controllers\" />
+    <Folder Include="WorkerService\Workers\" />
+  </ItemGroup>
 </Project>
