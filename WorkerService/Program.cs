@@ -4,6 +4,9 @@ using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Add shared configuration from Configuration project
+builder.Configuration.AddSharedAppConfiguration();
+
 // Add service defaults (Aspire telemetry, health checks, resilience)
 builder.AddServiceDefaults();
 

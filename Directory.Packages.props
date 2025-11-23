@@ -66,5 +66,8 @@
     <PackageVersion Include="xunit" Version="2.9.3" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
     <PackageVersion Include="Xunit.SkippableFact" Version="1.4.13" />
+    <PackageVersion Include="Aspire.StackExchange.Redis" Version="9.0.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.Diagnostics.HealthChecks" Version="9.0.0" />
+    <PackageVersion Include="Swashbuckle.AspNetCore" Version="7.2.0" />
   </ItemGroup>
 </Project>
