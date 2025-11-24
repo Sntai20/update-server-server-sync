@@ -100,23 +100,32 @@ ConfigurationHelper.ConfigureUpdateFunctions(updateFunctions, builder.Configurat
 
 /// <summary>
 /// Configures WorkerService with conditional storage based on configuration.
-/// - When WorkerService:UseFileSystem is false/absent (default): Uses Azurite (cloud emulation)
-/// - When WorkerService:UseFileSystem is true: Uses local filesystem (../../out/data/ from appsettings)
+/// - When WorkerService:UseFileSystem is true OR UseAzureStorageForMetadata is false: Uses local filesystem
+/// - When WorkerService:UseFileSystem is false AND UseAzureStorageForMetadata is true: Uses Azurite (cloud emulation)
 /// This provides flexibility for different development scenarios while maintaining cloud-first defaults.
 /// </summary>
 var workerServiceUseFileSystem = builder.Configuration.GetValue<bool>("WorkerService:UseFileSystem", false);
+
+// Also check the WorkerService's own storage configuration to respect its settings
+var workerServiceConfig = new UpdateEngine.Configuration.AppConfig();
+builder.Configuration.GetSection(UpdateEngine.Configuration.AppConfig.SectionName).Bind(workerServiceConfig);
+var workerServiceWantsAzure = workerServiceConfig.StorageConfiguration.UseAzureStorageForMetadata 
+    || workerServiceConfig.StorageConfiguration.UseAzureStorageForContent;
+
+// Use filesystem if explicitly requested OR if WorkerService config says not to use Azure
+var useFilesystemForWorkerService = workerServiceUseFileSystem || !workerServiceWantsAzure;
 
 /// <summary>
 /// Configures the Worker Service ASP.NET Core project with dependencies.
 /// Worker Service provides REST API endpoints and background workers for sync operations.
 /// Runs on default ASP.NET Core ports with health check endpoints for Kubernetes/Docker compatibility.
-/// Shares the same storage and Redis infrastructure as Azure Functions for dual hosting validation.
+/// When downstream sync is enabled, WorkerService pulls from Functions and caches to local filesystem.
 /// </summary>
 var workerService = builder.AddProject<Projects.WorkerService>("WorkerService")
     .WithReference(redis);
 
 // Conditionally add storage references only when using Azurite
-if (!workerServiceUseFileSystem)
+if (!useFilesystemForWorkerService)
 {
     workerService
         .WithReference(data, "MetadataStorageConnection")
@@ -127,7 +136,14 @@ if (!workerServiceUseFileSystem)
 }
 else
 {
-    Console.WriteLine("WorkerService: Using local filesystem storage (paths from appsettings.Development.json)");
+    Console.WriteLine("WorkerService: Using local filesystem storage for downstream cache (paths from appsettings.Development.json)");
+    
+    // Add reference to UpdateEngine for service discovery (downstream sync)
+    if (workerServiceConfig.DownstreamConfiguration.SyncFromUpstream)
+    {
+        workerService.WithReference(updateFunctions);
+        Console.WriteLine("WorkerService: Downstream sync ENABLED - Will pull from UpdateEngine Functions");
+    }
 }
 
 workerService.WaitFor(redis);

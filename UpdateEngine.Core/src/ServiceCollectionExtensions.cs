@@ -78,6 +78,27 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IAnomalyDetectionService, AnomalyDetectionService>();
         services.AddSingleton<IQueueService, QueueService>();
 
+        // 4a. Downstream Sync Service (for WorkerService pulling from Functions)
+        // Configure HttpClient with Aspire service discovery
+        // The service name "http://UpdateEngine" is automatically resolved by Aspire
+        var downstreamConfig = appConfig.DownstreamConfiguration;
+        if (downstreamConfig.SyncFromUpstream && !string.IsNullOrEmpty(downstreamConfig.UpstreamFunctionsUrl))
+        {
+            services.AddHttpClient<IDownstreamSyncService, DownstreamSyncService>(client =>
+            {
+                // Aspire service discovery: "http://UpdateEngine" resolves to the actual dynamic port
+                client.BaseAddress = new Uri(downstreamConfig.UpstreamFunctionsUrl);
+                client.Timeout = downstreamConfig.HttpTimeout;
+            })
+            .AddStandardResilienceHandler(); // Aspire resilience patterns (retry, circuit breaker, timeout)
+        }
+        else
+        {
+            // Register a no-op implementation when downstream sync is disabled
+            services.AddSingleton<IDownstreamSyncService>(provider => 
+                new NoOpDownstreamSyncService());
+        }
+
         // 5. Orchestrators (host-agnostic, use IOptionsMonitor for hot-reload)
         services.AddSingleton<ISyncOrchestrator, SyncOrchestrator>();
         services.AddSingleton<IMetadataOrchestrator, MetadataOrchestrator>();

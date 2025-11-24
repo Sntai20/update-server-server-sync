@@ -2,16 +2,19 @@ using Microsoft.Extensions.Options;
 using UpdateEngine.Configuration;
 using UpdateEngine.Core.Models;
 using UpdateEngine.Core.Orchestrators;
+using UpdateEngine.Core.Services;
 
 namespace UpdateEngine.WorkerService.Workers;
 
 /// <summary>
 /// Background service that executes scheduled sync operations.
 /// Uses IOptionsMonitor for hot-reload support - can react to configuration changes without restart.
+/// Supports both upstream (Microsoft Update) and downstream (Functions) sync modes.
 /// </summary>
 public class SyncWorker : BackgroundService
 {
     private readonly ISyncOrchestrator orchestrator;
+    private readonly IDownstreamSyncService downstreamSyncService;
     private readonly IOptionsMonitor<AppConfig> config;
     private readonly ILogger<SyncWorker> logger;
     private readonly IDisposable? configChangeListener;
@@ -19,10 +22,12 @@ public class SyncWorker : BackgroundService
 
     public SyncWorker(
         ISyncOrchestrator orchestrator,
+        IDownstreamSyncService downstreamSyncService,
         IOptionsMonitor<AppConfig> config,
         ILogger<SyncWorker> logger)
     {
         this.orchestrator = orchestrator;
+        this.downstreamSyncService = downstreamSyncService;
         this.config = config;
         this.logger = logger;
         this.currentInterval = TimeSpan.FromMinutes(config.CurrentValue.SyncConfiguration.SyncIntervalMinutes);
@@ -30,8 +35,10 @@ public class SyncWorker : BackgroundService
         // Listen for configuration changes
         this.configChangeListener = config.OnChange(this.OnConfigurationChanged);
 
+        var downstreamMode = config.CurrentValue.DownstreamConfiguration.SyncFromUpstream ? "DOWNSTREAM (from Functions)" : "UPSTREAM (from Microsoft Update)";
         this.logger.LogInformation(
-            "SyncWorker initialized with interval: {Interval} minutes",
+            "SyncWorker initialized - Mode: {Mode}, Interval: {Interval} minutes",
+            downstreamMode,
             this.currentInterval.TotalMinutes);
     }
 
@@ -50,8 +57,17 @@ public class SyncWorker : BackgroundService
 
                 if (currentConfig.SyncConfiguration.EnableScheduledSync)
                 {
-                    this.logger.LogInformation("Executing scheduled sync");
-                    await this.ExecuteSyncAsync(stoppingToken);
+                    // Check if downstream sync is enabled
+                    if (currentConfig.DownstreamConfiguration.SyncFromUpstream)
+                    {
+                        this.logger.LogInformation("Executing scheduled DOWNSTREAM sync from Functions");
+                        await this.ExecuteDownstreamSyncAsync(stoppingToken);
+                    }
+                    else
+                    {
+                        this.logger.LogInformation("Executing scheduled UPSTREAM sync from Microsoft Update");
+                        await this.ExecuteUpstreamSyncAsync(stoppingToken);
+                    }
                 }
                 else
                 {
@@ -79,11 +95,51 @@ public class SyncWorker : BackgroundService
         this.logger.LogInformation("SyncWorker stopped");
     }
 
-    private async Task ExecuteSyncAsync(CancellationToken cancellationToken)
+    /// <summary>
+    /// Executes downstream sync - pulls metadata and content from upstream Functions.
+    /// </summary>
+    private async Task ExecuteDownstreamSyncAsync(CancellationToken cancellationToken)
     {
         try
         {
-            this.logger.LogInformation("Starting comprehensive sync");
+            var currentConfig = this.config.CurrentValue;
+            
+            this.logger.LogInformation("Starting downstream metadata sync from Functions");
+            
+            // Create filter from configuration (reuse existing filter logic)
+            var filter = new ServiceMetadataFilter
+            {
+                ProductFilters = currentConfig.ServiceConfiguration.SupportedCategories?.ToList(),
+                // Add more filters as needed
+            };
+
+            // Sync metadata from Functions
+            await this.downstreamSyncService.SyncMetadataFromUpstreamAsync(filter, cancellationToken);
+            
+            this.logger.LogInformation("Downstream metadata sync completed");
+
+            // Sync content if enabled
+            if (currentConfig.DownstreamConfiguration.EnableContentSync)
+            {
+                this.logger.LogInformation("Starting downstream content sync from Functions");
+                await this.downstreamSyncService.SyncContentFromUpstreamAsync(filter, cancellationToken);
+                this.logger.LogInformation("Downstream content sync completed");
+            }
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Error executing downstream sync operation");
+        }
+    }
+
+    /// <summary>
+    /// Executes upstream sync - pulls directly from Microsoft Update (original behavior).
+    /// </summary>
+    private async Task ExecuteUpstreamSyncAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            this.logger.LogInformation("Starting comprehensive sync from Microsoft Update");
 
             var comprehensiveRequest = new UnifiedSyncRequest
             {
@@ -108,7 +164,7 @@ public class SyncWorker : BackgroundService
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, "Error executing sync operation");
+            this.logger.LogError(ex, "Error executing upstream sync operation");
         }
     }
 
@@ -125,6 +181,9 @@ public class SyncWorker : BackgroundService
 
             this.currentInterval = newInterval;
         }
+
+        var downstreamMode = newConfig.DownstreamConfiguration.SyncFromUpstream ? "DOWNSTREAM (from Functions)" : "UPSTREAM (from Microsoft Update)";
+        this.logger.LogInformation("Sync mode: {Mode}", downstreamMode);
 
         if (newConfig.SyncConfiguration.EnableScheduledSync)
         {

@@ -14,6 +14,7 @@ public class AppConfig
     public ServiceConfiguration ServiceConfiguration { get; set; } = new();
     public SyncConfiguration SyncConfiguration { get; set; } = new();
     public StorageConfiguration StorageConfiguration { get; set; } = new();
+    public DownstreamConfiguration DownstreamConfiguration { get; set; } = new();
     public FeatureFlags FeatureFlags { get; set; } = new();
     public CacheConfiguration CacheConfiguration { get; set; } = new();
 
@@ -25,5 +26,6 @@ public class AppConfig
         this.ServiceConfiguration.Validate();
         this.SyncConfiguration.Validate();
         this.StorageConfiguration.Validate();
+        this.DownstreamConfiguration.Validate();
     }
 }
