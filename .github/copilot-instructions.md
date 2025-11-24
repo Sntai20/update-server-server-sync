@@ -348,9 +348,9 @@ update-server-server-sync/
   - `docs/guides/TESTING_GUIDE.md` - Testing strategies
 
 - **Troubleshooting**
-  - `docs/guides/WCF_NET9_FIX_GUIDE.md` - WCF .NET 9 fixes
-  - `docs/guides/SYNC_TROUBLESHOOTING.md` - Sync issues
-  - `docs/guides/TROUBLESHOOTING_STORAGE.md` - Storage issues
+  - `docs/troubleshooting/WCF_NET9_FIX_GUIDE.md` - WCF .NET 9 fixes
+  - `docs/troubleshooting/SYNC_TROUBLESHOOTING.md` - Sync issues
+  - `docs/troubleshooting/CONFIGURATION_TROUBLESHOOTING.md` - Configuration issues
   - `docs/guides/CONTAINER_VERIFICATION.md` - Container testing
 
 - **API Documentation**
@@ -384,16 +384,107 @@ See `.github/upgrades/dotnet-upgrade-report.md` for complete migration details.
 
 ---
 
+## Documentation and Scripts Organization
+
+### Organization Standards
+
+This repository follows strict organization standards to maintain clarity and discoverability.
+
+#### Documentation Structure
+
+All documentation lives in `docs/` with clear categorization:
+
+```
+docs/
+├── guides/             # Active how-to guides and references (UPPERCASE names)
+├── architecture/       # System design documents
+├── troubleshooting/    # Problem-solving guides
+├── deployment/         # Production deployment guides
+├── historical/         # Preserved development history
+│   ├── weekly-reports/        # Weekly progress reports
+│   └── migration-summaries/   # Completion summaries
+├── fixes/              # Bug fix documentation
+├── implementations/    # Implementation details
+├── proposals/          # Design proposals
+├── api/                # Generated API docs
+└── examples/           # Code examples
+```
+
+#### Scripts Structure
+
+All scripts live in `scripts/` organized by purpose:
+
+```
+scripts/
+├── setup/          # Installation and configuration (PascalCase for PS1)
+├── build/          # Build validation scripts
+├── test/           # Testing automation scripts
+├── maintenance/    # Code maintenance scripts
+├── migration/      # Migration utilities
+└── deployment/     # Azure deployment scripts
+```
+
+#### File Naming Conventions
+
+- **Documentation**: UPPERCASE with underscores (e.g., `CONFIGURATION_GUIDE.md`)
+- **PowerShell scripts**: PascalCase with hyphens (e.g., `Configure-Storage.ps1`)
+- **Shell scripts**: lowercase with hyphens (e.g., `configure-storage.sh`)
+- **Prefixes for clarity**: CLI-specific docs use `CLI_` prefix (e.g., `CLI_QUICKSTART.md`)
+
+#### When Creating New Files
+
+**Documentation:**
+- ✅ Place in appropriate `docs/` subdirectory based on purpose
+- ✅ Use descriptive UPPERCASE names
+- ✅ Update relevant README.md files
+- ❌ Never create docs in project folders (UpdateEngine.Cli, UpdateEngine.Functions, etc.)
+- ❌ Never create completion summaries in root directory
+
+**Scripts:**
+- ✅ Place in appropriate `scripts/` subdirectory based on purpose
+- ✅ Use PascalCase for PowerShell scripts
+- ✅ Add synopsis and description with comment-based help
+- ❌ Never place scripts in project src/ folders
+- ❌ Never leave scripts at scripts/ root level
+
+**Historical Documentation:**
+- Weekly progress reports → `docs/historical/weekly-reports/`
+- Migration summaries → `docs/historical/migration-summaries/`
+- Completion documents → `docs/historical/migration-summaries/`
+
+#### Maintaining Organization
+
+Use the reorganization script to validate structure:
+
+```powershell
+# Preview what would be reorganized
+.\scripts\maintenance\Reorganize-Documentation-And-Scripts.ps1 -WhatIf
+
+# View organization guides
+Get-Content docs\README.md
+Get-Content docs\REORGANIZATION_VISUAL_GUIDE.md
+```
+
+#### Index Files
+
+Each major directory has a README.md:
+- `docs/README.md` - Documentation navigation
+- `scripts/README.md` - Scripts reference
+- Update these when adding significant new content
+
+---
+
 ## Recent Updates
 
 ### November 2025
+- **Documentation & Scripts Reorganization** (Nov 23): Organized 123 docs and 27 scripts into clear categories. All scattered files moved to proper locations. See `docs/REORGANIZATION_COMPLETE.md`
 - **Fixed JsonSerializerOptions DI issue**: Added proper JSON serialization registration in `ServiceCollectionExtensions.cs` to resolve dependency injection errors in AppHost
 - **Improved service registration**: `AddMicrosoftUpdateServices()` now includes all required dependencies including JSON options
 - **Enhanced troubleshooting**: Added guidance for common DI issues and their solutions
 
 ---
 
-**Last Updated**: 2025-11-16  
+**Last Updated**: 2025-11-23  
 **Target Framework**: .NET 9.0  
 **Azure Functions**: v4 with isolated worker model  
 **Aspire**: .NET Aspire for orchestration

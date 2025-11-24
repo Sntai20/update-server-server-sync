@@ -41,7 +41,7 @@ This repository is organized as follows:
 - **[AppHost/](./AppHost/)** - .NET Aspire application host
 - **[test/](./test/)** - Test projects
 
-**📚 For complete structure details, see [REPOSITORY_STRUCTURE.md](./REPOSITORY_STRUCTURE.md)**
+**📚 For complete structure details, see [docs/architecture/REPOSITORY_STRUCTURE.md](./docs/architecture/REPOSITORY_STRUCTURE.md)**
 
 ## 📖 Documentation
 
@@ -68,9 +68,9 @@ This repository is organized as follows:
 
 ### Troubleshooting
 
-- **[WCF .NET 9 Fixes](./docs/guides/WCF_NET9_FIX_GUIDE.md)** - Fix WCF compatibility issues
-- **[Storage Issues](./docs/guides/TROUBLESHOOTING_STORAGE.md)** - Troubleshoot storage problems
-- **[Sync Issues](./docs/guides/SYNC_TROUBLESHOOTING.md)** - Troubleshoot synchronization issues
+- **[WCF .NET 9 Fixes](./docs/troubleshooting/WCF_NET9_FIX_GUIDE.md)** - Fix WCF compatibility issues
+- **[Configuration Issues](./docs/troubleshooting/CONFIGURATION_TROUBLESHOOTING.md)** - Troubleshoot configuration problems
+- **[Sync Issues](./docs/troubleshooting/SYNC_TROUBLESHOOTING.md)** - Troubleshoot synchronization issues
 - **[Container Verification](./docs/guides/CONTAINER_VERIFICATION.md)** - Verify Azure containers
 
 ### API Documentation
