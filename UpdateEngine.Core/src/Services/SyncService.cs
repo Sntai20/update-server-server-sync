@@ -116,7 +116,11 @@ public class SyncService : ISyncService
 
             if (filesToDownload.Any())
             {
-                contentStore.Download(filesToDownload, cancellationToken);
+                this.logger.LogInformation("Content sync: {FileCount} files to download", filesToDownload.Count);
+                
+                // Run the synchronous Download() method on a background thread to avoid blocking
+                await Task.Run(() => contentStore.Download(filesToDownload, cancellationToken), cancellationToken);
+                
                 this.logger.LogInformation("Content synchronization completed: {FileCount} files", filesToDownload.Count);
             }
             else
