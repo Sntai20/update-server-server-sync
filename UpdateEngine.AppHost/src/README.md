@@ -198,10 +198,10 @@ The AppHost supports comprehensive testing:
 
 ```bash
 # Run service layer unit tests
-dotnet test ../UpdateEngine/test/UpdateEngineTest --filter "Category!=Integration"
+dotnet test ../../UpdateEngine.Functions/test/UpdateEngineTest --filter "Category!=Integration"
 
 # Run integration tests against AppHost
-dotnet test ../UpdateEngine/test/UpdateEngineTest --filter "Category=Integration"
+dotnet test ../../UpdateEngine.Functions/test/UpdateEngineTest --filter "Category=Integration"
 ```
 
 ## Performance Monitoring

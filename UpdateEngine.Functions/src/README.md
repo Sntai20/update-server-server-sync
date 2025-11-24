@@ -170,7 +170,7 @@ dotnet run
 docker run -d -p 6379:6379 redis:latest
 
 # Start Azure Functions
-cd UpdateEngine/src
+cd UpdateEngine.Functions/src
 func start
 ```
 

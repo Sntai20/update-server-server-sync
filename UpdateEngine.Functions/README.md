@@ -187,7 +187,7 @@ The same service logic works across:
 ## 📁 Project Structure
 
 ```
-UpdateEngine/
+UpdateEngine.Functions/
 ├── src/
 │   ├── Functions/           # Azure Functions (thin wrappers)
 │   ├── Services/           # Business logic services
@@ -210,11 +210,11 @@ UpdateEngine/
 ### Local Development
 ```bash
 # Using AppHost (recommended)
-cd AppHost
+cd UpdateEngine.AppHost/src
 dotnet run
 
 # Direct Functions
-cd UpdateEngine/src  
+cd UpdateEngine.Functions/src  
 func start
 ```
 

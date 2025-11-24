@@ -36,9 +36,9 @@ This repository is organized as follows:
 - **[docs/](./docs/)** - All documentation (guides, troubleshooting, development)
 - **[scripts/](./scripts/)** - All automation scripts (setup, build, test, maintenance)
 - **[src/](./src/)** - Core libraries and implementation
-- **[UpdateEngine/](./UpdateEngine/)** - Azure Functions implementation (.NET 9)
+- **[UpdateEngine.Functions/](./UpdateEngine.Functions/)** - Azure Functions implementation (.NET 9)
 - **[UpdateEngine.Core/](./UpdateEngine.Core/)** - Shared core library (orchestrators, services, models)
-- **[AppHost/](./AppHost/)** - .NET Aspire application host
+- **[UpdateEngine.AppHost/](./UpdateEngine.AppHost/)** - .NET Aspire application host
 - **[test/](./test/)** - Test projects
 
 **📚 For complete structure details, see [docs/architecture/REPOSITORY_STRUCTURE.md](./docs/architecture/REPOSITORY_STRUCTURE.md)**
@@ -64,7 +64,7 @@ This repository is organized as follows:
 - **[Function Consolidation Guide](./docs/guides/FUNCTION_CONSOLIDATION_GUIDE.md)** - Comprehensive plan to consolidate 35+ functions to ~20
 - **[Function Consolidation Comparison](./docs/guides/FUNCTION_CONSOLIDATION_COMPARISON.md)** - Before/after visual comparison
 - **[Consolidation Answer](./docs/guides/CONSOLIDATION_ANSWER.md)** - Quick answers to consolidation questions
-- **[Function Restructuring Summary](./UpdateEngine/src/Functions/RESTRUCTURING_SUMMARY.md)** - Current function catalog
+- **[Function Restructuring Summary](./docs/historical/migration-summaries/FUNCTIONS_RESTRUCTURING_SUMMARY.md)** - Function catalog
 
 ### Troubleshooting
 
@@ -85,7 +85,7 @@ This repository is organized as follows:
 | **Build** | `dotnet build` |
 | **Test (Fast)** | `./scripts/test/Run-InMemoryTests.ps1` |
 | **Test (All)** | `dotnet test` |
-| **Run Functions** | `dotnet run --project AppHost/src/AppHost.csproj` |
+| **Run Functions** | `dotnet run --project UpdateEngine.AppHost/src/AppHost.csproj` |
 | **Configure Storage** | `./scripts/setup/Configure-Storage.ps1` |
 | **Validate Build** | `./scripts/build/Validate-Build.ps1` |
 
@@ -100,7 +100,7 @@ This implementation provides **35+ Azure Functions** organized by functional dom
 Functions are organized into **4 logical domains** for better cohesion and maintainability:
 
 ```
-UpdateEngine/src/Functions/
+UpdateEngine.Functions/src/Functions/
 ├── Core/                          # Essential operations (19 functions)
 │   ├── WebServiceFunctions.cs    # 5 SOAP web services (WSUS protocol)
 │   ├── ContentDeliveryFunctions.cs # 6 content operations
@@ -275,7 +275,7 @@ For comprehensive function details, see:
 #### Testing
 - **[Testing Strategy](./docs/guides/TESTING_STRATEGY.md)** - Comprehensive testing guide (Unit, Integration, E2E) ⭐ **NEW**
 - **[Testing Strategy Quick Ref](./docs/guides/TESTING_STRATEGY_QUICK_REF.md)** - Quick reference for testing
-- **[Function Restructuring Summary](./UpdateEngine/src/Functions/RESTRUCTURING_SUMMARY.md)** - Complete function catalog
+- **[Function Restructuring Summary](./docs/historical/migration-summaries/FUNCTIONS_RESTRUCTURING_SUMMARY.md)** - Complete function catalog
 - **[Testing Guide](./docs/guides/TESTING_GUIDE.md)** - Testing strategies
 - **[Triggers Guide](./docs/guides/TRIGGERS_GUIDE.md)** - Azure Functions triggers
 

@@ -12,8 +12,9 @@ This is a comprehensive implementation of the Microsoft Update Server-Server syn
 - **`src/microsoft-update-webservices/`**: SOAP web service implementations for client/server sync protocols
 - **`src/microsoft-update-endpoints/`**: ASP.NET Core startup classes and endpoint configurations
 - **`src/microsoft-update-upstream-package-source/`**: Client libraries for syncing from upstream Microsoft Update servers
-- **`UpdateEngine/`**: Serverless Azure Functions implementation wrapping the web services (.NET 9)
-- **`AppHost/`**: .NET Aspire application host for orchestrating the distributed application
+- **`UpdateEngine.Functions/`**: Serverless Azure Functions implementation (.NET 9)
+- **`UpdateEngine.Core/`**: Shared core library for orchestrators, services, and models
+- **`UpdateEngine.AppHost/`**: .NET Aspire application host for orchestrating the distributed application
 - **`src/tools/upsync/`**: CLI tool for metadata synchronization and server management
 
 ### Data Flow
@@ -303,14 +304,14 @@ update-server-server-sync/
 │   ├── test/                      # Testing scripts
 │   └── maintenance/               # Maintenance scripts
 │
-├── UpdateEngine/                  # Azure Functions implementation (.NET 9)
+├── UpdateEngine.Functions/        # Azure Functions implementation (.NET 9)
 │   ├── src/                       # Function implementations
 │   └── test/                      # Function tests
 │
 ├── UpdateEngine.Core/             # Shared UpdateEngine core library
 │   └── src/                       # Core orchestrators, services, models
 │
-├── AppHost/                       # .NET Aspire application host
+├── UpdateEngine.AppHost/          # .NET Aspire application host
 │   └── src/                       # Aspire orchestration
 │
 ├── src/                          # Core libraries
@@ -325,11 +326,11 @@ update-server-server-sync/
 
 ### Key Paths
 
-- **Azure Functions**: `UpdateEngine/src/`
+- **Azure Functions**: `UpdateEngine.Functions/src/`
 - **UpdateEngine Core**: `UpdateEngine.Core/src/` (orchestrators, services, models)
-- **Aspire AppHost**: `AppHost/src/AppHost.csproj`
+- **Aspire AppHost**: `UpdateEngine.AppHost/src/AppHost.csproj`
 - **Core Libraries**: `src/microsoft-update-*/`
-- **Tests**: `UpdateEngine/test/`
+- **Tests**: `UpdateEngine.Functions/test/`
 - **Scripts**: `scripts/{setup|build|test|maintenance}/`
 - **Documentation**: `docs/{guides|troubleshooting|development}/`
 
