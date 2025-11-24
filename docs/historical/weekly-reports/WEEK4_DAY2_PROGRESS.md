@@ -25,7 +25,7 @@
 
 ### 1. Updated AppHost Project Reference
 
-**File**: `AppHost/src/AppHost.csproj`
+**File**: `UpdateEngine.AppHost/src/AppHost.csproj`
 
 **Changes**:
 ```xml
@@ -38,7 +38,7 @@
 
 ### 2. Created Generic Configuration Method
 
-**File**: `AppHost/src/ConfigurationHelper.cs`
+**File**: `UpdateEngine.AppHost/src/ConfigurationHelper.cs`
 
 **New Method**: `ConfigureUpdateEngine(IResourceBuilder<ProjectResource>, IConfiguration)`
 
@@ -59,7 +59,7 @@
 
 ### 3. Updated AppHost Program.cs
 
-**File**: `AppHost/src/Program.cs`
+**File**: `UpdateEngine.AppHost/src/Program.cs`
 
 **New Code**:
 ```csharp
@@ -176,10 +176,10 @@ ConfigurationHelper.ConfigureUpdateEngine(workerService, builder.Configuration);
 ?   (UpdateEngine)          ?     ?   (ASP.NET Core)          ?
 ?   Port: 7071              ?     ?   Port: 8080              ?
 ?                           ?     ?                           ?
-?   • HTTP Triggers         ?     ?   • Controllers           ?
-?   • Timer Triggers        ?     ?   • Background Workers    ?
-?   • Queue Triggers        ?     ?   • Health Endpoints      ?
-?   • Uses Orchestrators    ?     ?   • Uses Orchestrators    ?
+?   ï¿½ HTTP Triggers         ?     ?   ï¿½ Controllers           ?
+?   ï¿½ Timer Triggers        ?     ?   ï¿½ Background Workers    ?
+?   ï¿½ Queue Triggers        ?     ?   ï¿½ Health Endpoints      ?
+?   ï¿½ Uses Orchestrators    ?     ?   ï¿½ Uses Orchestrators    ?
 ?????????????????????????????     ?????????????????????????????
 ```
 
@@ -302,7 +302,7 @@ AppHost Configuration
 
 ```powershell
 # Start AppHost
-cd AppHost/src
+cd UpdateEngine.AppHost/src
 dotnet run
 
 # Wait for services to start
@@ -460,7 +460,7 @@ redis-cli
 
 **Next Command**:
 ```powershell
-cd AppHost/src
+cd UpdateEngine.AppHost/src
 dotnet run
 ```
 

@@ -20,7 +20,7 @@ if ($UseAppHost) {
     $port = 7071
 } else {
     Write-Host "Testing with Azure Functions CLI..." -ForegroundColor Yellow
-    $workingDir = "UpdateEngine/src"
+    $workingDir = "UpdateEngine.Functions/src"
     $startCommand = "func"
     $startArgs = @("start", "--port", "7071")
     $port = 7071

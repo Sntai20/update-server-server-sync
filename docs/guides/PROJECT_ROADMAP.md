@@ -456,10 +456,10 @@ git push origin feature/week3-caching
 - [Copilot Instructions](../../.github/copilot-instructions.md)
 
 ### Code
-- [Orchestrators](../../UpdateEngine/src/Core/Orchestrators/)
-- [Tests](../../UpdateEngine/test/)
+- [Orchestrators](../../UpdateEngine.Functions/src/Core/Orchestrators/)
+- [Tests](../../UpdateEngine.Functions/test/)
 - [Configuration](../../Configuration/)
-- [AppHost](../../AppHost/src/)
+- [AppHost](../../UpdateEngine.AppHost/src/)
 
 ### Commands
 ```powershell
@@ -470,7 +470,7 @@ dotnet test
 dotnet test --filter "FullyQualifiedName~Orchestrators"
 
 # Start AppHost
-cd AppHost/src && dotnet run
+cd UpdateEngine.AppHost/src && dotnet run
 
 # Build solution
 dotnet build

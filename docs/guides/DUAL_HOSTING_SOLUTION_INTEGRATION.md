@@ -131,7 +131,7 @@ public static class ConfigurationExtensions
 ### 2. Orchestrators Use Configuration Project
 
 ```csharp
-// UpdateEngine/src/Core/Orchestrators/SyncOrchestrator.cs
+// UpdateEngine.Functions/src/Core/Orchestrators/SyncOrchestrator.cs
 
 using Configuration; // Reference Configuration project
 
@@ -169,7 +169,7 @@ public class SyncOrchestrator : ISyncOrchestrator
 The **AppHost** orchestrates all projects for local development using .NET Aspire:
 
 ```csharp
-// AppHost/src/Program.cs (updated)
+// UpdateEngine.AppHost/src/Program.cs (updated)
 
 using Aspire.Hosting;
 
@@ -211,7 +211,7 @@ builder.Build().Run();
 Create a shared extension method that works with **all hosting models**:
 
 ```csharp
-// UpdateEngine/src/Core/ServiceCollectionExtensions.cs (NEW)
+// UpdateEngine.Functions/src/Core/ServiceCollectionExtensions.cs (NEW)
 
 using Configuration;
 using Microsoft.Extensions.Configuration;
@@ -270,7 +270,7 @@ public static class ServiceCollectionExtensions
 ### 5. Azure Functions Program.cs (Updated)
 
 ```csharp
-// UpdateEngine/src/Program.cs
+// UpdateEngine.Functions/src/Program.cs
 
 using Microsoft.Extensions.Hosting;
 using UpdateEngine.Core; // ? Use shared extensions
@@ -297,7 +297,7 @@ host.Run();
 ### 6. Worker Service Program.cs (NEW)
 
 ```csharp
-// UpdateEngine/src/WorkerService/Program.cs
+// UpdateEngine.Functions/src/WorkerService/Program.cs
 
 using UpdateEngine.Core; // ? Use SAME shared extensions
 using UpdateEngine.WorkerService.Workers;
@@ -401,7 +401,7 @@ public class SyncCommand
 #### Scenario 1: Test Azure Functions Locally
 ```bash
 # Start AppHost (includes Azure Functions + Azurite)
-cd AppHost/src
+cd UpdateEngine.AppHost/src
 dotnet run
 
 # Azure Functions available at http://localhost:7071
@@ -411,7 +411,7 @@ curl http://localhost:7071/api/sync -d '{"syncType":"categories","action":"start
 #### Scenario 2: Test Worker Service Locally
 ```bash
 # Start AppHost (includes Worker Service + Azurite)
-cd AppHost/src
+cd UpdateEngine.AppHost/src
 dotnet run
 
 # Worker Service available at http://localhost:8080
@@ -421,7 +421,7 @@ curl http://localhost:8080/api/sync -d '{"syncType":"categories","action":"start
 #### Scenario 3: Test Both Simultaneously
 ```bash
 # AppHost can start BOTH at the same time!
-cd AppHost/src
+cd UpdateEngine.AppHost/src
 dotnet run
 
 # Test Azure Functions
@@ -443,7 +443,7 @@ dotnet run -- sync --type categories --products "Windows 10"
 ### AppHost Configuration
 
 ```csharp
-// AppHost/src/Program.cs (complete example)
+// UpdateEngine.AppHost/src/Program.cs (complete example)
 
 using Aspire.Hosting;
 
@@ -610,7 +610,7 @@ builder.Build().Run();
 ## ?? Migration Checklist
 
 ### Phase 1: Setup Core Infrastructure
-- [x] Create `UpdateEngine/src/Core/` directory structure
+- [x] Create `UpdateEngine.Functions/src/Core/` directory structure
 - [x] Create `SyncOrchestrator.cs` and `ISyncOrchestrator.cs`
 - [x] Create `SyncModels.cs` with shared models
 - [ ] Create `ServiceCollectionExtensions.cs` with shared DI
@@ -618,7 +618,7 @@ builder.Build().Run();
 - [ ] Test with AppHost
 
 ### Phase 2: Add Worker Service Support
-- [ ] Create `UpdateEngine/src/WorkerService/` project
+- [ ] Create `UpdateEngine.Functions/src/WorkerService/` project
 - [ ] Add `WorkerService.csproj` with Core folder link
 - [ ] Create ASP.NET Core controllers
 - [ ] Create background workers
@@ -647,7 +647,7 @@ builder.Build().Run();
 ### Daily Development
 ```bash
 # 1. Start AppHost (starts everything!)
-cd AppHost/src
+cd UpdateEngine.AppHost/src
 dotnet run
 
 # 2. AppHost dashboard opens in browser showing:

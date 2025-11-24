@@ -118,7 +118,7 @@ With 15-minute sync cycles:
 ### Initial Setup (First 30 Minutes)
 ```bash
 # 1. Start Azure Functions
-dotnet run --project UpdateEngine.AppHost/src/AppHost.csproj
+dotnet run --project UpdateEngine.UpdateEngine.AppHost/src/AppHost.csproj
 
 # 2. Monitor startup syncs
 # Watch for:

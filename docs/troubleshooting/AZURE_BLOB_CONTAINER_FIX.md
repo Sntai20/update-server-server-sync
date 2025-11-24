@@ -145,7 +145,7 @@ dotnet build microsoft-update-partition/src/microsoft-update-partition.csproj
 ### Runtime Test (Local)
 ```bash
 # 1. Start Azurite (via Aspire or standalone)
-cd AppHost/src
+cd UpdateEngine.AppHost/src
 dotnet run
 
 # 2. Verify container auto-created
@@ -275,7 +275,7 @@ All Azure SDK clients support idempotent creation:
 ### Testing Plan
 ```bash
 # Start AppHost (now works with fresh Azurite)
-cd AppHost/src
+cd UpdateEngine.AppHost/src
 dotnet run
 
 # Expected:

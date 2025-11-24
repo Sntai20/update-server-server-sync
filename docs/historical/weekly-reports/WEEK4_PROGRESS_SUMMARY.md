@@ -111,7 +111,7 @@ dotnet build microsoft-update.sln
 6. **Comparison Testing** - Verify identical behavior
 
 **Next Steps**:
-1. Start AppHost: `cd AppHost/src && dotnet run`
+1. Start AppHost: `cd UpdateEngine.AppHost/src && dotnet run`
 2. Run test script: `.\scripts\test\Test-DualHosting.ps1 -Verbose`
 3. Document test results in WEEK4_DAY3_SUMMARY.md
 4. Update IMPLEMENTATION_SUMMARY.md with progress
@@ -244,7 +244,7 @@ dotnet build microsoft-update.sln
 ### Immediate (Today)
 1. **Run Test Plan**
    ```bash
-   cd AppHost/src
+   cd UpdateEngine.AppHost/src
    dotnet run
    # In another terminal:
    .\scripts\test\Test-DualHosting.ps1 -Verbose

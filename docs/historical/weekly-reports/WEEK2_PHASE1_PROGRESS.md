@@ -11,8 +11,8 @@ Week 2 extends the Week 1 foundation by adding additional orchestrators, compreh
 
 ### 1. IMetadataOrchestrator ?
 
-**File**: `UpdateEngine/src/Core/Orchestrators/IMetadataOrchestrator.cs`  
-**Implementation**: `UpdateEngine/src/Core/Orchestrators/MetadataOrchestrator.cs`
+**File**: `UpdateEngine.Functions/src/Core/Orchestrators/IMetadataOrchestrator.cs`  
+**Implementation**: `UpdateEngine.Functions/src/Core/Orchestrators/MetadataOrchestrator.cs`
 
 **Capabilities**:
 - **GetStatisticsAsync()** - Metadata store statistics (total updates, categories, classifications, products)
@@ -39,8 +39,8 @@ Week 2 extends the Week 1 foundation by adding additional orchestrators, compreh
 
 ### 2. IContentOrchestrator ?
 
-**File**: `UpdateEngine/src/Core/Orchestrators/IContentOrchestrator.cs`  
-**Implementation**: `UpdateEngine/src/Core/Orchestrators/ContentOrchestrator.cs`
+**File**: `UpdateEngine.Functions/src/Core/Orchestrators/IContentOrchestrator.cs`  
+**Implementation**: `UpdateEngine.Functions/src/Core/Orchestrators/ContentOrchestrator.cs`
 
 **Capabilities**:
 - **GetStatisticsAsync()** - Content store statistics (total files, size, pending downloads, orphaned files)
@@ -67,7 +67,7 @@ Week 2 extends the Week 1 foundation by adding additional orchestrators, compreh
 
 ### 3. Service Registration ?
 
-**File**: `UpdateEngine/src/Core/ServiceCollectionExtensions.cs` (Updated)
+**File**: `UpdateEngine.Functions/src/Core/ServiceCollectionExtensions.cs` (Updated)
 
 ```csharp
 // Orchestrators registered as singletons with IOptionsMonitor support

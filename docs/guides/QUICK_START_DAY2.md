@@ -6,7 +6,7 @@
 
 ```powershell
 # Open terminal in workspace root
-cd AppHost/src
+cd UpdateEngine.AppHost/src
 
 # Start everything (Azurite + Redis + Functions + Worker Service)
 dotnet run
@@ -33,7 +33,7 @@ azurite --silent --location c:\azurite --debug c:\azurite\debug.log
 redis-server
 
 # Terminal 3: Start Azure Functions
-cd UpdateEngine/src
+cd UpdateEngine.Functions/src
 func start
 
 # Terminal 4: Start Worker Service

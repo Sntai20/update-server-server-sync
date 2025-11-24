@@ -17,11 +17,11 @@ Configuration/
     ├── appsettings.Production.json  ← Production overrides
     └── appsettings.IntegrationTest.json ← Test overrides
 
-AppHost/src/
+UpdateEngine.AppHost/src/
 ├── appsettings*.json               ← ✅ Project-specific overrides only
 └── Program.cs                      ← ✅ Uses AddSharedAppConfiguration()
 
-UpdateEngine/src/
+UpdateEngine.Functions/src/
 ├── appsettings*.json               ← ✅ Azure Functions-specific only
 ├── local.settings.json             ← Functions local dev settings
 └── Program.cs                      ← ✅ Uses AddSharedAppConfiguration()
@@ -145,7 +145,7 @@ services.AddSharedAppConfiguration(builder.Environment.EnvironmentName, builder.
 Each project can still override any shared setting:
 
 ```json
-// In AppHost/src/appsettings.Production.json
+// In UpdateEngine.AppHost/src/appsettings.Production.json
 {
   "_comment": "Override shared settings if needed",
   "ServiceUrl": "https://apphost-specific-url.com",  // Overrides shared
@@ -182,7 +182,7 @@ For **UpdateEngine in Development environment**:
 
 1. **Loads**: `Configuration/shared/appsettings.shared.json` (base defaults)
 2. **Merges**: `Configuration/shared/appsettings.Development.json` (dev overrides)  
-3. **Merges**: `UpdateEngine/src/appsettings.Development.json` (Azure Functions settings)
+3. **Merges**: `UpdateEngine.Functions/src/appsettings.Development.json` (Azure Functions settings)
 4. **Merges**: Environment variables and local.settings.json
 5. **Result**: Complete configuration with proper precedence
 

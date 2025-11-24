@@ -9,7 +9,7 @@
 - Error: `StorageConfiguration.AzureStorageConnectionString or AzureStorageAccountName is required when using Azure Storage`
 
 **Root Cause:**
-The `ConfigureLogging` method in `UpdateEngine/src/Program.cs` was reading flat configuration keys like:
+The `ConfigureLogging` method in `UpdateEngine.Functions/src/Program.cs` was reading flat configuration keys like:
 ```csharp
 context.Configuration["ServiceUrl"]
 context.Configuration["UseAzureStorageForMetadata"]
@@ -43,7 +43,7 @@ The validation should happen when the store is actually created, not during conf
 
 ## Fixes Applied
 
-### Fix 1: Update UpdateEngine/src/Program.cs
+### Fix 1: Update UpdateEngine.Functions/src/Program.cs
 Updated the `ConfigureLogging` method to read from the hierarchical `UpdateEngine` section:
 
 ```csharp
@@ -162,14 +162,14 @@ Priority:
 
 1. **Test Azure Functions with Aspire**
    ```bash
-   cd AppHost/src
+   cd UpdateEngine.AppHost/src
    dotnet run
    # Verify UpdateEngine logs show correct configuration values
    ```
 
 2. **Test Worker Service with Aspire**
    ```bash
-   cd AppHost/src
+   cd UpdateEngine.AppHost/src
    dotnet run
    # Verify WorkerService starts without directory not found errors
    ```
@@ -177,7 +177,7 @@ Priority:
 3. **Test Local Development without Aspire**
    ```bash
    # Azure Functions
-   cd UpdateEngine/src
+   cd UpdateEngine.Functions/src
    func start
    
    # Worker Service
@@ -206,6 +206,6 @@ Priority:
 **Status**: ? Complete
 **Build Status**: ? Successful
 **Files Modified**: 3
-- `UpdateEngine/src/Program.cs`
+- `UpdateEngine.Functions/src/Program.cs`
 - `WorkerService/Program.cs`
 - `Configuration/StorageConfiguration.cs`

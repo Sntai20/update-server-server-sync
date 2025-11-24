@@ -110,7 +110,7 @@ Service will be available at `http://localhost:8080`
 ### Option 2: Via AppHost (Recommended)
 
 ```bash
-cd AppHost/src
+cd UpdateEngine.AppHost/src
 dotnet run
 ```
 

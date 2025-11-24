@@ -198,7 +198,7 @@ builder.Services.AddUpdateEngineCore(builder.Configuration);
 ### Same as Azure Functions
 
 ```csharp
-// UpdateEngine/src/Program.cs
+// UpdateEngine.Functions/src/Program.cs
 host.ConfigureServices((context, services) =>
 {
     services.AddUpdateEngineCore(context.Configuration);
@@ -218,7 +218,7 @@ host.ConfigureServices((context, services) =>
 
 ### 2. **AppHost Integration Not Yet Done**
    - **Issue**: AppHost doesn't reference WorkerService yet
-   - **Fix (Day 2)**: Add WorkerService to AppHost/src/Program.cs
+   - **Fix (Day 2)**: Add WorkerService to UpdateEngine.AppHost/src/Program.cs
 
 ### 3. **No Integration Tests Yet**
    - **Issue**: WorkerServiceTestFixture.cs not created

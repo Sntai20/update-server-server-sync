@@ -21,7 +21,7 @@ Quick checklist for implementing Week 3 caching integration and enhancements.
 
 #### 1. MetadataOrchestrator Caching
 ```bash
-# File: UpdateEngine/src/Core/Orchestrators/MetadataOrchestrator.cs
+# File: UpdateEngine.Functions/src/Core/Orchestrators/MetadataOrchestrator.cs
 
 # Add to constructor:
 private readonly CacheService? cacheService;
@@ -39,7 +39,7 @@ private readonly CacheService? cacheService;
 
 #### 2. ContentOrchestrator Caching
 ```bash
-# File: UpdateEngine/src/Core/Orchestrators/ContentOrchestrator.cs
+# File: UpdateEngine.Functions/src/Core/Orchestrators/ContentOrchestrator.cs
 
 # Add to constructor:
 private readonly CacheService? cacheService;
@@ -58,7 +58,7 @@ private readonly CacheService? cacheService;
 
 #### 3. SyncOrchestrator Invalidation
 ```bash
-# File: UpdateEngine/src/Core/Orchestrators/SyncOrchestrator.cs
+# File: UpdateEngine.Functions/src/Core/Orchestrators/SyncOrchestrator.cs
 
 # After successful metadata sync:
 await cacheService?.InvalidateAllCachesAsync();
@@ -73,7 +73,7 @@ foreach (update in downloadedUpdates)
 
 #### 4. AppHost Redis Setup
 ```bash
-# File: AppHost/src/Program.cs
+# File: UpdateEngine.AppHost/src/Program.cs
 
 # Add before UpdateEngine:
 var redis = builder.AddRedis("redis").WithRedisCommander();
@@ -93,7 +93,7 @@ var redis = builder.AddRedis("redis").WithRedisCommander();
 
 #### 5. Update ConfigurationHelper
 ```bash
-# File: AppHost/src/ConfigurationHelper.cs
+# File: UpdateEngine.AppHost/src/ConfigurationHelper.cs
 
 # Add cache environment variables:
 .WithEnvironment("EnableDistributedCache", ...)
@@ -103,7 +103,7 @@ var redis = builder.AddRedis("redis").WithRedisCommander();
 
 #### 6. Update ServiceCollectionExtensions
 ```bash
-# File: UpdateEngine/src/Core/ServiceCollectionExtensions.cs
+# File: UpdateEngine.Functions/src/Core/ServiceCollectionExtensions.cs
 
 # Update Redis registration:
 - Use configuration.GetConnectionString("RedisConnection")
@@ -123,7 +123,7 @@ var redis = builder.AddRedis("redis").WithRedisCommander();
 
 #### 8. CacheService Unit Tests
 ```bash
-# Create: UpdateEngine/test/Unit/Services/CacheServiceTests.cs
+# Create: UpdateEngine.Functions/test/Unit/Services/CacheServiceTests.cs
 
 Tests needed:
 - GetOrSetAsync_CacheMiss_CallsFactory
@@ -138,7 +138,7 @@ Tests needed:
 
 #### 9. Caching Integration Tests
 ```bash
-# Create: UpdateEngine/test/Integration/Orchestrators/CachingIntegrationTests.cs
+# Create: UpdateEngine.Functions/test/Integration/Orchestrators/CachingIntegrationTests.cs
 
 Tests needed:
 - Metadata statistics caching
@@ -159,7 +159,7 @@ Tests needed:
 
 #### 10. Redis Health Check
 ```bash
-# Create: UpdateEngine/src/Core/HealthChecks/RedisHealthCheck.cs
+# Create: UpdateEngine.Functions/src/Core/HealthChecks/RedisHealthCheck.cs
 
 Implementation:
 - Test write/read/delete operation
@@ -171,7 +171,7 @@ Implementation:
 
 #### 11. AppHost Integration Test
 ```bash
-# Create: UpdateEngine/test/Integration/AppHostCachingTest.cs
+# Create: UpdateEngine.Functions/test/Integration/AppHostCachingTest.cs
 
 Tests:
 - AppHost starts with Redis
@@ -316,7 +316,7 @@ docker rm redis
 
 ### Run AppHost
 ```powershell
-cd AppHost/src
+cd UpdateEngine.AppHost/src
 dotnet run
 ```
 
@@ -339,7 +339,7 @@ dotnet clean
 dotnet build
 
 # Specific project
-dotnet build UpdateEngine/src/UpdateEngine.csproj
+dotnet build UpdateEngine.Functions/src/UpdateEngine.csproj
 ```
 
 ### Check Health Endpoints

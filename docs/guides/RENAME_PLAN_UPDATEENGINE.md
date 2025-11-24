@@ -11,13 +11,13 @@ Rename all projects to use consistent `UpdateEngine.*` naming pattern throughout
 | `microsoft-update-webservices/` | `UpdateEngine.WebServices/` | Core Library | NuGet Breaking |
 | `microsoft-update-endpoints/` | `UpdateEngine.Endpoints/` | Core Library | NuGet Breaking |
 | `microsoft-update-upstream-source/` | `UpdateEngine.UpstreamSource/` | Core Library | NuGet Breaking |
-| `UpdateEngine/` | `UpdateEngine.Functions/` | Azure Functions | No Breaking |
+| `UpdateEngine.Functions/` | `UpdateEngine.Functions/` | Azure Functions | No Breaking |
 | `UpdateEngine.Core/` | `UpdateEngine.Core/` | ✅ Keep | No Change |
 | `WorkerService/` | `UpdateEngine.WorkerService/` | Worker Service | No Breaking |
 | `update-cli/` | `UpdateEngine.Cli/` | CLI Tool | No Breaking |
 | `upsync/` | `UpdateEngine.SyncTool/` | Utility | No Breaking |
 | `Configuration/` | `UpdateEngine.Configuration/` | Shared Config | No Breaking |
-| `AppHost/` | `UpdateEngine.AppHost/` | Aspire Host | No Breaking |
+| `UpdateEngine.AppHost/` | `UpdateEngine.AppHost/` | Aspire Host | No Breaking |
 | `ServiceDefaults/` | `UpdateEngine.ServiceDefaults/` | Aspire Defaults | No Breaking |
 
 ## 🔄 Namespace Mappings

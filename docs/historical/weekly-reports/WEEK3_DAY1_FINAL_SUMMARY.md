@@ -16,28 +16,28 @@
 - Changed `where T : class` to `where T : notnull`
 - Enables caching of value types (bool, int, DateTime, etc.)
 - Returns `default` instead of `null` for value type support
-- File: `UpdateEngine/src/Core/Services/CacheService.cs`
+- File: `UpdateEngine.Functions/src/Core/Services/CacheService.cs`
 
 **ContentOrchestrator Caching Integration**
 - Added `CacheService? cacheService` constructor parameter
 - Statistics caching with 5-minute TTL
 - Content availability caching (bool) with 15-minute TTL
 - Private helper methods: `ComputeContentStatisticsAsync()`, `CheckSingleContentAvailabilityAsync()`
-- File: `UpdateEngine/src/Core/Orchestrators/ContentOrchestrator.cs`
+- File: `UpdateEngine.Functions/src/Core/Orchestrators/ContentOrchestrator.cs`
 
 **MetadataOrchestrator Caching Integration**
 - Added `CacheService? cacheService` constructor parameter
 - Statistics caching with 5-minute TTL
 - Update details caching with 60-minute TTL
 - Private helper methods: `ComputeMetadataStatisticsAsync()`, `FetchUpdateDetailsAsync()`
-- File: `UpdateEngine/src/Core/Orchestrators/MetadataOrchestrator.cs`
+- File: `UpdateEngine.Functions/src/Core/Orchestrators/MetadataOrchestrator.cs`
 
 **SyncOrchestrator Cache Invalidation**
 - Added `CacheService? cacheService` constructor parameter
 - Smart invalidation: Categories (surgical) vs Updates (broad)
 - Configuration-driven with `InvalidateOnSync` flag
 - Graceful error handling
-- File: `UpdateEngine/src/Core/Orchestrators/SyncOrchestrator.cs`
+- File: `UpdateEngine.Functions/src/Core/Orchestrators/SyncOrchestrator.cs`
 
 ### 2. Package Management & Infrastructure ?
 
@@ -66,7 +66,7 @@
 
 ### 3. Aspire Redis Integration ?
 
-**AppHost/src/Program.cs**
+**UpdateEngine.AppHost/src/Program.cs**
 ```csharp
 // Added Redis container configuration
 var redis = builder.AddRedis("Redis");
@@ -82,14 +82,14 @@ var updateFunctions = builder.AddAzureFunctionsProject<Projects.UpdateEngine>("U
     .WaitFor(redis);  // ? NEW
 ```
 
-**AppHost/src/AppHost.csproj**
+**UpdateEngine.AppHost/src/AppHost.csproj**
 ```xml
 <PackageReference Include="Aspire.Hosting.Redis" />
 ```
 
 ### 4. Configuration Updates ?
 
-**AppHost/src/ConfigurationHelper.cs**
+**UpdateEngine.AppHost/src/ConfigurationHelper.cs**
 ```csharp
 // Added cache configuration environment variables
 functions
@@ -105,7 +105,7 @@ functions
 // ServiceConfiguration.*, StorageConfiguration.*, SyncConfiguration.*, etc.
 ```
 
-**AppHost/src/Program.cs**
+**UpdateEngine.AppHost/src/Program.cs**
 ```csharp
 // Fixed AddSharedAppConfiguration call
 builder.Services.AddSharedAppConfiguration();
@@ -119,10 +119,10 @@ ValidateCronExpression(appConfig.SyncConfiguration.ScheduledHealthCheckSchedule,
 ### 5. Test Updates ?
 
 **All 4 Test Files Updated**:
-1. ? `UpdateEngine/test/Unit/Orchestrators/ContentOrchestratorTests.cs`
-2. ? `UpdateEngine/test/Unit/Orchestrators/MetadataOrchestratorTests.cs`
-3. ? `UpdateEngine/test/Integration/Orchestrators/ContentOrchestratorIntegrationTests.cs`
-4. ? `UpdateEngine/test/Integration/Orchestrators/MetadataOrchestratorIntegrationTests.cs`
+1. ? `UpdateEngine.Functions/test/Unit/Orchestrators/ContentOrchestratorTests.cs`
+2. ? `UpdateEngine.Functions/test/Unit/Orchestrators/MetadataOrchestratorTests.cs`
+3. ? `UpdateEngine.Functions/test/Integration/Orchestrators/ContentOrchestratorIntegrationTests.cs`
+4. ? `UpdateEngine.Functions/test/Integration/Orchestrators/MetadataOrchestratorIntegrationTests.cs`
 
 **Pattern Applied**:
 ```csharp
@@ -144,7 +144,7 @@ this.orchestrator = new MetadataOrchestrator(
 
 ### 6. Health Checks Package ?
 
-**UpdateEngine/src/UpdateEngine.csproj**
+**UpdateEngine.Functions/src/UpdateEngine.csproj**
 ```xml
 <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" />
 ```

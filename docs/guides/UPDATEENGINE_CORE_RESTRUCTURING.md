@@ -39,7 +39,7 @@ UpdateEngine.Core/
 
 Updated all projects that reference `UpdateEngine.Core`:
 
-#### UpdateEngine/src/UpdateEngine.csproj
+#### UpdateEngine.Functions/src/UpdateEngine.csproj
 ```xml
 <!-- Before -->
 <ProjectReference Include="../core/UpdateEngine.Core.csproj" />
@@ -76,7 +76,7 @@ dotnet build microsoft-update.sln
 
 ### AppHost Verification
 ```powershell
-cd AppHost\src
+cd UpdateEngine.AppHost\src
 dotnet run
 ```
 **Result**: ✅ AppHost running successfully
@@ -85,7 +85,7 @@ dotnet run
 
 ### Test Verification
 ```powershell
-dotnet test UpdateEngine/test/UpdateEngineTest.csproj --filter "FullyQualifiedName~Unit"
+dotnet test UpdateEngine.Functions/test/UpdateEngineTest.csproj --filter "FullyQualifiedName~Unit"
 ```
 **Result**: ✅ All 22 unit tests passed
 - Total: 22 tests
@@ -112,8 +112,8 @@ All projects now follow the same pattern:
 ```
 
 Examples:
-- `AppHost/src/AppHost.csproj`
-- `UpdateEngine/src/UpdateEngine.csproj`
+- `UpdateEngine.AppHost/src/AppHost.csproj`
+- `UpdateEngine.Functions/src/UpdateEngine.csproj`
 - `UpdateEngine.Core/src/UpdateEngine.Core.csproj` ✨ NEW
 - `WorkerService/src/WorkerService.csproj`
 - `microsoft-update-partition/src/microsoft-update-partition.csproj`
@@ -132,7 +132,7 @@ Updated the following documentation files:
 - Solution File: `microsoft-update.sln`
 - Project Files:
   - `UpdateEngine.Core/src/UpdateEngine.Core.csproj`
-  - `UpdateEngine/src/UpdateEngine.csproj`
+  - `UpdateEngine.Functions/src/UpdateEngine.csproj`
   - `WorkerService/src/WorkerService.csproj`
 - Documentation: `.github/copilot-instructions.md`
 

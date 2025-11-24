@@ -8,7 +8,7 @@ Successfully migrated all configuration files from the OLD flat structure to the
 
 ### 1. Azure Functions Configuration
 
-#### `UpdateEngine/src/local.settings.json`
+#### `UpdateEngine.Functions/src/local.settings.json`
 **Before (OLD flat structure):**
 ```json
 {
@@ -33,12 +33,12 @@ Successfully migrated all configuration files from the OLD flat structure to the
 }
 ```
 
-#### `UpdateEngine/src/appsettings.json`
+#### `UpdateEngine.Functions/src/appsettings.json`
 - Added complete hierarchical `UpdateEngine` section
 - Now includes all configuration sections for consistency
 - Mirrors the shared defaults structure
 
-#### `UpdateEngine/src/Program.cs` (Configuration Loading Fix)
+#### `UpdateEngine.Functions/src/Program.cs` (Configuration Loading Fix)
 - ? Fixed configuration logging to read from hierarchical `UpdateEngine` section
 - ? Updated `ConfigureLogging` to use `GetSection("UpdateEngine")` instead of flat keys
 - Now correctly displays configuration values on startup
@@ -298,9 +298,9 @@ For complete troubleshooting guide, see: [CONFIGURATION_TROUBLESHOOTING.md](CONF
 **Status**: ? Complete
 **Build Status**: ? Successful
 **Files Modified**: 7
-- `UpdateEngine/src/local.settings.json`
-- `UpdateEngine/src/appsettings.json`
-- `UpdateEngine/src/Program.cs`
+- `UpdateEngine.Functions/src/local.settings.json`
+- `UpdateEngine.Functions/src/appsettings.json`
+- `UpdateEngine.Functions/src/Program.cs`
 - `Configuration/shared/appsettings.Development.json`
 - `Configuration/shared/appsettings.Production.json`
 - `WorkerService/Program.cs`

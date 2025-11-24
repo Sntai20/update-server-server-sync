@@ -53,23 +53,23 @@ Implemented distributed caching infrastructure across all orchestrators with Red
 ## Files Modified (13 files, ~300 lines)
 
 ### Core Implementation
-- UpdateEngine/src/Core/Services/CacheService.cs
-- UpdateEngine/src/Core/Orchestrators/ContentOrchestrator.cs
-- UpdateEngine/src/Core/Orchestrators/MetadataOrchestrator.cs
-- UpdateEngine/src/Core/Orchestrators/SyncOrchestrator.cs
+- UpdateEngine.Functions/src/Core/Services/CacheService.cs
+- UpdateEngine.Functions/src/Core/Orchestrators/ContentOrchestrator.cs
+- UpdateEngine.Functions/src/Core/Orchestrators/MetadataOrchestrator.cs
+- UpdateEngine.Functions/src/Core/Orchestrators/SyncOrchestrator.cs
 
 ### Infrastructure
 - Directory.Packages.props
-- UpdateEngine/src/UpdateEngine.csproj
-- AppHost/src/AppHost.csproj
-- AppHost/src/Program.cs
-- AppHost/src/ConfigurationHelper.cs
+- UpdateEngine.Functions/src/UpdateEngine.csproj
+- UpdateEngine.AppHost/src/AppHost.csproj
+- UpdateEngine.AppHost/src/Program.cs
+- UpdateEngine.AppHost/src/ConfigurationHelper.cs
 
 ### Tests
-- UpdateEngine/test/Unit/Orchestrators/ContentOrchestratorTests.cs
-- UpdateEngine/test/Unit/Orchestrators/MetadataOrchestratorTests.cs
-- UpdateEngine/test/Integration/Orchestrators/ContentOrchestratorIntegrationTests.cs
-- UpdateEngine/test/Integration/Orchestrators/MetadataOrchestratorIntegrationTests.cs
+- UpdateEngine.Functions/test/Unit/Orchestrators/ContentOrchestratorTests.cs
+- UpdateEngine.Functions/test/Unit/Orchestrators/MetadataOrchestratorTests.cs
+- UpdateEngine.Functions/test/Integration/Orchestrators/ContentOrchestratorIntegrationTests.cs
+- UpdateEngine.Functions/test/Integration/Orchestrators/MetadataOrchestratorIntegrationTests.cs
 
 ## Quality Metrics
 - ? Build Status: Clean (0 errors excluding file lock)

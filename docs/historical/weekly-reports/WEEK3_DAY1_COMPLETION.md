@@ -7,7 +7,7 @@
 **1. CacheService Generic Constraint Fix** ?
 - **Changed**: `where T : class` ? `where T : notnull`
 - **Files Modified**:
-  - `UpdateEngine/src/Core/Services/CacheService.cs`
+  - `UpdateEngine.Functions/src/Core/Services/CacheService.cs`
 - **Methods Updated**:
   - `GetOrSetAsync<T>()`
   - `GetAsync<T>()`
@@ -16,7 +16,7 @@
 - **Build Status**: ? Verified successful
 
 **2. ContentOrchestrator Caching** ?
-- **File**: `UpdateEngine/src/Core/Orchestrators/ContentOrchestrator.cs`
+- **File**: `UpdateEngine.Functions/src/Core/Orchestrators/ContentOrchestrator.cs`
 - **Changes**:
   - Added `CacheService? cacheService` constructor parameter
   - `GetStatisticsAsync()`: Cache-aside pattern with 5-minute TTL
@@ -25,7 +25,7 @@
 - **Pattern**: Cache-aside with private helper methods for testability
 
 **3. MetadataOrchestrator Caching** ?
-- **File**: `UpdateEngine/src/Core/Orchestrators/MetadataOrchestrator.cs`
+- **File**: `UpdateEngine.Functions/src/Core/Orchestrators/MetadataOrchestrator.cs`
 - **Changes**:
   - Added `CacheService? cacheService` constructor parameter
   - `GetStatisticsAsync()`: Cache-aside with 5-minute TTL
@@ -34,7 +34,7 @@
 - **Design Decision**: Longer TTL for update details (immutable) vs stats (frequently changing)
 
 **4. SyncOrchestrator Cache Invalidation** ?
-- **File**: `UpdateEngine/src/Core/Orchestrators/SyncOrchestrator.cs`
+- **File**: `UpdateEngine.Functions/src/Core/Orchestrators/SyncOrchestrator.cs`
 - **Changes**:
   - Added `CacheService? cacheService` constructor parameter
   - Created `InvalidateCachesAfterSyncAsync()` method
@@ -59,14 +59,14 @@
 - **Method Used**: XML DOM manipulation (proven safe approach)
 
 **6. AppHost Redis Integration** ?
-- **File**: `AppHost/src/Program.cs`
+- **File**: `UpdateEngine.AppHost/src/Program.cs`
   - Added Redis container configuration: `var redis = builder.AddRedis("Redis");`
   - Added to UpdateEngine dependencies: `.WithReference(redis).WaitFor(redis)`
-- **File**: `AppHost/src/AppHost.csproj`
+- **File**: `UpdateEngine.AppHost/src/AppHost.csproj`
   - Added package reference: `<PackageReference Include="Aspire.Hosting.Redis" />`
 
 **7. Configuration Mapping** ?
-- **File**: `AppHost/src/ConfigurationHelper.cs`
+- **File**: `UpdateEngine.AppHost/src/ConfigurationHelper.cs`
   - Added 7 cache configuration environment variables:
     - EnableDistributedCache
     - KeyPrefix
@@ -78,13 +78,13 @@
   - Fixed property access to use nested configuration objects (ServiceConfiguration, StorageConfiguration, etc.)
 
 **8. Service Registration** ?
-- **File**: `UpdateEngine/src/Core/ServiceCollectionExtensions.cs`
+- **File**: `UpdateEngine.Functions/src/Core/ServiceCollectionExtensions.cs`
   - Redis connection resolution: Aspire-first, falls back to config
   - Enables both Aspire (dev) and standalone (prod) modes
   - Note: This code was already present from earlier work
 
 **9. Test Updates** ?
-- **File**: `UpdateEngine/test/Unit/Orchestrators/ContentOrchestratorTests.cs`
+- **File**: `UpdateEngine.Functions/test/Unit/Orchestrators/ContentOrchestratorTests.cs`
   - Updated all ContentOrchestrator constructions to include `null` for CacheService
   - Pattern: Pass null in unit tests (simpler setup, tests orchestrator logic without cache)
 
@@ -102,9 +102,9 @@
 
 **11. Integration Test Updates** ?? PENDING BUILD
 - **Files to Update** (simple pattern, 3-5 minutes):
-  - `UpdateEngine/test/Unit/Orchestrators/MetadataOrchestratorTests.cs`
-  - `UpdateEngine/test/Integration/Orchestrators/ContentOrchestratorIntegrationTests.cs`
-  - `UpdateEngine/test/Integration/Orchestrators/MetadataOrchestratorIntegrationTests.cs`
+  - `UpdateEngine.Functions/test/Unit/Orchestrators/MetadataOrchestratorTests.cs`
+  - `UpdateEngine.Functions/test/Integration/Orchestrators/ContentOrchestratorIntegrationTests.cs`
+  - `UpdateEngine.Functions/test/Integration/Orchestrators/MetadataOrchestratorIntegrationTests.cs`
 - **Change Required**: Add `, null` for CacheService? parameter
 - **Pattern**: Same as ContentOrchestratorTests (already done)
 

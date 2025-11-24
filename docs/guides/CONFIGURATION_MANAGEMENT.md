@@ -9,12 +9,12 @@ This guide explains how configuration works in the Microsoft Update Server-Serve
 ### Configuration Sources (Priority Order)
 
 1. **🏆 AppHost Environment Variables** (Highest Priority)
-   - Injected by `AppHost/src/ConfigurationHelper.cs`
+   - Injected by `UpdateEngine.AppHost/src/ConfigurationHelper.cs`
    - Source: `appsettings.{Environment}.json` files
    - Used when running via Aspire orchestration
 
 2. **🥈 Azure Functions Environment Variables**
-   - From `UpdateEngine/src/local.settings.json`
+   - From `UpdateEngine.Functions/src/local.settings.json`
    - Used when running Functions directly via `func start`
 
 3. **🥉 AppHost Configuration Files**
@@ -70,12 +70,12 @@ graph TD
 
 ## Configuration Override Mechanism
 
-### When Using AppHost (`cd AppHost && dotnet run`)
+### When Using AppHost (`cd UpdateEngine.AppHost && dotnet run`)
 
 The `ConfigurationHelper.cs` automatically injects environment variables that override `local.settings.json`:
 
 ```csharp
-// From AppHost/src/ConfigurationHelper.cs
+// From UpdateEngine.AppHost/src/ConfigurationHelper.cs
 functions
     .WithEnvironment("SyncMetadataCriticalSchedule", schedules.SyncMetadataCriticalSchedule)
     .WithEnvironment("SyncContentSchedule", schedules.SyncContentSchedule)
@@ -138,7 +138,7 @@ functions
 
 ### Rapid Development Testing
 
-1. **Start AppHost**: `cd AppHost && dotnet run`
+1. **Start AppHost**: `cd UpdateEngine.AppHost && dotnet run`
    - Automatically uses Development configuration
    - Functions trigger every 1-5 minutes
    - Azurite storage emulator starts automatically
@@ -157,7 +157,7 @@ functions
 
 ### Direct Functions Testing
 
-1. **Start Functions Directly**: `cd UpdateEngine && func start`
+1. **Start Functions Directly**: `cd UpdateEngine.Functions && func start`
    - Uses `local.settings.json` configuration
    - No AppHost orchestration
    - Manual storage setup required
@@ -231,7 +231,7 @@ curl "http://localhost:7071/api/UniversalHealth"
 **Symptom**: Functions trigger at production intervals instead of development intervals
 
 **Solution**: 
-1. Verify running via AppHost: `cd AppHost && dotnet run`
+1. Verify running via AppHost: `cd UpdateEngine.AppHost && dotnet run`
 2. Check AppHost logs for environment variable injection
 3. Confirm `appsettings.Development.json` has correct schedules
 

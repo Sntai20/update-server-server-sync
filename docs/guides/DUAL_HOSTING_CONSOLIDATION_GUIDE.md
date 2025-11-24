@@ -94,7 +94,7 @@ UpdateEngine/
 These orchestrators contain all business logic and have NO dependencies on Azure Functions or ASP.NET Core:
 
 ```csharp
-// UpdateEngine/src/Core/Orchestrators/ISyncOrchestrator.cs
+// UpdateEngine.Functions/src/Core/Orchestrators/ISyncOrchestrator.cs
 
 namespace UpdateEngine.Core.Orchestrators;
 
@@ -117,7 +117,7 @@ public interface ISyncOrchestrator
         CancellationToken cancellationToken = default);
 }
 
-// UpdateEngine/src/Core/Orchestrators/SyncOrchestrator.cs
+// UpdateEngine.Functions/src/Core/Orchestrators/SyncOrchestrator.cs
 
 public class SyncOrchestrator : ISyncOrchestrator
 {
@@ -216,7 +216,7 @@ public class SyncOrchestrator : ISyncOrchestrator
 ### Step 2: Create Shared Models (Host-Agnostic)
 
 ```csharp
-// UpdateEngine/src/Core/Models/SyncModels.cs
+// UpdateEngine.Functions/src/Core/Models/SyncModels.cs
 
 namespace UpdateEngine.Core.Models;
 
@@ -285,7 +285,7 @@ public class SyncStatusResult
 ### Step 3a: Azure Functions Hosting Layer (Thin Adapter)
 
 ```csharp
-// UpdateEngine/src/Functions/Core/UnifiedSyncFunction.cs
+// UpdateEngine.Functions/src/Functions/Core/UnifiedSyncFunction.cs
 
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
@@ -436,7 +436,7 @@ public class UnifiedSyncFunction
 ### Step 3b: Worker Service Hosting Layer (Thin Adapter)
 
 ```csharp
-// UpdateEngine/src/WorkerService/Controllers/SyncController.cs
+// UpdateEngine.Functions/src/WorkerService/Controllers/SyncController.cs
 
 using Microsoft.AspNetCore.Mvc;
 using UpdateEngine.Core.Orchestrators;
@@ -512,7 +512,7 @@ public class SyncController : ControllerBase
     }
 }
 
-// UpdateEngine/src/WorkerService/Workers/SyncWorker.cs
+// UpdateEngine.Functions/src/WorkerService/Workers/SyncWorker.cs
 
 using UpdateEngine.Core.Orchestrators;
 using UpdateEngine.Core.Models;
@@ -596,7 +596,7 @@ public class SyncWorker : BackgroundService
 ### Step 4: Worker Service Program.cs
 
 ```csharp
-// UpdateEngine/src/WorkerService/Program.cs
+// UpdateEngine.Functions/src/WorkerService/Program.cs
 
 using UpdateEngine.Core.Orchestrators;
 using UpdateEngine.WorkerService.Workers;
@@ -641,7 +641,7 @@ app.Run();
 ### Step 5: Azure Functions Program.cs (Updated)
 
 ```csharp
-// UpdateEngine/src/Program.cs
+// UpdateEngine.Functions/src/Program.cs
 
 using Microsoft.Extensions.Hosting;
 using UpdateEngine.Core.Orchestrators;
@@ -676,7 +676,7 @@ host.Run();
 ### Test Orchestrators Directly (Host-Agnostic)
 
 ```csharp
-// UpdateEngine/test/Unit/OrchestratorTests/SyncOrchestratorTests.cs
+// UpdateEngine.Functions/test/Unit/OrchestratorTests/SyncOrchestratorTests.cs
 
 public class SyncOrchestratorTests
 {
@@ -781,10 +781,10 @@ public class SyncOrchestratorTests
 Easy to migrate between hosting models:
 ```bash
 # Start with Azure Functions
-dotnet publish UpdateEngine/src/UpdateEngine.csproj
+dotnet publish UpdateEngine.Functions/src/UpdateEngine.csproj
 
 # Switch to Worker Service later
-dotnet publish UpdateEngine/src/WorkerService/WorkerService.csproj
+dotnet publish UpdateEngine.Functions/src/WorkerService/WorkerService.csproj
 ```
 
 ## ?? Deployment Options
@@ -793,7 +793,7 @@ dotnet publish UpdateEngine/src/WorkerService/WorkerService.csproj
 
 ```bash
 # Deploy Azure Functions
-cd UpdateEngine/src
+cd UpdateEngine.Functions/src
 func azure functionapp publish <your-function-app>
 ```
 
@@ -845,11 +845,11 @@ spec:
 
 ## ?? Migration Checklist
 
-- [ ] Create `UpdateEngine/src/Core/Orchestrators/` directory
+- [ ] Create `UpdateEngine.Functions/src/Core/Orchestrators/` directory
 - [ ] Move business logic to orchestrators
-- [ ] Create host-agnostic models in `UpdateEngine/src/Core/Models/`
+- [ ] Create host-agnostic models in `UpdateEngine.Functions/src/Core/Models/`
 - [ ] Update Azure Functions to use orchestrators
-- [ ] Create `UpdateEngine/src/WorkerService/` project
+- [ ] Create `UpdateEngine.Functions/src/WorkerService/` project
 - [ ] Implement ASP.NET Core controllers
 - [ ] Implement background workers
 - [ ] Update DI registration (same for both hosts)

@@ -155,7 +155,7 @@ Use the ARM template in `/deploy` folder or configure these application settings
 **Option 1: Aspire (Recommended) - Includes Redis**
 ```bash
 # Start AppHost (starts Azure Functions + Redis automatically)
-cd ../../AppHost/src
+cd ../../UpdateEngine.AppHost/src
 dotnet run
 
 # Result:

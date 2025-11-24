@@ -10,9 +10,9 @@
 ### 1. **AppHost Integration** ?
 
 **Files Modified**:
-- `AppHost/src/AppHost.csproj` - Added WorkerService project reference
-- `AppHost/src/Program.cs` - Added Worker Service configuration
-- `AppHost/src/ConfigurationHelper.cs` - Created generic configuration method
+- `UpdateEngine.AppHost/src/AppHost.csproj` - Added WorkerService project reference
+- `UpdateEngine.AppHost/src/Program.cs` - Added Worker Service configuration
+- `UpdateEngine.AppHost/src/ConfigurationHelper.cs` - Created generic configuration method
 
 **What This Means**:
 - One command (`dotnet run`) starts everything
@@ -75,7 +75,7 @@ UpdateEngine__SyncConfiguration__SyncIntervalMinutes=60
 ### Step 1: Start AppHost
 
 ```powershell
-cd AppHost/src
+cd UpdateEngine.AppHost/src
 dotnet run
 ```
 
@@ -328,7 +328,7 @@ You should see:
 **You're ready to start!**
 
 ```powershell
-cd AppHost/src
+cd UpdateEngine.AppHost/src
 dotnet run
 ```
 

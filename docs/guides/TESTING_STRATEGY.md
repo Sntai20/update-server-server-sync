@@ -1,4 +1,4 @@
-﻿# Testing Strategy for Dual Hosting Architecture
+# Testing Strategy for Dual Hosting Architecture
 
 ## ?? Testing Philosophy
 
@@ -112,7 +112,7 @@ UpdateEngine/
 ### Example: Orchestrator Unit Test
 
 ```csharp
-// UpdateEngine/test/Unit/Orchestrators/SyncOrchestratorTests.cs
+// UpdateEngine.Functions/test/Unit/Orchestrators/SyncOrchestratorTests.cs
 
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
@@ -274,7 +274,7 @@ public class SyncOrchestratorTests
 **Example: CacheService Unit Tests**
 
 ```csharp
-// UpdateEngine/test/Unit/Services/CacheServiceTests.cs
+// UpdateEngine.Functions/test/Unit/Services/CacheServiceTests.cs
 
 using FluentAssertions;
 using Microsoft.Extensions.Caching.Distributed;
@@ -531,7 +531,7 @@ public class CacheServiceTests
 ### Example: In-Memory Integration Test
 
 ```csharp
-// UpdateEngine/test/Integration/InMemory/UnifiedSyncIntegrationTest.cs
+// UpdateEngine.Functions/test/Integration/InMemory/UnifiedSyncIntegrationTest.cs
 
 using Configuration;
 using FluentAssertions;
@@ -616,7 +616,7 @@ public class UnifiedSyncIntegrationTest
 ### Example: Aspire Integration Test
 
 ```csharp
-// UpdateEngine/test/Integration/Aspire/UnifiedSyncAspireTest.cs
+// UpdateEngine.Functions/test/Integration/Aspire/UnifiedSyncAspireTest.cs
 
 using FluentAssertions;
 using System.Net.Http.Json;
@@ -712,7 +712,7 @@ public class UnifiedSyncAspireTest
 ### Example: Dual Hosting E2E Test
 
 ```csharp
-// UpdateEngine/test/EndToEnd/DualHosting/FunctionsHostingE2ETest.cs
+// UpdateEngine.Functions/test/EndToEnd/DualHosting/FunctionsHostingE2ETest.cs
 
 using FluentAssertions;
 using System.Net.Http.Json;
@@ -857,7 +857,7 @@ public class FunctionsHostingE2ETest
 ### Worker Service E2E Tests
 
 ```csharp
-// UpdateEngine/test/EndToEnd/DualHosting/WorkerServiceHostingE2ETest.cs
+// UpdateEngine.Functions/test/EndToEnd/DualHosting/WorkerServiceHostingE2ETest.cs
 
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -940,7 +940,7 @@ public class WorkerServiceHostingE2ETest : IClassFixture<WebApplicationFactory<P
 ### CLI Tool E2E Tests
 
 ```csharp
-// UpdateEngine/test/EndToEnd/DualHosting/CLIToolE2ETest.cs
+// UpdateEngine.Functions/test/EndToEnd/DualHosting/CLIToolE2ETest.cs
 
 using FluentAssertions;
 using System.Diagnostics;
@@ -1049,7 +1049,7 @@ public class CLIToolE2ETest
 **Example: Orchestrator Caching Integration Test**
 
 ```csharp
-// UpdateEngine/test/Integration/Orchestrators/MetadataOrchestratorCachingTests.cs
+// UpdateEngine.Functions/test/Integration/Orchestrators/MetadataOrchestratorCachingTests.cs
 
 using FluentAssertions;
 using Microsoft.Extensions.Caching.Distributed;
@@ -1144,7 +1144,7 @@ public class MetadataOrchestratorCachingTests
 ### Redis Health Check Integration Tests ✨ **NEW**
 
 ```csharp
-// UpdateEngine/test/Integration/HealthChecks/RedisHealthCheckTests.cs
+// UpdateEngine.Functions/test/Integration/HealthChecks/RedisHealthCheckTests.cs
 
 using FluentAssertions;
 using Microsoft.Extensions.Caching.Distributed;

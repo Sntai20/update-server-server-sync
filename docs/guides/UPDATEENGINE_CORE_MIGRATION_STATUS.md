@@ -6,7 +6,7 @@ January 20, 2025
 ## ? Completed Steps
 
 ### 1. Created UpdateEngine.Core Project Structure
-- **Location**: `UpdateEngine/core/UpdateEngine.Core.csproj`
+- **Location**: `UpdateEngine.Core/src/UpdateEngine.Core.csproj`
 - **Status**: ? Complete
 - **Target Framework**: .NET 9.0
 - **Project Type**: Class library (SDK-style)
@@ -113,7 +113,7 @@ The file is locked by: ".NET Host (13196)"
 ```
 
 ### Step 2: Remove Old Core Folder
-**Location**: `UpdateEngine/src/Core/`
+**Location**: `UpdateEngine.Functions/src/Core/`
 **Action**: Delete folder after verifying all builds pass
 
 ### Step 3: Verify Compilation
@@ -125,10 +125,10 @@ taskkill /F /PID 13196
 dotnet clean
 
 # Build in order
-dotnet build UpdateEngine/core/UpdateEngine.Core.csproj
-dotnet build UpdateEngine/src/UpdateEngine.csproj
+dotnet build UpdateEngine.Core/src/UpdateEngine.Core.csproj
+dotnet build UpdateEngine.Functions/src/UpdateEngine.csproj
 dotnet build WorkerService/WorkerService.csproj
-dotnet build UpdateEngine/test/UpdateEngineTest.csproj
+dotnet build UpdateEngine.Functions/test/UpdateEngineTest.csproj
 
 # Full solution build
 dotnet build microsoft-update.sln
@@ -199,7 +199,7 @@ UpdateEngine     WorkerService      update-cli
 **Resolution**: Kill process or restart Visual Studio
 
 ### 2. Original Core Folder Still Exists
-**Issue**: `UpdateEngine/src/Core/` still contains original files  
+**Issue**: `UpdateEngine.Functions/src/Core/` still contains original files  
 **Impact**: None (migration copied files, didn't move them)  
 **Action**: Delete after verification
 

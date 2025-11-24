@@ -134,7 +134,7 @@ public class FeatureFlags
 ### Registration in DI
 
 ```csharp
-// UpdateEngine/src/Core/ServiceCollectionExtensions.cs
+// UpdateEngine.Functions/src/Core/ServiceCollectionExtensions.cs
 
 public static IServiceCollection AddUpdateEngineCore(
     this IServiceCollection services,
@@ -158,7 +158,7 @@ public static IServiceCollection AddUpdateEngineCore(
 #### Pattern 1: Hot-Reload (Singleton Services)
 
 ```csharp
-// UpdateEngine/src/Core/Orchestrators/SyncOrchestrator.cs
+// UpdateEngine.Functions/src/Core/Orchestrators/SyncOrchestrator.cs
 
 public class SyncOrchestrator : ISyncOrchestrator
 {
@@ -216,7 +216,7 @@ public class SyncOrchestrator : ISyncOrchestrator
 #### Pattern 2: Per-Request Snapshot (Scoped Services)
 
 ```csharp
-// UpdateEngine/src/WorkerService/Controllers/SyncController.cs
+// UpdateEngine.Functions/src/WorkerService/Controllers/SyncController.cs
 
 [ApiController]
 [Route("api/[controller]")]
@@ -257,7 +257,7 @@ public class SyncController : ControllerBase
 #### Pattern 3: Startup Only (Infrastructure Services)
 
 ```csharp
-// UpdateEngine/src/Core/ServiceCollectionExtensions.cs
+// UpdateEngine.Functions/src/Core/ServiceCollectionExtensions.cs
 
 services.AddSingleton<IMetadataStore>(provider =>
 {
@@ -276,7 +276,7 @@ services.AddSingleton<IMetadataStore>(provider =>
 ### Configuration Hot-Reload Testing
 
 ```csharp
-// UpdateEngine/test/Integration/ConfigurationHotReloadTest.cs
+// UpdateEngine.Functions/test/Integration/ConfigurationHotReloadTest.cs
 
 [Collection("InMemory")]
 public class ConfigurationHotReloadTest
@@ -343,7 +343,7 @@ public class ConfigurationHotReloadTest
 ### Health Check Structure
 
 ```
-UpdateEngine/src/Core/HealthChecks/
+UpdateEngine.Functions/src/Core/HealthChecks/
 ??? MetadataStoreHealthCheck.cs      # Check metadata store accessibility
 ??? ContentStoreHealthCheck.cs       # Check content store accessibility
 ??? UpstreamConnectionHealthCheck.cs # Check upstream server connectivity
@@ -353,7 +353,7 @@ UpdateEngine/src/Core/HealthChecks/
 ### Health Check Implementation
 
 ```csharp
-// UpdateEngine/src/Core/HealthChecks/MetadataStoreHealthCheck.cs
+// UpdateEngine.Functions/src/Core/HealthChecks/MetadataStoreHealthCheck.cs
 
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
@@ -418,7 +418,7 @@ public class MetadataStoreHealthCheck : IHealthCheck
 ```
 
 ```csharp
-// UpdateEngine/src/Core/HealthChecks/UpstreamConnectionHealthCheck.cs
+// UpdateEngine.Functions/src/Core/HealthChecks/UpstreamConnectionHealthCheck.cs
 
 public class UpstreamConnectionHealthCheck : IHealthCheck
 {
@@ -482,7 +482,7 @@ public class UpstreamConnectionHealthCheck : IHealthCheck
 ### Registration in DI
 
 ```csharp
-// UpdateEngine/src/Core/ServiceCollectionExtensions.cs
+// UpdateEngine.Functions/src/Core/ServiceCollectionExtensions.cs
 
 public static IServiceCollection AddUpdateEngineCore(
     this IServiceCollection services,
@@ -516,7 +516,7 @@ public static IServiceCollection AddUpdateEngineCore(
 ### Usage in Azure Functions
 
 ```csharp
-// UpdateEngine/src/Functions/Management/HealthFunction.cs
+// UpdateEngine.Functions/src/Functions/Management/HealthFunction.cs
 
 public class HealthFunction
 {
@@ -587,7 +587,7 @@ public class HealthFunction
 ### Usage in Worker Service
 
 ```csharp
-// UpdateEngine/src/WorkerService/Program.cs
+// UpdateEngine.Functions/src/WorkerService/Program.cs
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -635,7 +635,7 @@ app.Run();
 ### Pre-Operation Validation in Orchestrators
 
 ```csharp
-// UpdateEngine/src/Core/Orchestrators/SyncOrchestrator.cs
+// UpdateEngine.Functions/src/Core/Orchestrators/SyncOrchestrator.cs
 
 public class SyncOrchestrator : ISyncOrchestrator
 {
@@ -855,7 +855,7 @@ public class AppConfig
 ### CacheService Implementation
 
 ```csharp
-// UpdateEngine/src/Core/Services/CacheService.cs
+// UpdateEngine.Functions/src/Core/Services/CacheService.cs
 public class CacheService
 {
     private readonly IDistributedCache? distributedCache;
@@ -955,7 +955,7 @@ public class CacheService
 ### Usage in Orchestrators
 
 ```csharp
-// UpdateEngine/src/Core/Orchestrators/MetadataOrchestrator.cs
+// UpdateEngine.Functions/src/Core/Orchestrators/MetadataOrchestrator.cs
 public class MetadataOrchestrator : IMetadataOrchestrator
 {
     private readonly IMetadataStore metadataStore;
@@ -1010,7 +1010,7 @@ public class MetadataOrchestrator : IMetadataOrchestrator
 ### Cache Invalidation in SyncOrchestrator
 
 ```csharp
-// UpdateEngine/src/Core/Orchestrators/SyncOrchestrator.cs
+// UpdateEngine.Functions/src/Core/Orchestrators/SyncOrchestrator.cs
 public class SyncOrchestrator : ISyncOrchestrator
 {
     private readonly ISyncService syncService;
@@ -1046,7 +1046,7 @@ public class SyncOrchestrator : ISyncOrchestrator
 ### Registration in DI
 
 ```csharp
-// UpdateEngine/src/Core/ServiceCollectionExtensions.cs
+// UpdateEngine.Functions/src/Core/ServiceCollectionExtensions.cs
 public static IServiceCollection AddUpdateEngineCore(
     this IServiceCollection services,
     IConfiguration configuration)
@@ -1115,7 +1115,7 @@ public static IServiceCollection AddUpdateEngineCore(
 ### Redis Health Check
 
 ```csharp
-// UpdateEngine/src/Core/HealthChecks/RedisHealthCheck.cs
+// UpdateEngine.Functions/src/Core/HealthChecks/RedisHealthCheck.cs
 public class RedisHealthCheck : IHealthCheck
 {
     private readonly IDistributedCache cache;
@@ -1225,7 +1225,7 @@ msupdate:                          # Configurable prefix
 ### Testing with MemoryDistributedCache
 
 ```csharp
-// UpdateEngine/test/Unit/Services/CacheServiceTests.cs
+// UpdateEngine.Functions/test/Unit/Services/CacheServiceTests.cs
 public class CacheServiceTests
 {
     [Fact]

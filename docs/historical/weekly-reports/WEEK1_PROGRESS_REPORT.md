@@ -23,22 +23,22 @@
 ### 2. Health Check Implementations ?
 - **Status**: **COMPLETE**
 - **Files Created**:
-  - `UpdateEngine/src/Core/HealthChecks/MetadataStoreHealthCheck.cs`
+  - `UpdateEngine.Functions/src/Core/HealthChecks/MetadataStoreHealthCheck.cs`
     - Checks metadata store accessibility
     - Detects reindexing requirements (returns Degraded)
     - Tags: `storage`, `critical`
   
-  - `UpdateEngine/src/Core/HealthChecks/ContentStoreHealthCheck.cs`
+  - `UpdateEngine.Functions/src/Core/HealthChecks/ContentStoreHealthCheck.cs`
     - Checks content store accessibility
     - Optional store (returns Degraded if not configured)
     - Tags: `storage`
   
-  - `UpdateEngine/src/Core/HealthChecks/UpstreamConnectionHealthCheck.cs`
+  - `UpdateEngine.Functions/src/Core/HealthChecks/UpstreamConnectionHealthCheck.cs`
     - Checks upstream Microsoft Update server connectivity
     - 5-second timeout
     - Tags: `network`
   
-  - `UpdateEngine/src/Core/HealthChecks/AzureBlobStorageHealthCheck.cs`
+  - `UpdateEngine.Functions/src/Core/HealthChecks/AzureBlobStorageHealthCheck.cs`
     - Checks Azure Blob Storage connectivity
     - Verifies containers exist
     - Tags: `storage`, `azure`, `critical`
@@ -52,8 +52,8 @@
 ### 3. ISyncService Interface & Implementation ?
 - **Status**: **COMPLETE**
 - **Files**:
-  - `UpdateEngine/src/Services/ISyncService.cs` - Service interface
-  - `UpdateEngine/src/Services/SyncService.cs` - Basic implementation
+  - `UpdateEngine.Functions/src/Services/ISyncService.cs` - Service interface
+  - `UpdateEngine.Functions/src/Services/SyncService.cs` - Basic implementation
 
 - **Implemented Methods**:
   - `GetSyncStatusAsync()` - Returns current sync state
@@ -74,7 +74,7 @@
 
 ### 4. ServiceCollectionExtensions.cs ?
 - **Status**: **COMPLETE - BUILDS SUCCESSFULLY**
-- **File**: `UpdateEngine/src/Core/ServiceCollectionExtensions.cs`
+- **File**: `UpdateEngine.Functions/src/Core/ServiceCollectionExtensions.cs`
 - **Functionality**:
   - ? Centralized DI registration for all hosting models
   - ? `IOptionsMonitor<AppConfig>` registration for hot-reload
@@ -95,7 +95,7 @@
 
 ### 5. SyncOrchestrator Updates ?
 - **Status**: **COMPLETE - INTEGRATED WITH ISYNCSERVICE**
-- **File**: `UpdateEngine/src/Core/Orchestrators/SyncOrchestrator.cs`
+- **File**: `UpdateEngine.Functions/src/Core/Orchestrators/SyncOrchestrator.cs`
 - **Updates**:
   - ? Uses `IOptionsMonitor<AppConfig>` for hot-reload
   - ? Subscribes to configuration changes
@@ -112,7 +112,7 @@
 
 ### 6. UnifiedSyncFunction ?
 - **Status**: **COMPLETE - BUILDS SUCCESSFULLY**
-- **File**: `UpdateEngine/src/Functions/Core/UnifiedSyncFunction.cs`
+- **File**: `UpdateEngine.Functions/src/Functions/Core/UnifiedSyncFunction.cs`
 - **Functionality**:
   - ? HTTP endpoint: `POST /api/sync`
   - ? Status endpoint: `GET /api/sync/status`
@@ -123,7 +123,7 @@
 
 ### 7. Program.cs (UpdateEngine) ?
 - **Status**: **COMPLETE - BUILDS SUCCESSFULLY**
-- **File**: `UpdateEngine/src/Program.cs`
+- **File**: `UpdateEngine.Functions/src/Program.cs`
 - **Updates**:
   - ? Calls `config.AddSharedAppConfiguration()` in ConfigureAppConfiguration
   - ? Calls `services.AddUpdateEngineCore(configuration)` in ConfigureServices
@@ -134,8 +134,8 @@
 ### 8. AppHost Configuration ?
 - **Status**: **COMPLETE - BUILDS SUCCESSFULLY**
 - **Files**:
-  - `AppHost/src/Program.cs` - Main entry point
-  - `AppHost/src/ConfigurationHelper.cs` - Environment variable mapping
+  - `UpdateEngine.AppHost/src/Program.cs` - Main entry point
+  - `UpdateEngine.AppHost/src/ConfigurationHelper.cs` - Environment variable mapping
 
 - **Functionality**:
   - ? Loads shared configuration from Configuration project
@@ -205,7 +205,7 @@
 
 ### 1. Unit Tests for SyncOrchestrator
 - **Status**: **PENDING** (not blocking)
-- **Location**: `UpdateEngine/test/Unit/Orchestrators/SyncOrchestratorTests.cs`
+- **Location**: `UpdateEngine.Functions/test/Unit/Orchestrators/SyncOrchestratorTests.cs`
 - **Test Cases**:
   - Configuration hot-reload
   - Feature flag validation
@@ -215,7 +215,7 @@
 
 ### 2. Integration Tests
 - **Status**: **PENDING** (not blocking)
-- **Location**: `UpdateEngine/test/Integration/SyncOrchestratorIntegrationTests.cs`
+- **Location**: `UpdateEngine.Functions/test/Integration/SyncOrchestratorIntegrationTests.cs`
 - **Test Cases**:
   - End-to-end sync flow
   - Configuration hot-reload in action
@@ -224,7 +224,7 @@
 
 ### 3. Test AppHost Orchestration
 - **Status**: **READY TO TEST**
-- **Command**: `cd AppHost/src && dotnet run`
+- **Command**: `cd UpdateEngine.AppHost/src && dotnet run`
 - **Expected**: Aspire dashboard, Function endpoints available
 
 ---

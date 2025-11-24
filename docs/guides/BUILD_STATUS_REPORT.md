@@ -18,7 +18,7 @@ CS0246: The type or namespace name 'ServiceMetadataFilter' could not be found
 
 **Root Cause**: `ServiceMetadataFilter` is referenced by `ISyncService` but hasn't been migrated to UpdateEngine.Core yet.
 
-**Location**: Likely in `UpdateEngine/src/Services/Models.cs` or `UpdateEngine/src/Models/`
+**Location**: Likely in `UpdateEngine.Functions/src/Services/Models.cs` or `UpdateEngine.Functions/src/Models/`
 
 ## Migration Progress
 
@@ -59,13 +59,13 @@ CS0246: The type or namespace name 'ServiceMetadataFilter' could not be found
 #### Missing Model Types
 These types are referenced by services but haven't been migrated yet:
 1. **ServiceMetadataFilter** - Used by ISyncService.SyncContentAsync
-2. Possibly other model types in `UpdateEngine/src/Models/`
+2. Possibly other model types in `UpdateEngine.Functions/src/Models/`
 
 #### Files Still in UpdateEngine/src
 The following folders still exist in the original location:
-- `UpdateEngine/src/Core/` (should be removed after verification)
-- `UpdateEngine/src/Services/` (original, can be removed after migration complete)
-- `UpdateEngine/src/Models/` (may contain types needed by Core)
+- `UpdateEngine.Functions/src/Core/` (should be removed after verification)
+- `UpdateEngine.Functions/src/Services/` (original, can be removed after migration complete)
+- `UpdateEngine.Functions/src/Models/` (may contain types needed by Core)
 
 ## Solution: Complete Model Migration
 
@@ -99,7 +99,7 @@ If you want to get a successful build quickly while continuing migration:
 ### Option A: Keep Services in UpdateEngine Project Temporarily
 
 1. **Revert Service Migration**:
-   - Move services back to `UpdateEngine/src/Services/`
+   - Move services back to `UpdateEngine.Functions/src/Services/`
    - Keep only orchestrators in `UpdateEngine.Core/`
 
 2. **Update Project References**:
@@ -133,7 +133,7 @@ If you want to get a successful build quickly while continuing migration:
 
 3. **Build UpdateEngine.Core**:
 ```powershell
-dotnet build UpdateEngine/core/UpdateEngine.Core.csproj
+dotnet build UpdateEngine.Core/src/UpdateEngine.Core.csproj
 ```
 
 ### Follow-up (1-2 hours)
@@ -149,8 +149,8 @@ dotnet build UpdateEngine/core/UpdateEngine.Core.csproj
 ```
 
 6. **Remove old folders**:
-   - `UpdateEngine/src/Core/`
-   - `UpdateEngine/src/Services/` (if fully migrated)
+   - `UpdateEngine.Functions/src/Core/`
+   - `UpdateEngine.Functions/src/Services/` (if fully migrated)
 
 7. **Full solution build**:
 ```powershell
@@ -212,26 +212,26 @@ dotnet build
 ## Files Changed This Session
 
 ### Created
-- `UpdateEngine/core/UpdateEngine.Core.csproj`
-- `UpdateEngine/core/ServiceCollectionExtensions.cs`
-- `UpdateEngine/core/HealthChecks/*.cs` (5 files)
-- `UpdateEngine/core/Models/SyncModels.cs`
-- `UpdateEngine/core/Orchestrators/*.cs` (5 files)
-- `UpdateEngine/core/Services/CacheService.cs`
-- `UpdateEngine/core/Services/*.cs` (12 service files)
+- `UpdateEngine.Core/src/UpdateEngine.Core.csproj`
+- `UpdateEngine.Core/src/ServiceCollectionExtensions.cs`
+- `UpdateEngine.Core/src/HealthChecks/*.cs` (5 files)
+- `UpdateEngine.Core/src/Models/SyncModels.cs`
+- `UpdateEngine.Core/src/Orchestrators/*.cs` (5 files)
+- `UpdateEngine.Core/src/Services/CacheService.cs`
+- `UpdateEngine.Core/src/Services/*.cs` (12 service files)
 - `scripts/migration/Migrate-UpdateEngineCore.ps1`
 - `docs/guides/UPDATEENGINE_CORE_MIGRATION_STATUS.md`
 
 ### Modified
 - `Directory.Packages.props` (added 2 package versions)
-- `UpdateEngine/core/ServiceCollectionExtensions.cs` (removed ISyncService registration)
-- `UpdateEngine/core/Orchestrators/SyncOrchestrator.cs` (fixed using statements)
-- `UpdateEngine/core/Services/ISyncService.cs` (changed namespace)
+- `UpdateEngine.Core/src/ServiceCollectionExtensions.cs` (removed ISyncService registration)
+- `UpdateEngine.Core/src/Orchestrators/SyncOrchestrator.cs` (fixed using statements)
+- `UpdateEngine.Core/src/Services/ISyncService.cs` (changed namespace)
 
 ### Not Yet Modified
-- `UpdateEngine/src/UpdateEngine.csproj` (needs Core reference)
+- `UpdateEngine.Functions/src/UpdateEngine.csproj` (needs Core reference)
 - `WorkerService/WorkerService.csproj` (needs Core reference)
-- `UpdateEngine/test/UpdateEngineTest.csproj` (needs Core reference)
+- `UpdateEngine.Functions/test/UpdateEngineTest.csproj` (needs Core reference)
 
 ## Next Session Plan
 

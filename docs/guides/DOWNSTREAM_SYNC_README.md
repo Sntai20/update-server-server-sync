@@ -51,7 +51,7 @@ dotnet run
 
 ### Orchestration
 - **`UpdateEngine.WorkerService/src/Workers/SyncWorker.cs`**: Dual-mode sync worker (upstream or downstream)
-- **`UpdateEngine.AppHost/src/Program.cs`**: Conditional storage and service discovery configuration
+- **`UpdateEngine.UpdateEngine.AppHost/src/Program.cs`**: Conditional storage and service discovery configuration
 - **`UpdateEngine.Core/src/ServiceCollectionExtensions.cs`**: DI registration with Aspire service discovery
 
 ### Testing & Documentation
@@ -139,7 +139,7 @@ To make WorkerService sync directly from Microsoft Update instead:
 
 ### 1. AppHost Detects Configuration
 
-`UpdateEngine.AppHost/src/Program.cs` (lines 107-150):
+`UpdateEngine.UpdateEngine.AppHost/src/Program.cs` (lines 107-150):
 ```csharp
 var workerServiceConfig = new AppConfig();
 builder.Configuration.GetSection(AppConfig.SectionName).Bind(workerServiceConfig);

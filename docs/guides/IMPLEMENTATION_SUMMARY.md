@@ -1,4 +1,4 @@
-﻿# Implementation Summary: Dual Hosting + Solution Integration
+# Implementation Summary: Dual Hosting + Solution Integration
 
 ## 🎯 Complete Architecture Overview
 
@@ -141,7 +141,7 @@ update-server-server-sync/
 ### What AppHost Does
 
 ```csharp
-// AppHost/src/Program.cs
+// UpdateEngine.AppHost/src/Program.cs
 
 var builder = DistributedApplication.CreateBuilder(args);
 
@@ -163,7 +163,7 @@ builder.Build().Run();
 
 **One Command Starts Everything:**
 ```bash
-cd AppHost/src && dotnet run
+cd UpdateEngine.AppHost/src && dotnet run
 
 # Result:
 # ? Azurite running on port 10000
@@ -261,7 +261,7 @@ cd AppHost/src && dotnet run
 - [x] ✅ **Create `CACHING_GUIDE.md`** (comprehensive documentation)
 - [x] ✅ Update `ARCHITECTURE_DECISIONS.md` with caching decision
 - [x] ✅ Update `TESTING_STRATEGY.md` with caching test patterns
-- [x] ✅ Update `UpdateEngine/src/README.md` with caching features
+- [x] ✅ Update `UpdateEngine.Functions/src/README.md` with caching features
 - [x] ✅ **Create `WEEK3_COMPLETION_SUMMARY.md`**
 - [x] ✅ Validate all tests passing (17/17 cache tests)
 - [x] ✅ Validate zero compilation errors
@@ -300,7 +300,7 @@ cd AppHost/src && dotnet run
 ### ✅ Phase 3: Project Structure Standardization (November 2025) - COMPLETE
 
 #### UpdateEngine.Core Restructuring ✅ COMPLETE (November 23, 2025)
-- [x] ✅ Move `UpdateEngine/core/` to `UpdateEngine.Core/src/`
+- [x] ✅ Move `UpdateEngine.Core/src/` to `UpdateEngine.Core/src/`
 - [x] ✅ Update all project references (UpdateEngine, WorkerService)
 - [x] ✅ Update solution file with new path
 - [x] ✅ Build and test validation (22 unit tests passing)

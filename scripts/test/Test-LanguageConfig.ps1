@@ -86,9 +86,9 @@ try {
 catch {
     Write-Host "❌ Service not available at $BaseUrl" -ForegroundColor Red
     Write-Host "Please start the AppHost or UpdateEngine first:" -ForegroundColor Yellow
-    Write-Host "  cd AppHost/src && dotnet run" -ForegroundColor White
+    Write-Host "  cd UpdateEngine.AppHost/src && dotnet run" -ForegroundColor White
     Write-Host "  OR" -ForegroundColor Yellow
-    Write-Host "  cd UpdateEngine/src && func start" -ForegroundColor White
+    Write-Host "  cd UpdateEngine.Functions/src && func start" -ForegroundColor White
     return
 }
 

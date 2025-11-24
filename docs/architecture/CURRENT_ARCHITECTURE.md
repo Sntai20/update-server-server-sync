@@ -268,7 +268,7 @@ public class AppConfig
 
 - **UpdateEngine.Functions/src/local.settings.json** - Azure Functions local settings
 - **UpdateEngine.WorkerService/src/appsettings.json** - Worker Service settings
-- **UpdateEngine.AppHost/src/appsettings.json** - Aspire orchestration settings
+- **UpdateEngine.UpdateEngine.AppHost/src/appsettings.json** - Aspire orchestration settings
 - **UpdateEngine.Configuration/shared/appsettings.shared.json** - Shared defaults
 
 ## Deployment Models
@@ -456,8 +456,8 @@ The original `src/tools/upsync` CLI tool is being superseded by:
 
 | Old Name | New Name | Notes |
 |----------|----------|-------|
-| `UpdateEngine/` | `UpdateEngine.Functions/` | Clarity |
-| `AppHost/` | `UpdateEngine.AppHost/` | Consistency |
+| `UpdateEngine.Functions/` | `UpdateEngine.Functions/` | Clarity |
+| `UpdateEngine.AppHost/` | `UpdateEngine.AppHost/` | Consistency |
 | `azure-functions/` | `UpdateEngine.Functions/` | Deprecated |
 
 ## Related Documentation

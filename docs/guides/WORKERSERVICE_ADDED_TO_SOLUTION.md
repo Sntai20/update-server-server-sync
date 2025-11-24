@@ -107,7 +107,7 @@ dotnet build microsoft-update.sln
 # ? WorkerService NOT built
 
 # Running AppHost
-cd AppHost/src && dotnet run
+cd UpdateEngine.AppHost/src && dotnet run
 # ? WorkerService NOT available for orchestration
 ```
 
@@ -118,7 +118,7 @@ dotnet build microsoft-update.sln
 # ? WorkerService built along with everything else
 
 # Running AppHost
-cd AppHost/src && dotnet run
+cd UpdateEngine.AppHost/src && dotnet run
 # ? WorkerService available for orchestration
 ```
 
@@ -138,8 +138,8 @@ Build individual projects or use a different solution file structure. This doesn
 ```bash
 # This works
 dotnet build WorkerService/WorkerService.csproj
-dotnet build UpdateEngine/src/UpdateEngine.csproj
-dotnet build AppHost/src/AppHost.csproj
+dotnet build UpdateEngine.Functions/src/UpdateEngine.csproj
+dotnet build UpdateEngine.AppHost/src/AppHost.csproj
 
 # This fails
 dotnet build microsoft-update.sln
@@ -155,7 +155,7 @@ dotnet build WorkerService/WorkerService.csproj
 
 ### 2. Test WorkerService with Aspire
 ```bash
-cd AppHost/src
+cd UpdateEngine.AppHost/src
 dotnet run
 # Expected: WorkerService starts and loads configuration correctly
 ```

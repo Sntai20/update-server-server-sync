@@ -300,7 +300,7 @@ trigger:
     - develop
   paths:
     include:
-    - UpdateEngine/
+    - UpdateEngine.Functions/
     - Deployment/
 
 variables:
@@ -328,27 +328,27 @@ stages:
       displayName: 'Restore packages'
       inputs:
         command: 'restore'
-        projects: 'UpdateEngine/src/*.csproj'
+        projects: 'UpdateEngine.Functions/src/*.csproj'
         
     - task: DotNetCoreCLI@2
       displayName: 'Build project'
       inputs:
         command: 'build'
-        projects: 'UpdateEngine/src/*.csproj'
+        projects: 'UpdateEngine.Functions/src/*.csproj'
         arguments: '--configuration $(buildConfiguration) --no-restore'
         
     - task: DotNetCoreCLI@2
       displayName: 'Run tests'
       inputs:
         command: 'test'
-        projects: 'UpdateEngine/test/*.csproj'
+        projects: 'UpdateEngine.Functions/test/*.csproj'
         arguments: '--configuration $(buildConfiguration) --collect "Code coverage"'
         
     - task: DotNetCoreCLI@2
       displayName: 'Publish functions'
       inputs:
         command: 'publish'
-        projects: 'UpdateEngine/src/*.csproj'
+        projects: 'UpdateEngine.Functions/src/*.csproj'
         arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/functions'
         publishWebProjects: false
         zipAfterPublish: true
@@ -445,14 +445,14 @@ name: Deploy Azure Functions
 on:
   push:
     branches: [ main, develop ]
-    paths: [ 'UpdateEngine/**', 'Deployment/**' ]
+    paths: [ 'UpdateEngine.Functions/**', 'Deployment/**' ]
   pull_request:
     branches: [ main ]
 
 env:
   DOTNET_VERSION: '9.x'
   AZURE_FUNCTIONAPP_NAME: 'msupdate-functions'
-  AZURE_FUNCTIONAPP_PACKAGE_PATH: 'UpdateEngine/src'
+  AZURE_FUNCTIONAPP_PACKAGE_PATH: 'UpdateEngine.Functions/src'
 
 jobs:
   build-and-test:

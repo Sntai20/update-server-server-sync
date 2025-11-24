@@ -207,7 +207,7 @@ function Deploy-FunctionCode {
     try {
         # Build the project
         Write-Status "Building the function project..."
-        Push-Location "UpdateEngine/src"
+        Push-Location "UpdateEngine.Functions/src"
         
         dotnet build --configuration Release
         if ($LASTEXITCODE -ne 0) {

@@ -5,8 +5,8 @@
 ```powershell
 # Build all projects
 dotnet build Configuration/Configuration.csproj
-dotnet build UpdateEngine/src/UpdateEngine.csproj  
-dotnet build AppHost/src/AppHost.csproj
+dotnet build UpdateEngine.Functions/src/UpdateEngine.csproj  
+dotnet build UpdateEngine.AppHost/src/AppHost.csproj
 
 # Clean build
 dotnet clean && dotnet build --no-incremental
@@ -18,10 +18,10 @@ dotnet clean && dotnet build --no-incremental
 
 ```powershell
 # Run with Aspire (recommended)
-cd AppHost/src && dotnet run
+cd UpdateEngine.AppHost/src && dotnet run
 
 # Run Functions standalone
-cd UpdateEngine/src && func start
+cd UpdateEngine.Functions/src && func start
 
 # Run specific configuration
 func start --environment Development
@@ -203,7 +203,7 @@ var orchestrator = new SyncOrchestrator(
 ### Build Error: "Type 'AppConfig' does not exist"
 ```powershell
 # Fix: Add project reference
-dotnet add UpdateEngine/src/UpdateEngine.csproj reference Configuration/Configuration.csproj
+dotnet add UpdateEngine.Functions/src/UpdateEngine.csproj reference Configuration/Configuration.csproj
 ```
 
 ### Error: "IMetadataStore not registered"
@@ -240,13 +240,13 @@ services.AddUpdateEngineCore(context.Configuration);
 | Component | Location |
 |-----------|----------|
 | Configuration POCOs | `Configuration/*.cs` |
-| Health Checks | `UpdateEngine/src/Core/HealthChecks/*.cs` |
-| Orchestrators | `UpdateEngine/src/Core/Orchestrators/*.cs` |
-| Services | `UpdateEngine/src/Services/*.cs` |
-| DI Registration | `UpdateEngine/src/Core/ServiceCollectionExtensions.cs` |
-| Azure Functions | `UpdateEngine/src/Functions/Core/*.cs` |
-| Program.cs | `UpdateEngine/src/Program.cs` |
-| AppHost | `AppHost/src/Program.cs` |
+| Health Checks | `UpdateEngine.Functions/src/Core/HealthChecks/*.cs` |
+| Orchestrators | `UpdateEngine.Functions/src/Core/Orchestrators/*.cs` |
+| Services | `UpdateEngine.Functions/src/Services/*.cs` |
+| DI Registration | `UpdateEngine.Functions/src/Core/ServiceCollectionExtensions.cs` |
+| Azure Functions | `UpdateEngine.Functions/src/Functions/Core/*.cs` |
+| Program.cs | `UpdateEngine.Functions/src/Program.cs` |
+| AppHost | `UpdateEngine.AppHost/src/Program.cs` |
 | Documentation | `docs/guides/*.md` |
 
 ---
@@ -323,7 +323,7 @@ SyncComprehensiveSchedule="0 0 */1 * * *"
 
 ---
 
-**Quick Start**: `cd AppHost/src && dotnet run` ??
+**Quick Start**: `cd UpdateEngine.AppHost/src && dotnet run` ??
 
 **Status**: ? Week 1 Complete - All Builds Green
 

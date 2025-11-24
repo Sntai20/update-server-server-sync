@@ -37,7 +37,7 @@ Successfully cleaned up duplicate Azure Function implementations, fixed configur
 ### 3. Enhanced Health Checks
 
 #### Azure Blob Storage Health Check
-**File**: `UpdateEngine/core/HealthChecks/AzureBlobStorageHealthCheck.cs`
+**File**: `UpdateEngine.Core/src/HealthChecks/AzureBlobStorageHealthCheck.cs`
 
 **Improvements**:
 - ? Added Azurite detection logic
@@ -73,11 +73,11 @@ azure-storage: Unhealthy - Connection failed
 
 ```bash
 # UpdateEngine.Core
-dotnet build UpdateEngine/core/UpdateEngine.Core.csproj
+dotnet build UpdateEngine.Core/src/UpdateEngine.Core.csproj
 # Result: ? Build succeeded with 13 warnings (nullability - expected)
 
 # UpdateEngine (Azure Functions)
-dotnet build UpdateEngine/src/UpdateEngine.csproj
+dotnet build UpdateEngine.Functions/src/UpdateEngine.csproj
 # Result: ? Build succeeded with 1 warning (CA2022 - expected)
 ```
 
@@ -90,7 +90,7 @@ dotnet build UpdateEngine/src/UpdateEngine.csproj
 ### Retained Core Functions (Organized)
 
 ```
-UpdateEngine/src/Functions/
+UpdateEngine.Functions/src/Functions/
 ??? Core/ (Primary implementations - KEEP)
 ?   ??? WebServiceFunctions.cs           ? Consolidated SOAP endpoints
 ?   ??? ContentDeliveryFunctions.cs      ? Modern content delivery
@@ -281,16 +281,16 @@ curl http://localhost:$port/api/content/status
 
 ### Updated Files
 
-1. **`UpdateEngine/src/local.settings.json`**
+1. **`UpdateEngine.Functions/src/local.settings.json`**
    - Fixed MaintenanceSchedule format
    - CRON expression: `"0 0 2 */7 * *"`
 
-2. **`UpdateEngine/core/HealthChecks/AzureBlobStorageHealthCheck.cs`**
+2. **`UpdateEngine.Core/src/HealthChecks/AzureBlobStorageHealthCheck.cs`**
    - Added Azurite detection
    - Enhanced health reporting
    - Connection source tracking
 
-3. **`UpdateEngine/core/ServiceCollectionExtensions.cs`**
+3. **`UpdateEngine.Core/src/ServiceCollectionExtensions.cs`**
    - No changes needed (already correct)
    - Properly configured for Aspire
 
@@ -324,7 +324,7 @@ curl http://localhost:$port/api/content/status
 
 1. **Start Aspire AppHost**
    ```powershell
-   cd AppHost\src && dotnet run
+   cd UpdateEngine.AppHost\src && dotnet run
    ```
 
 2. **Run Post-Cleanup Tests**

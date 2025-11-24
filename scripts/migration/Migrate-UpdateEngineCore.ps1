@@ -6,8 +6,8 @@ $ErrorActionPreference = "Stop"
 Write-Host "=== UpdateEngine.Core Migration Script ===" -ForegroundColor Cyan
 Write-Host ""
 
-$sourceRoot = "UpdateEngine/src/Core"
-$destRoot = "UpdateEngine/core"
+$sourceRoot = "UpdateEngine.Functions/src/Core"
+$destRoot = "UpdateEngine.Core/src"
 
 # Files and folders to migrate
 $itemsToMove = @(
@@ -60,7 +60,7 @@ Write-Host "Next Steps (Manual):" -ForegroundColor Cyan
 Write-Host "1. Build UpdateEngine.Core project to verify no errors"
 Write-Host "2. Update UpdateEngine.csproj to reference UpdateEngine.Core"
 Write-Host "3. Update WorkerService.csproj to reference UpdateEngine.Core"
-Write-Host "4. Remove 'UpdateEngine/src/Core' folder after verifying build"
+Write-Host "4. Remove 'UpdateEngine.Functions/src/Core' folder after verifying build"
 Write-Host "5. Run full test suite"
 Write-Host ""
 Write-Host "Commands to run:" -ForegroundColor Yellow

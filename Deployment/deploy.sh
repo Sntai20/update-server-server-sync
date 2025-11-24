@@ -197,7 +197,7 @@ deploy_function_code() {
     
     # Build the project
     print_status "Building the function project..."
-    cd UpdateEngine/src
+    cd UpdateEngine.Functions/src
     dotnet build --configuration Release
     
     # Publish to Azure

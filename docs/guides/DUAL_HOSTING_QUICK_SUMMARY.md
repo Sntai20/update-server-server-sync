@@ -66,7 +66,7 @@ az containerapp create --name update-engine --image myregistry.azurecr.io/update
 ### Step 1: Create Host-Agnostic Orchestrator
 
 ```csharp
-// UpdateEngine/src/Core/Orchestrators/SyncOrchestrator.cs
+// UpdateEngine.Functions/src/Core/Orchestrators/SyncOrchestrator.cs
 // NO dependencies on Azure Functions or ASP.NET Core!
 
 public class SyncOrchestrator : ISyncOrchestrator
@@ -92,7 +92,7 @@ public class SyncOrchestrator : ISyncOrchestrator
 ### Step 2a: Azure Functions Adapter (Thin Layer)
 
 ```csharp
-// UpdateEngine/src/Functions/Core/UnifiedSyncFunction.cs
+// UpdateEngine.Functions/src/Functions/Core/UnifiedSyncFunction.cs
 // Just HTTP request/response handling - delegates to orchestrator
 
 public class UnifiedSyncFunction
@@ -128,7 +128,7 @@ public class UnifiedSyncFunction
 ### Step 2b: Worker Service Adapter (Thin Layer)
 
 ```csharp
-// UpdateEngine/src/WorkerService/Controllers/SyncController.cs
+// UpdateEngine.Functions/src/WorkerService/Controllers/SyncController.cs
 // Just HTTP request/response handling - delegates to SAME orchestrator
 
 [ApiController]
@@ -151,7 +151,7 @@ public class SyncController : ControllerBase
     }
 }
 
-// UpdateEngine/src/WorkerService/Workers/SyncWorker.cs
+// UpdateEngine.Functions/src/WorkerService/Workers/SyncWorker.cs
 // Background service (equivalent to Azure Functions timer trigger)
 
 public class SyncWorker : BackgroundService
@@ -276,14 +276,14 @@ UpdateEngine/
 ## Migration Path
 
 ### Phase 1: Extract Orchestrators (Week 1-2)
-- [ ] Create `UpdateEngine/src/Core/Orchestrators/` directory
+- [ ] Create `UpdateEngine.Functions/src/Core/Orchestrators/` directory
 - [ ] Move business logic from functions to orchestrators
-- [ ] Create host-agnostic models in `UpdateEngine/src/Core/Models/`
+- [ ] Create host-agnostic models in `UpdateEngine.Functions/src/Core/Models/`
 - [ ] Update Azure Functions to use orchestrators
 - [ ] Test thoroughly
 
 ### Phase 2: Add Worker Service Support (Week 3-4)
-- [ ] Create `UpdateEngine/src/WorkerService/` project
+- [ ] Create `UpdateEngine.Functions/src/WorkerService/` project
 - [ ] Implement ASP.NET Core controllers (thin adapters)
 - [ ] Implement background workers
 - [ ] Test Worker Service deployment
@@ -300,13 +300,13 @@ UpdateEngine/
 
 ### Run as Azure Functions
 ```bash
-cd UpdateEngine/src
+cd UpdateEngine.Functions/src
 func start
 ```
 
 ### Run as Worker Service
 ```bash
-cd UpdateEngine/src/WorkerService
+cd UpdateEngine.Functions/src/WorkerService
 dotnet run
 ```
 
@@ -323,9 +323,9 @@ Both expose the same API endpoints!
 
 ## Key Files Created
 
-- ? `UpdateEngine/src/Core/Orchestrators/SyncOrchestrator.cs` - Host-agnostic business logic
-- ? `UpdateEngine/src/Core/Orchestrators/ISyncOrchestrator.cs` - Interface
-- ? `UpdateEngine/src/Core/Models/SyncModels.cs` - Shared models
+- ? `UpdateEngine.Functions/src/Core/Orchestrators/SyncOrchestrator.cs` - Host-agnostic business logic
+- ? `UpdateEngine.Functions/src/Core/Orchestrators/ISyncOrchestrator.cs` - Interface
+- ? `UpdateEngine.Functions/src/Core/Models/SyncModels.cs` - Shared models
 - ? `docs/guides/DUAL_HOSTING_CONSOLIDATION_GUIDE.md` - Complete guide
 
 ## Benefits Summary

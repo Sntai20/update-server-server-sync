@@ -67,7 +67,7 @@ IOptions<AppConfig> config
 
 **Structure**:
 ```
-UpdateEngine/src/Core/HealthChecks/
+UpdateEngine.Functions/src/Core/HealthChecks/
 ??? MetadataStoreHealthCheck.cs
 ??? ContentStoreHealthCheck.cs
 ??? UpstreamConnectionHealthCheck.cs

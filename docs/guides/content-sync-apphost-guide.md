@@ -1,6 +1,6 @@
 # Content Sync with AppHost Configuration
 
-Since you're using the AppHost configuration, the content sync setup is controlled through the `appsettings.json` files in `AppHost/src/`. Here's how to configure and use content sync effectively:
+Since you're using the AppHost configuration, the content sync setup is controlled through the `appsettings.json` files in `UpdateEngine.AppHost/src/`. Here's how to configure and use content sync effectively:
 
 ## Current Configuration Status
 
@@ -28,7 +28,7 @@ Based on your `appsettings.Development.json`, content sync is **enabled** with t
 ### 1. Start the Application with AppHost
 
 ```bash
-cd AppHost/src
+cd UpdateEngine.AppHost/src
 dotnet run
 ```
 
@@ -108,7 +108,7 @@ curl http://localhost:7071/api/GetContentStatus
 
 ### 6. Configuration Customization
 
-To modify content sync behavior, edit `AppHost/src/appsettings.Development.json`:
+To modify content sync behavior, edit `UpdateEngine.AppHost/src/appsettings.Development.json`:
 
 ```json
 {

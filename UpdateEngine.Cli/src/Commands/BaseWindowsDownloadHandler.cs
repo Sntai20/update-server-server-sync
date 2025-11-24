@@ -147,7 +147,7 @@ public abstract class BaseWindowsDownloadHandler
         catch (Exception ex)
         {
             Console.WriteLine($"✗ Cannot connect to UpdateEngine: {ex.Message}");
-            Console.WriteLine("Please ensure UpdateEngine is running: cd AppHost/src && dotnet run");
+            Console.WriteLine("Please ensure UpdateEngine is running: cd UpdateEngine.AppHost/src && dotnet run");
             return false;
         }
     }

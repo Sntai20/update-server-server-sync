@@ -131,7 +131,7 @@ dotnet build microsoft-update-upstream-source/src/microsoft-update-upstream-sour
 Start-Sleep -Seconds 30
 
 # Try UpdateEngine
-dotnet build UpdateEngine/src/UpdateEngine.csproj
+dotnet build UpdateEngine.Functions/src/UpdateEngine.csproj
 ```
 
 **Success Rate**: 60%  
@@ -150,8 +150,8 @@ Remove-Item UpdateEngine\test\bin -Recurse -Force
 Start-Sleep -Seconds 10
 
 # Rebuild from scratch
-dotnet restore UpdateEngine/src/UpdateEngine.csproj
-dotnet build UpdateEngine/src/UpdateEngine.csproj
+dotnet restore UpdateEngine.Functions/src/UpdateEngine.csproj
+dotnet build UpdateEngine.Functions/src/UpdateEngine.csproj
 ```
 
 **Success Rate**: 85%  

@@ -21,7 +21,7 @@ explicitly specified and was derived automatically from scheme argument
 ```
 
 ### Location
-`AppHost/src/Program.cs` - Line 105
+`UpdateEngine.AppHost/src/Program.cs` - Line 105
 
 ### Root Cause
 Worker Service was configured with an explicit HTTP endpoint:
@@ -119,13 +119,13 @@ builder.AddProject<Projects.WorkerService>("WorkerService")
 
 ### Build Test
 ```bash
-dotnet build AppHost/src/AppHost.csproj
+dotnet build UpdateEngine.AppHost/src/AppHost.csproj
 # Result: ? Build succeeded
 ```
 
 ### Runtime Test
 ```bash
-cd AppHost/src
+cd UpdateEngine.AppHost/src
 dotnet run
 # Result: ? Aspire starts successfully
 # Expected output:
@@ -151,7 +151,7 @@ dotnet run
 ## ?? Files Modified
 
 ### Primary Fix
-1. **AppHost/src/Program.cs**
+1. **UpdateEngine.AppHost/src/Program.cs**
    - Line 105: Removed `.WithHttpEndpoint(port: 8080, name: "http")`
    - Line 162: Removed extra closing brace
    - Updated XML documentation comment
@@ -239,7 +239,7 @@ builder.AddProject<Projects.MyApp>("app");  // Auto-detects all endpoints
 ### Testing Plan
 ```bash
 # Start AppHost
-cd AppHost/src
+cd UpdateEngine.AppHost/src
 dotnet run
 
 # In another terminal, run tests

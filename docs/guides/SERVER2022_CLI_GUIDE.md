@@ -43,7 +43,7 @@ public class Server2025CommandHandler : BaseWindowsDownloadHandler
 ### 1. Start UpdateEngine
 ```bash
 # Start UpdateEngine (from repo root)
-cd AppHost/src && dotnet run
+cd UpdateEngine.AppHost/src && dotnet run
 ```
 
 ### 2. Download Updates
@@ -239,7 +239,7 @@ if ($report.ContentSuccess -gt 0) {
 ```
 ✗ Cannot connect to UpdateEngine: Connection refused
 ```
-- Ensure UpdateEngine is running: `cd AppHost/src && dotnet run`
+- Ensure UpdateEngine is running: `cd UpdateEngine.AppHost/src && dotnet run`
 - Check URL with `--url` option
 - Verify firewall settings
 

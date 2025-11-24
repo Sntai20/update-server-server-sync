@@ -24,11 +24,11 @@ Extract shared business logic from Azure Functions into a reusable class library
 
 | Component | Status | Location |
 |-----------|--------|----------|
-| Orchestrators (5 files) | ? | `UpdateEngine/core/Orchestrators/` |
-| Services (13 files) | ? | `UpdateEngine/core/Services/` |
-| Models (5 files) | ? | `UpdateEngine/core/Models/` |
-| Health Checks (5 files) | ? | `UpdateEngine/core/HealthChecks/` |
-| Cache Service | ? | `UpdateEngine/core/Services/` |
+| Orchestrators (5 files) | ? | `UpdateEngine.Core/src/Orchestrators/` |
+| Services (13 files) | ? | `UpdateEngine.Core/src/Services/` |
+| Models (5 files) | ? | `UpdateEngine.Core/src/Models/` |
+| Health Checks (5 files) | ? | `UpdateEngine.Core/src/HealthChecks/` |
+| Cache Service | ? | `UpdateEngine.Core/src/Services/` |
 
 **Total**: 29 files migrated
 
@@ -158,10 +158,10 @@ update-server-server-sync/
 ```bash
 ? Configuration       ? Configuration/src/Configuration.csproj
 ? ServiceDefaults     ? ServiceDefaults/src/ServiceDefaults.csproj
-? UpdateEngine.Core   ? UpdateEngine/core/UpdateEngine.Core.csproj
+? UpdateEngine.Core   ? UpdateEngine.Core/src/UpdateEngine.Core.csproj
 ? WorkerService       ? WorkerService/src/WorkerService.csproj
-? UpdateEngine        ? UpdateEngine/src/UpdateEngine.csproj
-? AppHost             ? AppHost/src/AppHost.csproj
+? UpdateEngine        ? UpdateEngine.Functions/src/UpdateEngine.csproj
+? AppHost             ? UpdateEngine.AppHost/src/AppHost.csproj
 ```
 
 **Build Command**:
@@ -266,7 +266,7 @@ Worker Service (WorkerService)
 ## Validation Checklist
 
 ### UpdateEngine.Core Migration ?
-- ? 29 files migrated to UpdateEngine/core/
+- ? 29 files migrated to UpdateEngine.Core/src/
 - ? All namespaces updated to UpdateEngine.Core.*
 - ? Old duplicate folders removed (Core, Models, Services)
 - ? UpdateEngine.Core builds successfully (13 warnings, 0 errors)
@@ -312,7 +312,7 @@ Worker Service (WorkerService)
 ### Local Development
 ```bash
 # Start Aspire AppHost (orchestrates both hosting models)
-cd AppHost
+cd UpdateEngine.AppHost
 dotnet run --project src/AppHost.csproj
 ```
 
@@ -384,7 +384,7 @@ dotnet build
 
 ### Run Aspire AppHost
 ```powershell
-cd AppHost
+cd UpdateEngine.AppHost
 dotnet run --project src/AppHost.csproj
 ```
 

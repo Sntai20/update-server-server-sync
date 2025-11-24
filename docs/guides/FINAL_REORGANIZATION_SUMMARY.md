@@ -25,7 +25,7 @@ Successfully completed a comprehensive three-part codebase reorganization for th
 Extract shared business logic from Azure Functions into a reusable class library to enable multiple hosting models without code duplication.
 
 ### Achievement
-- ? **29 files migrated** to `UpdateEngine/core/`
+- ? **29 files migrated** to `UpdateEngine.Core/src/`
 - ? **95% code reuse** between Azure Functions and Worker Service
 - ? **All namespaces** updated to `UpdateEngine.Core.*`
 - ? **Old duplicates removed** (Core, Models, Services folders)
@@ -62,10 +62,10 @@ Standardize all project locations to follow consistent `.NET` pattern: `ProjectN
 | WorkerService | `WorkerService/WorkerService.csproj` | `WorkerService/src/WorkerService.csproj` |
 
 ### Project References Updated
-1. `UpdateEngine/core/UpdateEngine.Core.csproj`
-2. `UpdateEngine/src/UpdateEngine.csproj`
+1. `UpdateEngine.Core/src/UpdateEngine.Core.csproj`
+2. `UpdateEngine.Functions/src/UpdateEngine.csproj`
 3. `WorkerService/src/WorkerService.csproj`
-4. `AppHost/src/AppHost.csproj`
+4. `UpdateEngine.AppHost/src/AppHost.csproj`
 
 ### Documentation
 - **docs/guides/FOLDER_STRUCTURE_REORGANIZATION.md** - Full reorganization details
@@ -127,10 +127,10 @@ Worker Service was configured with explicit `.WithHttpEndpoint(port: 8080, name:
 - ? Test compilation errors fixed (3 test files)
 
 ### Files Modified
-- `AppHost/src/Program.cs` - Removed duplicate endpoint configuration
-- `UpdateEngine/test/Services/ServiceCollectionExtensionsTest.cs` - Updated to use `AddUpdateEngineCore()`
-- `UpdateEngine/test/Functions/MetadataSyncFunctionsTest.cs` - Fixed model type references
-- `UpdateEngine/test/Functions/UnifiedHealthFunctionsTest.cs` - Fixed ambiguous type reference
+- `UpdateEngine.AppHost/src/Program.cs` - Removed duplicate endpoint configuration
+- `UpdateEngine.Functions/test/Services/ServiceCollectionExtensionsTest.cs` - Updated to use `AddUpdateEngineCore()`
+- `UpdateEngine.Functions/test/Functions/MetadataSyncFunctionsTest.cs` - Fixed model type references
+- `UpdateEngine.Functions/test/Functions/UnifiedHealthFunctionsTest.cs` - Fixed ambiguous type reference
 
 ### Documentation
 - **docs/guides/WEEK4_DAY3_PREPARATION_SUMMARY.md** - AppHost fix details
@@ -144,11 +144,11 @@ Worker Service was configured with explicit `.WithHttpEndpoint(port: 8080, name:
 ```powershell
 ? Configuration/src/Configuration.csproj         - Build succeeded
 ? ServiceDefaults/src/ServiceDefaults.csproj     - Build succeeded
-? UpdateEngine/core/UpdateEngine.Core.csproj     - Build succeeded
+? UpdateEngine.Core/src/UpdateEngine.Core.csproj     - Build succeeded
 ? WorkerService/src/WorkerService.csproj         - Build succeeded
-? UpdateEngine/src/UpdateEngine.csproj           - Build succeeded
-? AppHost/src/AppHost.csproj                     - Build succeeded ? FIXED
-? UpdateEngine/test/UpdateEngineTest.csproj      - Build succeeded ? FIXED
+? UpdateEngine.Functions/src/UpdateEngine.csproj           - Build succeeded
+? UpdateEngine.AppHost/src/AppHost.csproj                     - Build succeeded ? FIXED
+? UpdateEngine.Functions/test/UpdateEngineTest.csproj      - Build succeeded ? FIXED
 ```
 
 **Result**: 7/7 projects (100%) build successfully
@@ -347,7 +347,7 @@ dotnet build AppHost\src\AppHost.csproj
 
 ### Run Aspire AppHost
 ```powershell
-cd AppHost
+cd UpdateEngine.AppHost
 dotnet run --project src/AppHost.csproj
 
 # Should start both Azure Functions and Worker Service ?
@@ -411,7 +411,7 @@ dotnet run --project src/AppHost.csproj
 **Week 4 Day 3: Live Testing with AppHost**
 ```bash
 # Step 1: Start AppHost
-cd AppHost/src
+cd UpdateEngine.AppHost/src
 dotnet run
 
 # Step 2: Run automated tests (in another terminal)
@@ -448,7 +448,7 @@ dotnet run
 ### Local Development (Ready to Execute) ??
 ```bash
 # Start everything with Aspire
-cd AppHost
+cd UpdateEngine.AppHost
 dotnet run --project src/AppHost.csproj
 
 # Expected: Both Azure Functions and Worker Service start successfully
@@ -478,16 +478,16 @@ dotnet test --filter "Category=Integration"
 - `Configuration/src/Configuration.csproj` ?
 - `ServiceDefaults/src/ServiceDefaults.csproj` ?
 - `WorkerService/src/WorkerService.csproj` ?
-- `UpdateEngine/core/UpdateEngine.Core.csproj` ?
-- `UpdateEngine/src/UpdateEngine.csproj` ?
-- `AppHost/src/AppHost.csproj` ?
-- `AppHost/src/Program.cs` ? **FIXED**
-- `UpdateEngine/test/Services/ServiceCollectionExtensionsTest.cs` ? **FIXED**
-- `UpdateEngine/test/Functions/MetadataSyncFunctionsTest.cs` ? **FIXED**
-- `UpdateEngine/test/Functions/UnifiedHealthFunctionsTest.cs` ? **FIXED**
+- `UpdateEngine.Core/src/UpdateEngine.Core.csproj` ?
+- `UpdateEngine.Functions/src/UpdateEngine.csproj` ?
+- `UpdateEngine.AppHost/src/AppHost.csproj` ?
+- `UpdateEngine.AppHost/src/Program.cs` ? **FIXED**
+- `UpdateEngine.Functions/test/Services/ServiceCollectionExtensionsTest.cs` ? **FIXED**
+- `UpdateEngine.Functions/test/Functions/MetadataSyncFunctionsTest.cs` ? **FIXED**
+- `UpdateEngine.Functions/test/Functions/UnifiedHealthFunctionsTest.cs` ? **FIXED**
 
 ### New Files
-- 29 files in `UpdateEngine/core/`
+- 29 files in `UpdateEngine.Core/src/`
 - 7 documentation files in `docs/guides/`
 - 3 scripts in `scripts/`
 
@@ -524,10 +524,10 @@ dotnet sln microsoft-update.sln list
 ### Run Locally
 ```powershell
 # Aspire (recommended) ? WORKS NOW
-cd AppHost && dotnet run --project src/AppHost.csproj
+cd UpdateEngine.AppHost && dotnet run --project src/AppHost.csproj
 
 # Azure Functions only
-cd UpdateEngine && func start
+cd UpdateEngine.Functions && func start
 
 # Worker Service only
 cd WorkerService/src && dotnet run

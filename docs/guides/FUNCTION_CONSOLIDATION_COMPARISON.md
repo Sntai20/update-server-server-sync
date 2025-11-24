@@ -13,7 +13,7 @@
 ### **Before: Current Structure (35+ Functions)**
 
 ```
-UpdateEngine/src/Functions/
+UpdateEngine.Functions/src/Functions/
 ?
 ??? Core/
 ?   ??? WebServiceFunctions.cs              (5 SOAP endpoints)
@@ -78,7 +78,7 @@ UpdateEngine/src/Functions/
 ### **After: Proposed Structure (~20 Functions)**
 
 ```
-UpdateEngine/src/Functions/
+UpdateEngine.Functions/src/Functions/
 ?
 ??? Core/
 ?   ??? WebServiceFunctions.cs              (5 functions - NO CHANGE)

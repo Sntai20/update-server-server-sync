@@ -15,8 +15,8 @@ All projects build successfully with **0 errors**:
 ```powershell
 # Verify all builds
 dotnet build Configuration/Configuration.csproj           # ? 0 errors
-dotnet build UpdateEngine/src/UpdateEngine.csproj        # ? 0 errors (7 warnings)
-dotnet build AppHost/src/AppHost.csproj                  # ? 0 errors
+dotnet build UpdateEngine.Functions/src/UpdateEngine.csproj        # ? 0 errors (7 warnings)
+dotnet build UpdateEngine.AppHost/src/AppHost.csproj                  # ? 0 errors
 ```
 
 ---
@@ -53,10 +53,10 @@ AppConfig
 ### 2. Health Check System ?
 
 **Files Created**:
-- `UpdateEngine/src/Core/HealthChecks/MetadataStoreHealthCheck.cs`
-- `UpdateEngine/src/Core/HealthChecks/ContentStoreHealthCheck.cs`
-- `UpdateEngine/src/Core/HealthChecks/UpstreamConnectionHealthCheck.cs`
-- `UpdateEngine/src/Core/HealthChecks/AzureBlobStorageHealthCheck.cs`
+- `UpdateEngine.Functions/src/Core/HealthChecks/MetadataStoreHealthCheck.cs`
+- `UpdateEngine.Functions/src/Core/HealthChecks/ContentStoreHealthCheck.cs`
+- `UpdateEngine.Functions/src/Core/HealthChecks/UpstreamConnectionHealthCheck.cs`
+- `UpdateEngine.Functions/src/Core/HealthChecks/AzureBlobStorageHealthCheck.cs`
 
 **Features**:
 | Health Check | Purpose | Tags | Failure Status |
@@ -75,8 +75,8 @@ AppConfig
 ### 3. Service Layer ?
 
 **Files Created**:
-- `UpdateEngine/src/Services/ISyncService.cs` - Service interface
-- `UpdateEngine/src/Services/SyncService.cs` - Basic implementation
+- `UpdateEngine.Functions/src/Services/ISyncService.cs` - Service interface
+- `UpdateEngine.Functions/src/Services/SyncService.cs` - Basic implementation
 
 **ISyncService Methods**:
 ```csharp
@@ -99,7 +99,7 @@ Task CancelSyncAsync(CancellationToken);
 ### 4. Orchestrator Layer ?
 
 **Files Updated**:
-- `UpdateEngine/src/Core/Orchestrators/SyncOrchestrator.cs`
+- `UpdateEngine.Functions/src/Core/Orchestrators/SyncOrchestrator.cs`
 
 **Features**:
 - ? Uses `IOptionsMonitor<AppConfig>` for hot-reload
@@ -119,8 +119,8 @@ bool IsSyncTypeEnabled(SyncType);
 ### 5. Azure Functions Integration ?
 
 **Files Updated**:
-- `UpdateEngine/src/Functions/Core/UnifiedSyncFunction.cs`
-- `UpdateEngine/src/Program.cs`
+- `UpdateEngine.Functions/src/Functions/Core/UnifiedSyncFunction.cs`
+- `UpdateEngine.Functions/src/Program.cs`
 
 **UnifiedSyncFunction Features**:
 - ? HTTP Trigger: `POST /api/sync` - Unified sync operations
@@ -146,7 +146,7 @@ bool IsSyncTypeEnabled(SyncType);
 ### 6. Dependency Injection System ?
 
 **File Created**:
-- `UpdateEngine/src/Core/ServiceCollectionExtensions.cs`
+- `UpdateEngine.Functions/src/Core/ServiceCollectionExtensions.cs`
 
 **Registration Method**:
 ```csharp
@@ -159,7 +159,7 @@ services.AddUpdateEngineCore(configuration);
 - ? `IContentStore?` - Content storage (local only, nullable)
 - ? `ISyncOrchestrator` - Sync orchestration logic
 - ? `ISyncService` - Sync operations service
-- ? `IHealthCheck` (×4) - All health checks
+- ? `IHealthCheck` (ï¿½4) - All health checks
 - ? `IHttpClientFactory` - HTTP client for upstream
 
 **Lifetimes**:
@@ -170,8 +170,8 @@ services.AddUpdateEngineCore(configuration);
 ### 7. .NET Aspire Orchestration ?
 
 **Files Updated**:
-- `AppHost/src/Program.cs`
-- `AppHost/src/ConfigurationHelper.cs`
+- `UpdateEngine.AppHost/src/Program.cs`
+- `UpdateEngine.AppHost/src/ConfigurationHelper.cs`
 
 **Features**:
 - ? Loads shared configuration from Configuration project
@@ -366,13 +366,13 @@ cd C:\Users\ansantan\Repos\update-server-server-sync
 
 # Build all projects
 dotnet build Configuration/Configuration.csproj
-dotnet build UpdateEngine/src/UpdateEngine.csproj
-dotnet build AppHost/src/AppHost.csproj
+dotnet build UpdateEngine.Functions/src/UpdateEngine.csproj
+dotnet build UpdateEngine.AppHost/src/AppHost.csproj
 ```
 
 ### 2. Run with Aspire (Recommended)
 ```powershell
-cd AppHost/src
+cd UpdateEngine.AppHost/src
 dotnet run
 
 # Opens Aspire dashboard at: http://localhost:15888
@@ -381,7 +381,7 @@ dotnet run
 
 ### 3. Run Azure Functions Standalone
 ```powershell
-cd UpdateEngine/src
+cd UpdateEngine.Functions/src
 func start
 
 # Endpoints available at: http://localhost:7071

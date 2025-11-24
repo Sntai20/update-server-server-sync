@@ -154,7 +154,7 @@ update-cli details {specific-update-id}
 Error getting health status: No connection could be made because the target machine actively refused it.
 
 # Solution: Start UpdateEngine first
-cd AppHost/src && dotnet run
+cd UpdateEngine.AppHost/src && dotnet run
 ```
 
 ### Timeout Issues
@@ -210,7 +210,7 @@ The CLI tool communicates with UpdateEngine via HTTP API endpoints:
 
 ## 📈 **Next Steps**
 
-1. **Start UpdateEngine**: `cd AppHost/src && dotnet run`
+1. **Start UpdateEngine**: `cd UpdateEngine.AppHost/src && dotnet run`
 2. **Test CLI**: `update-cli health`
 3. **Explore Commands**: `update-cli --help`
 4. **Customize Configuration**: Edit `appsettings.json` or use command-line options

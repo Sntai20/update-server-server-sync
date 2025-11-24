@@ -18,8 +18,8 @@ update-server-server-sync/
 ?   ??? test/         # Testing scripts
 ?   ??? maintenance/      # Maintenance and regeneration scripts
 ?
-??? UpdateEngine/     # Azure Functions implementation
-??? AppHost/ # Aspire application host
+??? UpdateEngine.Functions/     # Azure Functions implementation
+??? UpdateEngine.AppHost/ # Aspire application host
 ??? src/            # Core libraries
 ??? tests/         # Test projects
 ```
@@ -44,21 +44,20 @@ update-server-server-sync/
 | [.github/upgrades/dotnet-upgrade-plan.md](./.github/upgrades/dotnet-upgrade-plan.md) | .NET upgrade plan | ? Keep |
 | [.github/upgrades/dotnet-upgrade-report.md](./.github/upgrades/dotnet-upgrade-report.md) | .NET upgrade report | ? Keep |
 
-### UpdateEngine
+### UpdateEngine.Functions
 
 | File | Purpose | Status |
 |------|---------|--------|
-| [UpdateEngine/README.md](../../UpdateEngine/README.md) | Functions overview | ✅ Keep |
-| [UpdateEngine/UpdateEngine - Deduplicate.md](../../UpdateEngine/UpdateEngine%20-%20Deduplicate.md) | Deduplication notes | ⚠️ Archive or delete |
-| [UpdateEngine/src/README.md](../../UpdateEngine/src/README.md) | Source code overview | ✅ Keep |
+| [UpdateEngine.Functions/README.md](../../UpdateEngine.Functions/README.md) | Functions overview | ✅ Keep |
+| [UpdateEngine.Functions/src/README.md](../../UpdateEngine.Functions/src/README.md) | Source code overview | ✅ Keep |
 | [TRIGGERS_GUIDE.md](./TRIGGERS_GUIDE.md) | Azure Functions triggers | ✅ Moved to docs/guides/ |
 | [TESTING_GUIDE.md](./TESTING_GUIDE.md) | Testing strategies | ✅ Moved to docs/guides/ |
 
-### AppHost
+### UpdateEngine.AppHost
 
 | File | Purpose | Status |
 |------|---------|--------|
-| [AppHost/README.md](../../AppHost/README.md) | AppHost overview | ✅ Keep |
+| [UpdateEngine.AppHost/README.md](../../UpdateEngine.AppHost/README.md) | AppHost overview | ✅ Keep |
 | [MIGRATION_SUMMARY.md](./MIGRATION_SUMMARY.md) | Migration notes | ✅ Moved to docs/guides/ |
 | [CONTAINER_VERIFICATION.md](./CONTAINER_VERIFICATION.md) | Container testing | ✅ Moved to docs/guides/ |
 | [SYNC_TROUBLESHOOTING.md](./SYNC_TROUBLESHOOTING.md) | Sync issues | ✅ Moved to docs/guides/ |
@@ -92,8 +91,8 @@ All scripts have been moved to the `scripts/` folder with proper categorization:
 
 | Script | Purpose | Status |
 |--------|---------|--------|
-| [AppHost/Regenerate-WCFReferences.ps1](./AppHost/Regenerate-WCFReferences.ps1) | Regenerate WCF | ??? Duplicate - use root version |
-| [AppHost/Test-SyncWithDiagnostics.ps1](./AppHost/Test-SyncWithDiagnostics.ps1) | Test sync | ?? Move to scripts/test/ |
+| [UpdateEngine.AppHost/Regenerate-WCFReferences.ps1](./UpdateEngine.AppHost/Regenerate-WCFReferences.ps1) | Regenerate WCF | ??? Duplicate - use root version |
+| [UpdateEngine.AppHost/Test-SyncWithDiagnostics.ps1](./UpdateEngine.AppHost/Test-SyncWithDiagnostics.ps1) | Test sync | ?? Move to scripts/test/ |
 
 ## ?? Recommended Actions
 
@@ -158,7 +157,7 @@ All scripts have been moved to the `scripts/` folder with proper categorization:
 | Configure Storage | [STORAGE_GUIDE.md](./STORAGE_GUIDE.md) |
 | Run Tests | [INMEMORY_TESTING_GUIDE.md](./INMEMORY_TESTING_GUIDE.md) |
 | Fix WCF Issues | [WCF_NET9_FIX_GUIDE.md](./WCF_NET9_FIX_GUIDE.md) |
-| Sync Troubleshooting | [AppHost/SYNC_TROUBLESHOOTING.md](./AppHost/SYNC_TROUBLESHOOTING.md) |
+| Sync Troubleshooting | [UpdateEngine.AppHost/SYNC_TROUBLESHOOTING.md](./UpdateEngine.AppHost/SYNC_TROUBLESHOOTING.md) |
 
 ### For Operators
 
@@ -167,7 +166,7 @@ All scripts have been moved to the `scripts/` folder with proper categorization:
 | Configure Storage | `./scripts/setup/Configure-Storage.ps1` |
 | Run Tests | `./scripts/test/Run-InMemoryTests.ps1` |
 | Validate Build | `./scripts/build/Validate-Build.ps1` |
-| Test Sync | `./AppHost/src/Test-SyncWithDiagnostics.ps1` |
+| Test Sync | `./UpdateEngine.AppHost/src/Test-SyncWithDiagnostics.ps1` |
 
 ## ✅ Migration Status
 

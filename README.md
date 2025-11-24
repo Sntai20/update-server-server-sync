@@ -24,7 +24,7 @@ dotnet build microsoft-update.sln
 ./scripts/test/Run-InMemoryTests.ps1
 
 # Or run with Azure Functions via Aspire
-dotnet run --project AppHost/src/AppHost.csproj
+dotnet run --project UpdateEngine.AppHost/src/AppHost.csproj
 ```
 
 **📖 For detailed instructions, see [Configuration Guide](./docs/guides/CONFIGURATION_GUIDE.md)**

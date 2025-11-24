@@ -4,8 +4,8 @@
 **Issue #**: 5 (Week 4 Day 3 Preparation)  
 **Status**: ? FIXED  
 **Related Files**:
-- `UpdateEngine/core/ServiceCollectionExtensions.cs`
-- `UpdateEngine/src/appsettings.json`
+- `UpdateEngine.Core/src/ServiceCollectionExtensions.cs`
+- `UpdateEngine.Functions/src/appsettings.json`
 - `WorkerService/src/appsettings.json`
 
 ## Problem Description
@@ -105,7 +105,7 @@ logger?.LogInformation("  Connection String from Config: {HasConnection}",
 
 ### 2. **Configuration Updates**
 
-**Updated `UpdateEngine/src/appsettings.json`**:
+**Updated `UpdateEngine.Functions/src/appsettings.json`**:
 ```json
 "StorageConfiguration": {
   "MetadataPath": "./LocalMetadataStore",
@@ -140,7 +140,7 @@ logger?.LogInformation("  Connection String from Config: {HasConnection}",
 
 ### 2. **Aspire Orchestration** (Azurite Emulator)
 ```csharp
-// AppHost/src/Program.cs
+// UpdateEngine.AppHost/src/Program.cs
 var data = builder.AddAzureStorage("data")
     .RunAsEmulator(configureContainer: c => { /* Azurite config */ });
 
@@ -197,14 +197,14 @@ builder.AddProject<Projects.UpdateEngine>("updateengine-functions")
 
 ### Modified Files
 
-**1. `UpdateEngine/core/ServiceCollectionExtensions.cs`** (Lines 87-223)
+**1. `UpdateEngine.Core/src/ServiceCollectionExtensions.cs`** (Lines 87-223)
 - Added multi-source connection string resolution
 - Added intelligent Azure vs Local storage decision logic
 - Added graceful fallback with warning logging
 - Added comprehensive debug logging for storage configuration
 - Applied same pattern to both metadata and content stores
 
-**2. `UpdateEngine/src/appsettings.json`** (Lines 24-32)
+**2. `UpdateEngine.Functions/src/appsettings.json`** (Lines 24-32)
 - Changed `UseAzureStorageForMetadata` from `true` to `false`
 - Changed `UseAzureStorageForContent` from `true` to `false`
 - Enables standalone development without Azurite
@@ -213,10 +213,10 @@ builder.AddProject<Projects.UpdateEngine>("updateengine-functions")
 
 ### Build Status
 ```
-dotnet build UpdateEngine/core/UpdateEngine.Core.csproj
+dotnet build UpdateEngine.Core/src/UpdateEngine.Core.csproj
 ? Build succeeded with 13 warnings (expected null reference warnings)
 
-dotnet build UpdateEngine/src/UpdateEngine.csproj
+dotnet build UpdateEngine.Functions/src/UpdateEngine.csproj
 ? Build succeeded with 2 warnings (CA2022 analyzer warnings)
 ```
 
@@ -224,7 +224,7 @@ dotnet build UpdateEngine/src/UpdateEngine.csproj
 
 **Scenario 1: Standalone Execution**
 ```bash
-cd UpdateEngine/src
+cd UpdateEngine.Functions/src
 dotnet run
 ```
 **Expected Logs**:
@@ -251,7 +251,7 @@ info: Microsoft.Hosting.Lifetime[0]
 
 **Scenario 2: Aspire Orchestration**
 ```bash
-cd AppHost/src
+cd UpdateEngine.AppHost/src
 dotnet run
 ```
 **Expected Logs** (UpdateEngine Functions):

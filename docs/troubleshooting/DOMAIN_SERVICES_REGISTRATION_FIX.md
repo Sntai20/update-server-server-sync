@@ -49,7 +49,7 @@ WorkerService/SyncWorker
 ## ? Solution
 
 ### Fix Applied
-Added domain services registration to `UpdateEngine/core/ServiceCollectionExtensions.cs`:
+Added domain services registration to `UpdateEngine.Core/src/ServiceCollectionExtensions.cs`:
 
 ```csharp
 // 4. Domain Services (required by orchestrators)
@@ -179,7 +179,7 @@ dotnet run
 ## ?? Files Modified
 
 ### Primary Fix
-1. **UpdateEngine/core/ServiceCollectionExtensions.cs**
+1. **UpdateEngine.Core/src/ServiceCollectionExtensions.cs**
    - Added domain services registration (ISyncService, IQueryService, etc.)
    - Reordered sections: Domain Services (4) before Orchestrators (5)
    - Added XML comments explaining dependencies
@@ -282,7 +282,7 @@ public class SyncWorker : BackgroundService
 ### Testing Plan
 ```bash
 # Start AppHost
-cd AppHost/src
+cd UpdateEngine.AppHost/src
 dotnet run
 
 # Expected Output:
@@ -329,7 +329,7 @@ dotnet run
 - [Service Lifetimes](https://learn.microsoft.com/dotnet/core/extensions/dependency-injection#service-lifetimes)
 - [IMPLEMENTATION_SUMMARY.md](./IMPLEMENTATION_SUMMARY.md) - Overall roadmap
 - [APPHOST_DUPLICATE_ENDPOINT_FIX.md](./APPHOST_DUPLICATE_ENDPOINT_FIX.md) - Previous fix
-- [ServiceCollectionExtensions.cs](../../UpdateEngine/core/ServiceCollectionExtensions.cs) - Updated file
+- [ServiceCollectionExtensions.cs](../../UpdateEngine.Core/src/ServiceCollectionExtensions.cs) - Updated file
 
 ---
 

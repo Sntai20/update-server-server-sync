@@ -20,11 +20,11 @@ Both Azure Functions and Worker Service now reference the same core business log
 
 | Category | Files | Destination |
 |----------|-------|-------------|
-| **Orchestrators** | 5 | `UpdateEngine/core/Orchestrators/` |
-| **Services** | 13 | `UpdateEngine/core/Services/` |
-| **Models** | 5 | `UpdateEngine/core/Models/` |
-| **Health Checks** | 5 | `UpdateEngine/core/HealthChecks/` |
-| **Cache Service** | 1 | `UpdateEngine/core/Services/` |
+| **Orchestrators** | 5 | `UpdateEngine.Core/src/Orchestrators/` |
+| **Services** | 13 | `UpdateEngine.Core/src/Services/` |
+| **Models** | 5 | `UpdateEngine.Core/src/Models/` |
+| **Health Checks** | 5 | `UpdateEngine.Core/src/HealthChecks/` |
+| **Cache Service** | 1 | `UpdateEngine.Core/src/Services/` |
 
 ### Project Structure
 
@@ -107,9 +107,9 @@ Build succeeded with 407 warning(s)
 **Status**: Successfully references UpdateEngine.Core, no Azure Functions dependencies
 
 ### Removed Duplicates ?
-- ? `UpdateEngine/src/Core/` - REMOVED
-- ? `UpdateEngine/src/Models/` - REMOVED  
-- ? `UpdateEngine/src/Services/` - REMOVED
+- ? `UpdateEngine.Functions/src/Core/` - REMOVED
+- ? `UpdateEngine.Functions/src/Models/` - REMOVED  
+- ? `UpdateEngine.Functions/src/Services/` - REMOVED
 - ? Verified no duplicate orchestrators or services remain
 
 ---
@@ -181,7 +181,7 @@ public static IServiceCollection AddUpdateEngineCore(
 
 ### Usage in Azure Functions
 ```csharp
-// UpdateEngine/src/Program.cs
+// UpdateEngine.Functions/src/Program.cs
 var host = new HostBuilder()
     .ConfigureFunctionsWebApplication()
     .ConfigureServices((context, services) =>
@@ -234,7 +234,7 @@ public class SyncWorker : BackgroundService
 
 ### Example 2: Azure Function Uses Core Orchestrator
 
-**UpdateEngine/src/Functions/UnifiedSyncFunction.cs**
+**UpdateEngine.Functions/src/Functions/UnifiedSyncFunction.cs**
 ```csharp
 using UpdateEngine.Core.Models;
 using UpdateEngine.Core.Orchestrators;
@@ -320,7 +320,7 @@ dotnet test --filter "Category=Integration"
 
 ### PowerShell Automation Script
 **scripts/migration/Migrate-UpdateEngineCore.ps1**
-- Automated file copying from `UpdateEngine/src/Core` ? `UpdateEngine/core`
+- Automated file copying from `UpdateEngine.Functions/src/Core` ? `UpdateEngine.Functions/core`
 - Preserves directory structure
 - Provides verification steps
 

@@ -6,8 +6,8 @@
 Migrated all configuration files from OLD flat structure to NEW hierarchical structure.
 
 **Files Updated:**
-- ? `UpdateEngine/src/local.settings.json`
-- ? `UpdateEngine/src/appsettings.json`
+- ? `UpdateEngine.Functions/src/local.settings.json`
+- ? `UpdateEngine.Functions/src/appsettings.json`
 - ? `Configuration/shared/appsettings.Development.json`
 - ? `Configuration/shared/appsettings.Production.json`
 
@@ -23,7 +23,7 @@ Fixed configuration loading issues identified in logs.
 **Issues Fixed:**
 
 1. **UpdateEngine - Configuration Not Loading**
-   - **File:** `UpdateEngine/src/Program.cs`
+   - **File:** `UpdateEngine.Functions/src/Program.cs`
    - **Fix:** Updated `ConfigureLogging` to read from hierarchical `UpdateEngine` section
    - **Result:** Configuration values now display correctly in logs
 
@@ -188,11 +188,11 @@ AppConfig (hierarchical)
 
 | File | Phase | Change |
 |------|-------|--------|
-| `UpdateEngine/src/local.settings.json` | 1 | Migrated to hierarchical structure |
-| `UpdateEngine/src/appsettings.json` | 1 | Added hierarchical structure |
+| `UpdateEngine.Functions/src/local.settings.json` | 1 | Migrated to hierarchical structure |
+| `UpdateEngine.Functions/src/appsettings.json` | 1 | Added hierarchical structure |
 | `Configuration/shared/appsettings.Development.json` | 1 | Migrated to hierarchical structure |
 | `Configuration/shared/appsettings.Production.json` | 1 | Migrated to hierarchical structure |
-| `UpdateEngine/src/Program.cs` | 2 | Fixed configuration logging |
+| `UpdateEngine.Functions/src/Program.cs` | 2 | Fixed configuration logging |
 | `WorkerService/Program.cs` | 2 | Added shared configuration loading |
 | `Configuration/StorageConfiguration.cs` | 2 | Removed premature validation |
 
@@ -234,7 +234,7 @@ dotnet build
 
 ### 1. Test with Aspire (Recommended)
 ```bash
-cd AppHost/src
+cd UpdateEngine.AppHost/src
 dotnet run
 
 # Expected: Both UpdateEngine and WorkerService start successfully
@@ -243,7 +243,7 @@ dotnet run
 
 ### 2. Test UpdateEngine Standalone
 ```bash
-cd UpdateEngine/src
+cd UpdateEngine.Functions/src
 func start
 
 # Expected: Configuration loads correctly
@@ -311,7 +311,7 @@ UpdateEngine__StorageConfiguration__MetadataContainerName=metadata
 
 1. **Test with Aspire orchestration**
    ```bash
-   cd AppHost/src && dotnet run
+   cd UpdateEngine.AppHost/src && dotnet run
    ```
 
 2. **Verify logs show correct configuration**

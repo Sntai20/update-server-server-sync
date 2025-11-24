@@ -195,7 +195,7 @@ The easiest way to run Redis locally is using .NET Aspire:
 
 ```bash
 # 1. Start AppHost (includes Redis container)
-cd AppHost/src
+cd UpdateEngine.AppHost/src
 dotnet run
 
 # Result:
@@ -267,7 +267,7 @@ FLUSHDB
 
 **1. Start with Aspire:**
 ```bash
-cd AppHost/src && dotnet run
+cd UpdateEngine.AppHost/src && dotnet run
 ```
 
 **2. Verify Redis Connection:**

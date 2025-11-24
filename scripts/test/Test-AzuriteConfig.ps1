@@ -39,13 +39,13 @@ $localSettings = @{
 }
 
 $localSettingsJson = $localSettings | ConvertTo-Json -Depth 3
-Set-Content -Path "UpdateEngine/src/local.settings.json" -Value $localSettingsJson
+Set-Content -Path "UpdateEngine.Functions/src/local.settings.json" -Value $localSettingsJson
 
 Write-Host "✅ Updated local.settings.json for Azurite" -ForegroundColor Green
 
 # Start Functions
 Write-Host "Starting Azure Functions..."
-Set-Location "UpdateEngine/src"
+Set-Location "UpdateEngine.Functions/src"
 Start-Process -FilePath "func" -ArgumentList "start", "--port", "7071" -WindowStyle Minimized
 Set-Location "../.."
 

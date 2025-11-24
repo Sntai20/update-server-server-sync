@@ -228,9 +228,9 @@ logger.LogInformation("UseAzureStorage: {UseAzure}", appConfig.StorageConfigurat
 ## Configuration File Locations
 
 ### Azure Functions
-- `UpdateEngine/src/appsettings.json`
-- `UpdateEngine/src/appsettings.Development.json`
-- `UpdateEngine/src/local.settings.json` (local only)
+- `UpdateEngine.Functions/src/appsettings.json`
+- `UpdateEngine.Functions/src/appsettings.Development.json`
+- `UpdateEngine.Functions/src/local.settings.json` (local only)
 
 ### Worker Service
 - `WorkerService/appsettings.json`

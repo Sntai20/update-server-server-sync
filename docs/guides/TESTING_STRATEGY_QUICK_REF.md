@@ -93,7 +93,7 @@ public class MyTest : IClassFixture<WorkerServiceTestFixture>
 ## ?? Test Structure
 
 ```
-UpdateEngine/test/
+UpdateEngine.Functions/test/
 ?
 ??? Unit/                        # 70% - FAST (< 1 sec)
 ?   ??? Orchestrators/           # ? Host-agnostic business logic

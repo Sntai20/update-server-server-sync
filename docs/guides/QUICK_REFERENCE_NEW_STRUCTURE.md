@@ -15,15 +15,15 @@ ServiceDefaults/src/ServiceDefaults.csproj          ? Aspire defaults
 
 ### UpdateEngine (Dual Hosting)
 ```
-UpdateEngine/core/UpdateEngine.Core.csproj          ? Shared business logic
-UpdateEngine/src/UpdateEngine.csproj                ? Azure Functions
-UpdateEngine/test/UpdateEngineTest.csproj           ? Tests
+UpdateEngine.Core/src/UpdateEngine.Core.csproj          ? Shared business logic
+UpdateEngine.Functions/src/UpdateEngine.csproj                ? Azure Functions
+UpdateEngine.Functions/test/UpdateEngineTest.csproj           ? Tests
 ```
 
 ### Hosting Models
 ```
 WorkerService/src/WorkerService.csproj              ? Long-running service
-AppHost/src/AppHost.csproj                          ? Aspire orchestration
+UpdateEngine.AppHost/src/AppHost.csproj                          ? Aspire orchestration
 ```
 
 ### Domain Libraries
@@ -50,26 +50,26 @@ update-cli/src/update-cli.csproj                    ? Update CLI
 dotnet build Configuration/src/Configuration.csproj
 
 # UpdateEngine.Core (shared library)
-dotnet build UpdateEngine/core/UpdateEngine.Core.csproj
+dotnet build UpdateEngine.Core/src/UpdateEngine.Core.csproj
 
 # WorkerService
 dotnet build WorkerService/src/WorkerService.csproj
 
 # Azure Functions
-dotnet build UpdateEngine/src/UpdateEngine.csproj
+dotnet build UpdateEngine.Functions/src/UpdateEngine.csproj
 
 # AppHost
-dotnet build AppHost/src/AppHost.csproj
+dotnet build UpdateEngine.AppHost/src/AppHost.csproj
 ```
 
 ### Run Locally
 ```powershell
 # Aspire AppHost (recommended - starts everything)
-cd AppHost
+cd UpdateEngine.AppHost
 dotnet run --project src/AppHost.csproj
 
 # Azure Functions only
-cd UpdateEngine
+cd UpdateEngine.Functions
 func start
 
 # WorkerService only
@@ -95,24 +95,24 @@ dotnet test --filter "Category=Integration"
 
 ### Sync Operations
 ```
-UpdateEngine/core/Orchestrators/SyncOrchestrator.cs       ? Main sync logic
-UpdateEngine/core/Services/SyncService.cs                 ? Sync service
-UpdateEngine/core/Models/SyncModels.cs                    ? Request/response models
+UpdateEngine.Core/src/Orchestrators/SyncOrchestrator.cs       ? Main sync logic
+UpdateEngine.Core/src/Services/SyncService.cs                 ? Sync service
+UpdateEngine.Core/src/Models/SyncModels.cs                    ? Request/response models
 WorkerService/src/Workers/SyncWorker.cs                   ? Background worker
-UpdateEngine/src/Functions/Core/UnifiedSyncFunction.cs    ? HTTP trigger
+UpdateEngine.Functions/src/Functions/Core/UnifiedSyncFunction.cs    ? HTTP trigger
 ```
 
 ### Metadata Operations
 ```
-UpdateEngine/core/Orchestrators/MetadataOrchestrator.cs   ? Metadata logic
-UpdateEngine/core/Services/QueryService.cs                ? Query service
-UpdateEngine/src/Functions/Core/MetadataAccessFunctions.cs ? HTTP endpoints
+UpdateEngine.Core/src/Orchestrators/MetadataOrchestrator.cs   ? Metadata logic
+UpdateEngine.Core/src/Services/QueryService.cs                ? Query service
+UpdateEngine.Functions/src/Functions/Core/MetadataAccessFunctions.cs ? HTTP endpoints
 ```
 
 ### Health Monitoring
 ```
-UpdateEngine/core/HealthChecks/                           ? All health checks
-UpdateEngine/core/Services/HealthService.cs               ? Health service
+UpdateEngine.Core/src/HealthChecks/                           ? All health checks
+UpdateEngine.Core/src/Services/HealthService.cs               ? Health service
 WorkerService/src/Controllers/HealthController.cs         ? Health API
 ```
 
@@ -131,34 +131,34 @@ Configuration/src/CacheConfiguration.cs                   ? Cache settings
 ### UpdateEngine.Core Dependencies
 ```
 UpdateEngine.Core.csproj references:
-  • Configuration/src/Configuration.csproj
-  • microsoft-update-partition/src/
-  • microsoft-update-upstream-source/src/
-  • microsoft-update-webservices/src/
+  ï¿½ Configuration/src/Configuration.csproj
+  ï¿½ microsoft-update-partition/src/
+  ï¿½ microsoft-update-upstream-source/src/
+  ï¿½ microsoft-update-webservices/src/
 ```
 
 ### WorkerService Dependencies
 ```
 WorkerService/src/WorkerService.csproj references:
-  • Configuration/src/Configuration.csproj
-  • ServiceDefaults/src/ServiceDefaults.csproj
-  • UpdateEngine/core/UpdateEngine.Core.csproj
+  ï¿½ Configuration/src/Configuration.csproj
+  ï¿½ ServiceDefaults/src/ServiceDefaults.csproj
+  ï¿½ UpdateEngine.Core/src/UpdateEngine.Core.csproj
 ```
 
 ### UpdateEngine Dependencies
 ```
-UpdateEngine/src/UpdateEngine.csproj references:
-  • Configuration/src/Configuration.csproj
-  • UpdateEngine/core/UpdateEngine.Core.csproj
-  • All microsoft-update-* domain libraries
+UpdateEngine.Functions/src/UpdateEngine.csproj references:
+  ï¿½ Configuration/src/Configuration.csproj
+  ï¿½ UpdateEngine.Core/src/UpdateEngine.Core.csproj
+  ï¿½ All microsoft-update-* domain libraries
 ```
 
 ### AppHost Dependencies
 ```
-AppHost/src/AppHost.csproj references:
-  • Configuration/src/Configuration.csproj (not as resource)
-  • UpdateEngine/src/UpdateEngine.csproj
-  • WorkerService/src/WorkerService.csproj
+UpdateEngine.AppHost/src/AppHost.csproj references:
+  ï¿½ Configuration/src/Configuration.csproj (not as resource)
+  ï¿½ UpdateEngine.Functions/src/UpdateEngine.csproj
+  ï¿½ WorkerService/src/WorkerService.csproj
 ```
 
 ---
@@ -213,7 +213,7 @@ dotnet restore
 dotnet build
 
 # Run with Aspire
-cd AppHost
+cd UpdateEngine.AppHost
 dotnet run --project src/AppHost.csproj
 ```
 
@@ -226,15 +226,15 @@ git pull
 dotnet build
 
 # Run Aspire AppHost
-cd AppHost
+cd UpdateEngine.AppHost
 dotnet run --project src/AppHost.csproj
 ```
 
 ### Adding New Feature
-1. Add business logic to `UpdateEngine/core/`
-2. Add HTTP trigger to `UpdateEngine/src/Functions/`
+1. Add business logic to `UpdateEngine.Core/src/`
+2. Add HTTP trigger to `UpdateEngine.Functions/src/Functions/`
 3. Add background worker or API to `WorkerService/src/`
-4. Update tests in `UpdateEngine/test/`
+4. Update tests in `UpdateEngine.Functions/test/`
 5. Build and test: `dotnet build && dotnet test`
 
 ---
@@ -244,7 +244,7 @@ dotnet run --project src/AppHost.csproj
 ### "Cannot find UpdateEngine.Core"
 ```powershell
 # Rebuild UpdateEngine.Core
-dotnet build UpdateEngine/core/UpdateEngine.Core.csproj --no-incremental
+dotnet build UpdateEngine.Core/src/UpdateEngine.Core.csproj --no-incremental
 ```
 
 ### "Project reference path not found"
@@ -295,7 +295,7 @@ dotnet build --no-incremental
 Test-Path Configuration/src/Configuration.csproj          # Should be True
 Test-Path ServiceDefaults/src/ServiceDefaults.csproj      # Should be True
 Test-Path WorkerService/src/WorkerService.csproj          # Should be True
-Test-Path UpdateEngine/core/UpdateEngine.Core.csproj      # Should be True
+Test-Path UpdateEngine.Core/src/UpdateEngine.Core.csproj      # Should be True
 
 # Check old locations don't exist
 Test-Path Configuration/Configuration.csproj              # Should be False

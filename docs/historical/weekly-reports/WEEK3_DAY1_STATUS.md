@@ -33,17 +33,17 @@
 ## ?? Key Files Changed
 
 **Core**:
-- `UpdateEngine/src/Core/Services/CacheService.cs`
-- `UpdateEngine/src/Core/Orchestrators/ContentOrchestrator.cs`
-- `UpdateEngine/src/Core/Orchestrators/MetadataOrchestrator.cs`
-- `UpdateEngine/src/Core/Orchestrators/SyncOrchestrator.cs`
+- `UpdateEngine.Functions/src/Core/Services/CacheService.cs`
+- `UpdateEngine.Functions/src/Core/Orchestrators/ContentOrchestrator.cs`
+- `UpdateEngine.Functions/src/Core/Orchestrators/MetadataOrchestrator.cs`
+- `UpdateEngine.Functions/src/Core/Orchestrators/SyncOrchestrator.cs`
 
 **Infrastructure**:
 - `Directory.Packages.props`
-- `AppHost/src/Program.cs`
-- `AppHost/src/ConfigurationHelper.cs`
-- `AppHost/src/AppHost.csproj`
-- `UpdateEngine/src/UpdateEngine.csproj`
+- `UpdateEngine.AppHost/src/Program.cs`
+- `UpdateEngine.AppHost/src/ConfigurationHelper.cs`
+- `UpdateEngine.AppHost/src/AppHost.csproj`
+- `UpdateEngine.Functions/src/UpdateEngine.csproj`
 
 **Tests**:
 - `ContentOrchestratorTests.cs`

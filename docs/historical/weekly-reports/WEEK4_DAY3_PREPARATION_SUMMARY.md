@@ -16,17 +16,17 @@
 **Root Cause**: Tests referencing old namespaces and method names that changed during migration
 
 **Files Fixed**:
-1. `UpdateEngine/test/Services/ServiceCollectionExtensionsTest.cs`
+1. `UpdateEngine.Functions/test/Services/ServiceCollectionExtensionsTest.cs`
    - Changed `using UpdateEngine.Core.Services` to `using UpdateEngine.Core`
    - Changed `AddMicrosoftUpdateServices()` to `AddUpdateEngineCore()`
    - Updated configuration keys to match new AppConfig structure
    - Skipped irrelevant test for domain services
    
-2. `UpdateEngine/test/Functions/MetadataSyncFunctionsTest.cs`
+2. `UpdateEngine.Functions/test/Functions/MetadataSyncFunctionsTest.cs`
    - Added `using UpdateEngine.Core.Models` for model types
    - Changed `UpdateEngine.Services.UniversalSyncRequest` to `UniversalSyncRequest`
    
-3. `UpdateEngine/test/Functions/UnifiedHealthFunctionsTest.cs`
+3. `UpdateEngine.Functions/test/Functions/UnifiedHealthFunctionsTest.cs`
    - Fixed ambiguous `StoreManagementRequest` reference
    - Used fully qualified type: `UpdateEngine.Functions.Management.StoreManagementRequest`
 
@@ -41,7 +41,7 @@ Aspire.Hosting.DistributedApplicationException: Endpoint with name 'http' alread
 **Root Cause**: Worker Service was configured with explicit `.WithHttpEndpoint(port: 8080, name: "http")` call, but ASP.NET Core projects already have an implicit HTTP endpoint defined by default.
 
 **Fix Applied**:
-- Removed duplicate `.WithHttpEndpoint()` call from Worker Service configuration in `AppHost/src/Program.cs`
+- Removed duplicate `.WithHttpEndpoint()` call from Worker Service configuration in `UpdateEngine.AppHost/src/Program.cs`
 - Worker Service now uses default ASP.NET Core HTTP endpoint configuration
 - Removed extra closing brace that was causing compilation error
 
@@ -57,7 +57,7 @@ while attempting to activate 'UpdateEngine.Core.Orchestrators.SyncOrchestrator'.
 **Root Cause**: The `AddUpdateEngineCore()` extension method registered orchestrators but NOT the domain services (`ISyncService`, `IHealthService`, `IQueryService`, `IAnomalyDetectionService`, `IQueueService`) that the orchestrators depend on.
 
 **Fix Applied**:
-- Added domain services registration to `UpdateEngine/core/ServiceCollectionExtensions.cs`
+- Added domain services registration to `UpdateEngine.Core/src/ServiceCollectionExtensions.cs`
 - Registered 5 domain services as singletons:
   - `ISyncService ? SyncService`
   - `IQueryService ? QueryService`
@@ -111,7 +111,7 @@ System.IO.DirectoryNotFoundException: The store does not exist or is corrupt: ./
   - Decides Azure vs Local based on both configuration AND connection string availability
   - Added comprehensive debug logging for storage decisions
   - **Changed `PackageStore.Open()` to `PackageStore.OpenOrCreate()`** to create store structure on first run
-- Updated `UpdateEngine/src/appsettings.json`:
+- Updated `UpdateEngine.Functions/src/appsettings.json`:
   - Changed `UseAzureStorageForMetadata` from `true` to `false`
   - Changed `UseAzureStorageForContent` from `true` to `false`
   - Enables standalone development without Azurite
@@ -200,7 +200,7 @@ dotnet build microsoft-update.sln
 ### Phase 1: Startup Validation (30 min)
 ```bash
 # Start AppHost (NOW WORKS!)
-cd AppHost/src
+cd UpdateEngine.AppHost/src
 dotnet run
 
 # Verify all services start:
@@ -361,7 +361,7 @@ After testing completes:
 
 ```bash
 # Step 1: Start AppHost (NOW WORKS!)
-cd AppHost/src && dotnet run
+cd UpdateEngine.AppHost/src && dotnet run
 
 # Step 2: Run automated tests (in another terminal)
 .\scripts\test\Test-DualHosting.ps1 -Verbose

@@ -194,7 +194,7 @@ The UpdateEngine resolves storage connections in this order:
 func start --verbose
 
 # Aspire development  
-cd AppHost && dotnet run
+cd UpdateEngine.AppHost && dotnet run
 ```
 
 ### **Production**

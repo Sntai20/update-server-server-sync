@@ -139,7 +139,7 @@ POST /api/sync
 
 **New Structure:**
 ```csharp
-// UpdateEngine/src/Functions/Core/UnifiedSyncFunction.cs
+// UpdateEngine.Functions/src/Functions/Core/UnifiedSyncFunction.cs
 
 [Function("Sync")]
 public async Task<HttpResponseData> Sync(
@@ -188,7 +188,7 @@ public class UnifiedSyncRequest
 
 **New Structure:**
 ```csharp
-// UpdateEngine/src/Functions/Core/UnifiedMetadataFunction.cs
+// UpdateEngine.Functions/src/Functions/Core/UnifiedMetadataFunction.cs
 
 [Function("MetadataQuery")]
 POST /api/metadata/query
@@ -227,7 +227,7 @@ GET /api/metadata/status
 
 **New Structure:**
 ```csharp
-// UpdateEngine/src/Functions/Core/UnifiedContentFunction.cs
+// UpdateEngine.Functions/src/Functions/Core/UnifiedContentFunction.cs
 
 [Function("Content")]
 GET|HEAD /api/content/{hash}  // Handles both GET and HEAD
@@ -262,7 +262,7 @@ GET /api/content/status
 
 **New Structure:**
 ```csharp
-// UpdateEngine/src/Functions/Core/UnifiedManifestFunction.cs
+// UpdateEngine.Functions/src/Functions/Core/UnifiedManifestFunction.cs
 
 [Function("Manifest")]
 POST /api/manifest
@@ -294,7 +294,7 @@ GET /api/manifest/status
 
 **New Structure:**
 ```csharp
-// UpdateEngine/src/Functions/Management/UnifiedHealthFunction.cs
+// UpdateEngine.Functions/src/Functions/Management/UnifiedHealthFunction.cs
 
 [Function("Health")]
 GET /api/health?scope=status|sync|diagnostics|full
@@ -326,7 +326,7 @@ GET /api/health/history?hours=24
 
 **New Structure:**
 ```csharp
-// UpdateEngine/src/Functions/Management/UnifiedManagementFunction.cs
+// UpdateEngine.Functions/src/Functions/Management/UnifiedManagementFunction.cs
 
 [Function("StoreManagement")]
 POST /api/management/store
@@ -352,7 +352,7 @@ POST /api/management/drivers/match
 
 **Keep as-is:**
 ```csharp
-// UpdateEngine/src/Functions/Intelligence/AnomalyDetectionFunctions.cs
+// UpdateEngine.Functions/src/Functions/Intelligence/AnomalyDetectionFunctions.cs
 
 [Function("AnomalyDetection")]
 POST /api/anomalies/detect
@@ -372,7 +372,7 @@ POST /api/anomalies/detect
 
 **Keep as-is:**
 ```csharp
-// UpdateEngine/src/Functions/Core/WebServiceFunctions.cs
+// UpdateEngine.Functions/src/Functions/Core/WebServiceFunctions.cs
 
 [Function("ClientWebService")]
 POST /api/ClientWebService/client.asmx
@@ -402,7 +402,7 @@ POST /api/ReportingWebService/ReportingWebService.asmx
 Create unified request/response models:
 
 ```csharp
-// UpdateEngine/src/Models/UnifiedModels.cs
+// UpdateEngine.Functions/src/Models/UnifiedModels.cs
 
 public class UnifiedSyncRequest
 {
@@ -427,7 +427,7 @@ public class UnifiedMetadataRequest
 Extract business logic to services using strategy pattern:
 
 ```csharp
-// UpdateEngine/src/Services/ISyncOrchestrator.cs
+// UpdateEngine.Functions/src/Services/ISyncOrchestrator.cs
 
 public interface ISyncOrchestrator
 {
@@ -437,7 +437,7 @@ public interface ISyncOrchestrator
     Task CancelSyncAsync(CancellationToken cancellationToken);
 }
 
-// UpdateEngine/src/Services/SyncOrchestrator.cs
+// UpdateEngine.Functions/src/Services/SyncOrchestrator.cs
 
 public class SyncOrchestrator : ISyncOrchestrator
 {
@@ -467,7 +467,7 @@ public class SyncOrchestrator : ISyncOrchestrator
 Create new consolidated function classes:
 
 ```csharp
-// UpdateEngine/src/Functions/Core/UnifiedSyncFunction.cs
+// UpdateEngine.Functions/src/Functions/Core/UnifiedSyncFunction.cs
 
 public class UnifiedSyncFunction
 {
@@ -505,7 +505,7 @@ public class UnifiedSyncFunction
 If you need to maintain old endpoints temporarily:
 
 ```csharp
-// UpdateEngine/src/Functions/Core/LegacyCompatiblityFunctions.cs
+// UpdateEngine.Functions/src/Functions/Core/LegacyCompatiblityFunctions.cs
 
 [Function("LegacySyncCategories")]
 public async Task<HttpResponseData> SyncCategories_Legacy(
@@ -528,7 +528,7 @@ public async Task<HttpResponseData> SyncCategories_Legacy(
 Update integration tests to use new unified endpoints:
 
 ```csharp
-// UpdateEngine/test/Integration/UnifiedSyncIntegrationTest.cs
+// UpdateEngine.Functions/test/Integration/UnifiedSyncIntegrationTest.cs
 
 [Fact]
 public async Task Sync_WithCategoriesType_ShouldSucceed()

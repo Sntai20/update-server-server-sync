@@ -65,7 +65,7 @@ public class MetadataQueryFunctionsTest
     }
 
     // TODO: These tests are temporarily disabled until MetadataAnomalyAnalysisRequest is properly implemented
-    // See UpdateEngine/src/Functions/Core/MetadataAccessFunctions.cs line 267 for TODO about anomaly detection
+    // See UpdateEngine.Functions/src/Functions/Core/MetadataAccessFunctions.cs line 267 for TODO about anomaly detection
     
     /*
     [Fact]

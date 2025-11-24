@@ -16,13 +16,13 @@ Analysis of the codebase reveals **significant naming inconsistencies** across p
 | `microsoft-update-webservices/` | `microsoft-update-webservices.csproj` | `microsoft-update-webservices` | `Microsoft.UpdateServices.WebServices` | ❌ **3 different names** |
 | `microsoft-update-endpoints/` | `microsoft-update-endpoints.csproj` | `package-graph-endpoints-microsoft-update` | `Microsoft.PackageGraph.MicrosoftUpdate.Endpoints` | ❌ **4 different names** |
 | `microsoft-update-upstream-source/` | `microsoft-update-upstream-source.csproj` | `package-graph-microsoftupdate-source` | `Microsoft.PackageGraph.MicrosoftUpdate.Source` | ❌ **4 different names** |
-| `UpdateEngine/` | `UpdateEngine.csproj` | `UpdateEngine` | `UpdateEngine` | ✅ **Consistent** |
+| `UpdateEngine.Functions/` | `UpdateEngine.csproj` | `UpdateEngine` | `UpdateEngine` | ✅ **Consistent** |
 | `UpdateEngine.Core/` | `UpdateEngine.Core.csproj` | `UpdateEngine.Core` | `UpdateEngine.Core` | ✅ **Consistent** |
 | `WorkerService/` | `WorkerService.csproj` | `Microsoft.UpdateServices.WorkerService` | `Microsoft.UpdateServices.WorkerService` | ⚠️ **Folder doesn't match** |
 | `update-cli/` | `update-cli.csproj` | `update-cli` | `UpdateCli` | ⚠️ **Casing mismatch** |
 | `upsync/` | `upsync.csproj` | `upsync` | `Microsoft.PackageGraph.Utilitites.Upsync` | ⚠️ **Namespace too long** |
 | `Configuration/` | `Configuration.csproj` | `Configuration` | `Configuration` | ⚠️ **Too generic** |
-| `AppHost/` | `AppHost.csproj` | `AppHost` | `AppHost` | ⚠️ **Too generic** |
+| `UpdateEngine.AppHost/` | `AppHost.csproj` | `AppHost` | `AppHost` | ⚠️ **Too generic** |
 
 ### Key Issues Identified
 
@@ -88,13 +88,13 @@ UpdateServer/
 | `microsoft-update-webservices/` | `UpdateServer.WebServices/` | Simpler, matches common .NET pattern |
 | `microsoft-update-endpoints/` | `UpdateServer.Endpoints/` | Clear and concise |
 | `microsoft-update-upstream-source/` | `UpdateServer.UpstreamSource/` | Shorter, clearer |
-| `UpdateEngine/` | `UpdateServer.Functions/` | More specific about what it hosts |
+| `UpdateEngine.Functions/` | `UpdateServer.Functions/` | More specific about what it hosts |
 | `UpdateEngine.Core/` | `UpdateServer.Core/` | Consistent with new hierarchy |
 | `WorkerService/` | `UpdateServer.WorkerService/` | Explicit ownership |
 | `update-cli/` | `UpdateServer.Cli/` | Consistent casing |
 | `upsync/` | `UpdateServer.SyncTool/` | Clearer purpose |
 | `Configuration/` | `UpdateServer.Configuration/` | Explicit ownership |
-| `AppHost/` | `UpdateServer.AppHost/` | Explicit ownership |
+| `UpdateEngine.AppHost/` | `UpdateServer.AppHost/` | Explicit ownership |
 | `ServiceDefaults/` | `UpdateServer.ServiceDefaults/` | Explicit ownership |
 
 ---
@@ -119,9 +119,9 @@ Keep legacy names for published libraries, standardize new ones:
 - `update-cli/` → `UpdateServer.Cli/`
 - `upsync/` → `UpdateServer.SyncTool/`
 - `Configuration/` → `UpdateServer.Configuration/`
-- `AppHost/` → `UpdateServer.AppHost/`
+- `UpdateEngine.AppHost/` → `UpdateServer.AppHost/`
 - `WorkerService/` → `UpdateServer.WorkerService/`
-- `UpdateEngine/` → `UpdateServer.Functions/`
+- `UpdateEngine.Functions/` → `UpdateServer.Functions/`
 - `UpdateEngine.Core/` → `UpdateServer.Core/`
 
 **Keep for compatibility** (published as NuGet packages):

@@ -24,8 +24,8 @@ if ($Clean) {
     Write-Host "`n1. Cleaning solution..." -ForegroundColor Yellow
     try {
         dotnet clean build/microsoft-update.sln
-        dotnet clean UpdateEngine/src/UpdateEngine.csproj
-        dotnet clean AppHost/AppHost.csproj
+        dotnet clean UpdateEngine.Functions/src/UpdateEngine.csproj
+        dotnet clean UpdateEngine.AppHost/src/AppHost.csproj
         Write-Host "✓ Solution cleaned successfully" -ForegroundColor Green
     } catch {
         Write-Host "✗ Error during clean: $($_.Exception.Message)" -ForegroundColor Red

@@ -6,7 +6,7 @@
 
 ```powershell
 # Terminal 1: Start AppHost
-cd AppHost/src
+cd UpdateEngine.AppHost/src
 dotnet run
 ```
 

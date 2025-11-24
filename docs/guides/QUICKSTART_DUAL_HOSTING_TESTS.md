@@ -4,7 +4,7 @@
 
 ```bash
 # 1. Start everything
-cd AppHost/src
+cd UpdateEngine.AppHost/src
 dotnet run
 
 # 2. Wait for "Distributed application started" message (15-30 seconds)
@@ -130,7 +130,7 @@ netstat -ano | findstr "8080"
 taskkill /F /PID <process-id>
 
 # Restart AppHost
-cd AppHost/src
+cd UpdateEngine.AppHost/src
 dotnet run
 ```
 

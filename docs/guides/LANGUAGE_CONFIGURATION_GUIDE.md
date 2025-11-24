@@ -182,7 +182,7 @@ Language filters are automatically applied to:
 ## Testing Language Configuration
 
 ### Verify Language Filtering
-1. Start AppHost: `cd AppHost/src && dotnet run`
+1. Start AppHost: `cd UpdateEngine.AppHost/src && dotnet run`
 2. Trigger sync with language filters:
    ```bash
    curl -X POST http://localhost:7071/api/SyncWithLanguageFilter \

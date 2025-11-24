@@ -13,7 +13,7 @@ param(
 )
 
 # Load storage configuration
-$configPath = "./UpdateEngine/src/storage-config.json"
+$configPath = "./UpdateEngine.Functions/src/storage-config.json"
 if (-not (Test-Path $configPath)) {
     Write-Error "Configuration file not found: $configPath"
     exit 1
@@ -48,8 +48,8 @@ if ($StorageMode -eq "FileSystem") {
     $metadataPath = $config.FileSystemStorage.MetadataStorePath
     $contentPath = $config.FileSystemStorage.ContentStorePath
     
-    New-Item -ItemType Directory -Force -Path "./UpdateEngine/src/$metadataPath" | Out-Null
-    New-Item -ItemType Directory -Force -Path "./UpdateEngine/src/$contentPath" | Out-Null
+    New-Item -ItemType Directory -Force -Path "./UpdateEngine.Functions/src/$metadataPath" | Out-Null
+    New-Item -ItemType Directory -Force -Path "./UpdateEngine.Functions/src/$contentPath" | Out-Null
     
     $localSettings.Values.AzureWebJobsStorage = ""
     $localSettings.Values.MetadataStorePath = $metadataPath
@@ -75,7 +75,7 @@ if ($StorageMode -eq "FileSystem") {
 }
 
 # Write local.settings.json
-$localSettingsPath = "./UpdateEngine/src/local.settings.json"
+$localSettingsPath = "./UpdateEngine.Functions/src/local.settings.json"
 $localSettings | ConvertTo-Json -Depth 3 | Set-Content $localSettingsPath
 
 Write-Host "💾 Updated $localSettingsPath" -ForegroundColor Green
@@ -84,7 +84,7 @@ Write-Host "💾 Updated $localSettingsPath" -ForegroundColor Green
 if ($UseAppHost) {
     Write-Host "🚀 Configuring AppHost for $StorageMode mode..." -ForegroundColor Magenta
     
-    $appHostPath = "./AppHost/Program.cs"
+    $appHostPath = "./UpdateEngine.AppHost/src/Program.cs"
     
     if ($StorageMode -eq "AzureEmulator") {
         $appHostContent = @"
@@ -96,7 +96,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 var storage = builder.AddAzureStorage("storage").RunAsEmulator();
 
 // Add the Microsoft Update Functions with Azure Storage Emulator
-var updateFunctions = builder.AddExecutable("update-functions", "func", "../UpdateEngine/src", "start", "--port", "7071")
+var updateFunctions = builder.AddExecutable("update-functions", "func", "../UpdateEngine.Functions/src", "start", "--port", "7071")
     .WithEnvironment("FUNCTIONS_WORKER_RUNTIME", "dotnet-isolated")
     .WithEnvironment("AzureWebJobsSecretStorageType", "files")
     .WithEnvironment("AZURE_FUNCTIONS_ENVIRONMENT", "Development")
@@ -123,7 +123,7 @@ using Aspire.Hosting;
 var builder = DistributedApplication.CreateBuilder(args);
 
 // Add the Microsoft Update Functions with local file system storage
-var updateFunctions = builder.AddExecutable("update-functions", "func", "../UpdateEngine/src", "start", "--port", "7071")
+var updateFunctions = builder.AddExecutable("update-functions", "func", "../UpdateEngine.Functions/src", "start", "--port", "7071")
     .WithEnvironment("FUNCTIONS_WORKER_RUNTIME", "dotnet-isolated")
     .WithEnvironment("AzureWebJobsStorage", "")
     .WithEnvironment("AzureWebJobsSecretStorageType", "files")
@@ -168,11 +168,11 @@ if ($StorageMode -eq "AzureEmulator") {
 if ($StartFunctions -and $UseAppHost) {
     Write-Host ""
     Write-Host "🚀 Starting AppHost..." -ForegroundColor Green
-    Set-Location "./AppHost"
+    Set-Location "./UpdateEngine.AppHost/src"
     dotnet run
 } elseif ($StartFunctions) {
     Write-Host ""
     Write-Host "🚀 Starting Azure Functions..." -ForegroundColor Green
-    Set-Location "./UpdateEngine/src"
+    Set-Location "./UpdateEngine.Functions/src"
     func start --port 7071
 }

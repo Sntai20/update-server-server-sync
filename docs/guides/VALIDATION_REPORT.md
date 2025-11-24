@@ -15,8 +15,8 @@ The Microsoft Update Server-Server sync solution has been successfully validated
 - **`microsoft-update-webservices/`**: SOAP web service implementations for client/server sync protocols
 - **`microsoft-update-endpoints/`**: ASP.NET Core startup classes and endpoint configurations
 - **`microsoft-update-upstream-package-source/`**: Client libraries for syncing from upstream Microsoft Update servers
-- **`UpdateEngine/`**: Serverless Azure Functions implementation (.NET 9)
-- **`AppHost/`**: .NET Aspire application host for orchestrating the distributed application
+- **`UpdateEngine.Functions/`**: Serverless Azure Functions implementation (.NET 9)
+- **`UpdateEngine.AppHost/`**: .NET Aspire application host for orchestrating the distributed application
 
 ### Data Flow Verified
 ```

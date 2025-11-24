@@ -198,10 +198,10 @@ All projects build successfully after reorganization:
 ```bash
 ? Configuration       ? Configuration/src/Configuration.csproj
 ? ServiceDefaults     ? ServiceDefaults/src/ServiceDefaults.csproj
-? UpdateEngine.Core   ? UpdateEngine/core/UpdateEngine.Core.csproj
+? UpdateEngine.Core   ? UpdateEngine.Core/src/UpdateEngine.Core.csproj
 ? WorkerService       ? WorkerService/src/WorkerService.csproj
-? UpdateEngine        ? UpdateEngine/src/UpdateEngine.csproj
-? AppHost             ? AppHost/src/AppHost.csproj
+? UpdateEngine        ? UpdateEngine.Functions/src/UpdateEngine.csproj
+? AppHost             ? UpdateEngine.AppHost/src/AppHost.csproj
 ```
 
 **Build Output**:

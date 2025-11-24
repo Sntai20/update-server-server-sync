@@ -155,8 +155,8 @@ Guide for content synchronization using AppHost.
 
 ### Key Configuration Files Referenced
 
-- `UpdateEngine/src/host.json` - Azure Functions configuration
-- `UpdateEngine/src/local.settings.json` - Local development settings
+- `UpdateEngine.Functions/src/host.json` - Azure Functions configuration
+- `UpdateEngine.Functions/src/local.settings.json` - Local development settings
 - `Deployment/main.bicep` - Infrastructure as Code template
 - `Deployment/main.parameters.*.json` - Environment-specific parameters
 

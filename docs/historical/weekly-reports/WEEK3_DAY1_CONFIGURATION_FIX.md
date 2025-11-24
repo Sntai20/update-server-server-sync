@@ -87,7 +87,7 @@ Restructured `Configuration/shared/appsettings.defaults.json` to match the neste
 
 ### 4. **Reference File Alignment**
 - Now matches structure in `Configuration/appsettings.example.json`
-- Consistent with how `AppHost/src/Program.cs` binds configuration
+- Consistent with how `UpdateEngine.AppHost/src/Program.cs` binds configuration
 
 ## Files Modified
 
@@ -96,11 +96,11 @@ Restructured `Configuration/shared/appsettings.defaults.json` to match the neste
    - Added CacheConfiguration section
    - Removed duplicate WeeklyMaintenanceSchedule property
 
-2. **AppHost/src/ConfigurationHelper.cs** (from earlier fixes)
+2. **UpdateEngine.AppHost/src/ConfigurationHelper.cs** (from earlier fixes)
    - Line 40: Fixed EnableScheduledSync property location
    - Line 73: Fixed MaintenanceSchedule property name
 
-3. **AppHost/src/Program.cs** (from earlier fixes)
+3. **UpdateEngine.AppHost/src/Program.cs** (from earlier fixes)
    - Line 23: Fixed AddSharedAppConfiguration receiver type
 
 ## Verification
@@ -132,7 +132,7 @@ appsettings.defaults.json
        ??> FeatureFlags (EnableMetrics, EnableCaching, EnableDetailedLogging)
        ??> CacheConfiguration (TTLs, KeyPrefix, InvalidateOnSync)
                    ?
-          AppHost/src/Program.cs
+          UpdateEngine.AppHost/src/Program.cs
           builder.Configuration.Bind(appConfig)
                    ?
           AppConfig class
@@ -155,8 +155,8 @@ appsettings.defaults.json
 | `Configuration/shared/appsettings.defaults.json` | **Base defaults** for all environments | ? Fixed |
 | `Configuration/appsettings.example.json` | **Template/reference** showing complete structure | ? Correct |
 | `Configuration/AppConfig.cs` | **Root configuration class** with nested objects | ? Correct |
-| `AppHost/src/ConfigurationHelper.cs` | **Maps config to env vars** for Functions | ? Fixed |
-| `AppHost/src/Program.cs` | **Loads and validates** configuration at startup | ? Fixed |
+| `UpdateEngine.AppHost/src/ConfigurationHelper.cs` | **Maps config to env vars** for Functions | ? Fixed |
+| `UpdateEngine.AppHost/src/Program.cs` | **Loads and validates** configuration at startup | ? Fixed |
 
 ## Configuration Patterns
 

@@ -20,7 +20,7 @@
 
 #### Step 1: Start AppHost
 ```bash
-cd AppHost/src
+cd UpdateEngine.AppHost/src
 dotnet run
 ```
 

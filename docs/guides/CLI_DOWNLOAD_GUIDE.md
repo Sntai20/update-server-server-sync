@@ -271,7 +271,7 @@ The CLI provides user-friendly error messages and returns appropriate exit codes
 ### Common Issues
 
 1. **UpdateEngine Not Running**
-   - Start UpdateEngine: `cd AppHost/src && dotnet run`
+   - Start UpdateEngine: `cd UpdateEngine.AppHost/src && dotnet run`
    - Verify endpoints: `update-cli health`
 
 2. **Downloads Not Available**

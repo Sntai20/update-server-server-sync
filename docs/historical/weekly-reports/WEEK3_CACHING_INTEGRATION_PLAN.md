@@ -29,7 +29,7 @@ Week 3 focuses on integrating the Redis caching infrastructure (created in Week 
 
 ### Task 1.1: MetadataOrchestrator Caching ?
 
-**File**: `UpdateEngine/src/Core/Orchestrators/MetadataOrchestrator.cs`
+**File**: `UpdateEngine.Functions/src/Core/Orchestrators/MetadataOrchestrator.cs`
 
 #### Changes Needed:
 
@@ -104,7 +104,7 @@ Week 3 focuses on integrating the Redis caching infrastructure (created in Week 
 
 ### Task 1.2: ContentOrchestrator Caching ?
 
-**File**: `UpdateEngine/src/Core/Orchestrators/ContentOrchestrator.cs`
+**File**: `UpdateEngine.Functions/src/Core/Orchestrators/ContentOrchestrator.cs`
 
 #### Changes Needed:
 
@@ -184,7 +184,7 @@ Week 3 focuses on integrating the Redis caching infrastructure (created in Week 
 
 ### Task 1.3: SyncOrchestrator Cache Invalidation ?
 
-**File**: `UpdateEngine/src/Core/Orchestrators/SyncOrchestrator.cs`
+**File**: `UpdateEngine.Functions/src/Core/Orchestrators/SyncOrchestrator.cs`
 
 #### Changes Needed:
 
@@ -279,7 +279,7 @@ Week 3 focuses on integrating the Redis caching infrastructure (created in Week 
 
 ### Task 2.1: Add Redis Container to AppHost ?
 
-**File**: `AppHost/src/Program.cs`
+**File**: `UpdateEngine.AppHost/src/Program.cs`
 
 #### Changes Needed:
 
@@ -304,7 +304,7 @@ updateFunctions
 
 ### Task 2.2: Update ConfigurationHelper ?
 
-**File**: `AppHost/src/ConfigurationHelper.cs`
+**File**: `UpdateEngine.AppHost/src/ConfigurationHelper.cs`
 
 #### Changes Needed:
 
@@ -335,7 +335,7 @@ public static void ConfigureUpdateFunctions(
 
 ### Task 2.3: Update ServiceCollectionExtensions ?
 
-**File**: `UpdateEngine/src/Core/ServiceCollectionExtensions.cs`
+**File**: `UpdateEngine.Functions/src/Core/ServiceCollectionExtensions.cs`
 
 #### Changes Needed:
 
@@ -469,7 +469,7 @@ else
 
 ### Task 4.1: CacheService Unit Tests ?
 
-**File**: `UpdateEngine/test/Unit/Services/CacheServiceTests.cs`
+**File**: `UpdateEngine.Functions/test/Unit/Services/CacheServiceTests.cs`
 
 #### Test Cases:
 
@@ -526,7 +526,7 @@ public class CacheServiceTests
 
 ### Task 4.2: Orchestrator Caching Integration Tests ?
 
-**File**: `UpdateEngine/test/Integration/Orchestrators/CachingIntegrationTests.cs`
+**File**: `UpdateEngine.Functions/test/Integration/Orchestrators/CachingIntegrationTests.cs`
 
 #### Test Cases:
 
@@ -563,7 +563,7 @@ public class CachingIntegrationTests : IAsyncLifetime
 
 ### Task 4.3: AppHost Integration Test ?
 
-**File**: `UpdateEngine/test/Integration/AppHostCachingTest.cs`
+**File**: `UpdateEngine.Functions/test/Integration/AppHostCachingTest.cs`
 
 #### Test Cases:
 
@@ -593,7 +593,7 @@ public class AppHostCachingTest
 
 ### Task 5.1: Redis Health Check ?
 
-**File**: `UpdateEngine/src/Core/HealthChecks/RedisHealthCheck.cs`
+**File**: `UpdateEngine.Functions/src/Core/HealthChecks/RedisHealthCheck.cs`
 
 #### Implementation:
 

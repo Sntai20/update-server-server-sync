@@ -28,7 +28,7 @@ For rapid testing, the Development environment uses accelerated schedules:
 
 ### 1. **Start Aspire AppHost**
 ```powershell
-cd AppHost
+cd UpdateEngine.AppHost
 dotnet run --project src/AppHost.csproj
 ```
 
@@ -167,4 +167,4 @@ dotnet run --project src/AppHost.csproj
 
 ---
 
-**Quick Start**: `cd AppHost && dotnet run` → Functions start automatically with rapid testing schedules!
+**Quick Start**: `cd UpdateEngine.AppHost && dotnet run` → Functions start automatically with rapid testing schedules!

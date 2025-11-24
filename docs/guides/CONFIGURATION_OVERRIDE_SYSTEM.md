@@ -7,13 +7,13 @@ This document explains how configuration works when using the AppHost vs running
 When using the Microsoft Update Server-Server Sync application, configuration is loaded in the following priority order (highest to lowest):
 
 ### 🏆 **1. AppHost Environment Variables** (Highest Priority)
-- **Source**: `AppHost/src/ConfigurationHelper.cs`
-- **When Active**: Running via `cd AppHost && dotnet run`
+- **Source**: `UpdateEngine.AppHost/src/ConfigurationHelper.cs`
+- **When Active**: Running via `cd UpdateEngine.AppHost && dotnet run`
 - **Mechanism**: Injected as environment variables into Azure Functions process
 - **Overrides**: All lower priority configurations
 
 ### 🥈 **2. AppHost Configuration Files** 
-- **Source**: `AppHost/src/appsettings.{Environment}.json`
+- **Source**: `UpdateEngine.AppHost/src/appsettings.{Environment}.json`
 - **Environments**: 
   - `appsettings.Development.json` (Development)
   - `appsettings.IntegrationTest.json` (Integration Testing)
@@ -21,12 +21,12 @@ When using the Microsoft Update Server-Server Sync application, configuration is
 - **Base**: `appsettings.json` (Default settings)
 
 ### 🥉 **3. Azure Functions Local Settings**
-- **Source**: `UpdateEngine/src/local.settings.json`
+- **Source**: `UpdateEngine.Functions/src/local.settings.json`
 - **When Active**: Running Functions directly via `func start`
 - **Scope**: Local development only
 
 ### 📄 **4. Base Configuration**
-- **Source**: `AppHost/src/appsettings.json`
+- **Source**: `UpdateEngine.AppHost/src/appsettings.json`
 - **Purpose**: Default fallback values
 
 ## Configuration Flow Diagram
@@ -91,7 +91,7 @@ Uses production schedules when running `func start` directly:
 The `ConfigurationHelper.cs` class automatically injects AppHost settings as environment variables:
 
 ```csharp
-// From AppHost/src/ConfigurationHelper.cs
+// From UpdateEngine.AppHost/src/ConfigurationHelper.cs
 functions
     .WithEnvironment("SyncMetadataCriticalSchedule", schedules.SyncMetadataCriticalSchedule)
     .WithEnvironment("SyncContentSchedule", schedules.SyncContentSchedule)
@@ -129,7 +129,7 @@ foreach (var job in azureWebJobsConfig.GetChildren())
 
 ### **Scenario 1: AppHost Development** 
 ```powershell
-cd AppHost
+cd UpdateEngine.AppHost
 dotnet run --project src/AppHost.csproj
 ```
 **Result**: 
@@ -139,7 +139,7 @@ dotnet run --project src/AppHost.csproj
 
 ### **Scenario 2: Direct Functions Development**
 ```powershell
-cd UpdateEngine/src  
+cd UpdateEngine.Functions/src  
 func start
 ```
 **Result**:
@@ -149,7 +149,7 @@ func start
 
 ### **Scenario 3: Integration Testing**
 ```powershell
-cd AppHost
+cd UpdateEngine.AppHost
 dotnet run --environment IntegrationTest
 ```
 **Result**:
@@ -163,11 +163,11 @@ dotnet run --environment IntegrationTest
 
 | File | Purpose | Environment | Override Level |
 |------|---------|-------------|----------------|
-| `AppHost/src/appsettings.json` | Base configuration | All | Lowest |
-| `AppHost/src/appsettings.Development.json` | Rapid testing | Development | Highest |
-| `AppHost/src/appsettings.IntegrationTest.json` | Automated testing | CI/CD | Highest |
-| `AppHost/src/appsettings.Production.json` | Production deployment | Production | Highest |
-| `UpdateEngine/src/local.settings.json` | Direct Functions | Local dev | Medium |
+| `UpdateEngine.AppHost/src/appsettings.json` | Base configuration | All | Lowest |
+| `UpdateEngine.AppHost/src/appsettings.Development.json` | Rapid testing | Development | Highest |
+| `UpdateEngine.AppHost/src/appsettings.IntegrationTest.json` | Automated testing | CI/CD | Highest |
+| `UpdateEngine.AppHost/src/appsettings.Production.json` | Production deployment | Production | Highest |
+| `UpdateEngine.Functions/src/local.settings.json` | Direct Functions | Local dev | Medium |
 
 ### **Configuration Sections**
 
@@ -227,7 +227,7 @@ Application limits and URLs:
 
 **Problem**: Functions using wrong timer intervals  
 **Solution**: 
-1. Verify running via AppHost: `cd AppHost && dotnet run`
+1. Verify running via AppHost: `cd UpdateEngine.AppHost && dotnet run`
 2. Check `appsettings.Development.json` for correct schedules
 3. Confirm `ConfigurationHelper.cs` maps the schedule property
 
@@ -279,7 +279,7 @@ Application limits and URLs:
 
 ## Quick Reference
 
-**Start with rapid testing**: `cd AppHost && dotnet run`  
+**Start with rapid testing**: `cd UpdateEngine.AppHost && dotnet run`  
 **Check configuration priority**: AppHost > appsettings.{Environment}.json > local.settings.json  
 **Verify schedules**: Function logs show "Next run: {time}" after trigger execution  
 **Debug configuration**: Review environment variables injected by `ConfigurationHelper.cs`

@@ -17,14 +17,14 @@ Cleaned up duplicate Azure Function implementations that were causing route conf
 - WeeklyMaintenance timer trigger indexing error due to invalid schedule format
 
 ### Root Cause
-- **Old function files** existed at the root `UpdateEngine/src/Functions/` directory
-- **New organized structure** in `UpdateEngine/src/Functions/Core/` subdirectory
+- **Old function files** existed at the root `UpdateEngine.Functions/src/Functions/` directory
+- **New organized structure** in `UpdateEngine.Functions/src/Functions/Core/` subdirectory
 - Both old and new implementations were being loaded, causing conflicts
 - `local.settings.json` had TimeSpan format for MaintenanceSchedule instead of CRON expression
 
 ## Files Removed (Duplicates)
 
-### 1. ? `UpdateEngine/src/Functions/ClientSyncFunctions.cs`
+### 1. ? `UpdateEngine.Functions/src/Functions/ClientSyncFunctions.cs`
 **Reason**: Duplicates `Core/WebServiceFunctions.cs`
 
 **Contained Functions**:
@@ -33,7 +33,7 @@ Cleaned up duplicate Azure Function implementations that were causing route conf
 
 **Conflict**: Route `/api/ClientWebService/client.asmx` registered twice
 
-### 2. ? `UpdateEngine/src/Functions/ServerSyncFunctions.cs`
+### 2. ? `UpdateEngine.Functions/src/Functions/ServerSyncFunctions.cs`
 **Reason**: Duplicates `Core/WebServiceFunctions.cs`
 
 **Contained Functions**:
@@ -46,7 +46,7 @@ Cleaned up duplicate Azure Function implementations that were causing route conf
 - `/api/DssAuthWebService/DssAuthWebService.asmx`
 - `/api/ReportingWebService/ReportingWebService.asmx`
 
-### 3. ? `UpdateEngine/src/Functions/ContentFunctions.cs`
+### 3. ? `UpdateEngine.Functions/src/Functions/ContentFunctions.cs`
 **Reason**: Duplicates `Core/ContentDeliveryFunctions.cs`
 
 **Contained Functions**:
@@ -55,7 +55,7 @@ Cleaned up duplicate Azure Function implementations that were causing route conf
 
 **Conflict**: Route `/api/content/{contentHash}` registered twice
 
-### 4. ? `UpdateEngine/src/Functions/DownloadFunctions.cs`
+### 4. ? `UpdateEngine.Functions/src/Functions/DownloadFunctions.cs`
 **Reason**: Functionality consolidated into `Core/ContentDeliveryFunctions.cs`
 
 **Contained Functions**:
@@ -67,7 +67,7 @@ Cleaned up duplicate Azure Function implementations that were causing route conf
 - Routes `/api/download/metadata/{updateId}` and `/api/download/content/{updateId}` registered twice
 - Function names `DownloadUpdateMetadata` and `DownloadUpdateContent` duplicated
 
-### 5. ? `UpdateEngine/src/Functions/MetadataQueryFunctions.cs`
+### 5. ? `UpdateEngine.Functions/src/Functions/MetadataQueryFunctions.cs`
 **Reason**: Duplicates `Core/MetadataAccessFunctions.cs`
 
 **Contained Functions**:
@@ -83,22 +83,22 @@ Cleaned up duplicate Azure Function implementations that were causing route conf
 
 ### Core Organization Structure
 
-? **`UpdateEngine/src/Functions/Core/WebServiceFunctions.cs`**
+? **`UpdateEngine.Functions/src/Functions/Core/WebServiceFunctions.cs`**
 - **Purpose**: Consolidated SOAP web service endpoints
 - **Contains**: ClientWebService, ServerWebService, SimpleAuthWebService, DssAuthWebService, ReportingWebService
 - **Benefits**: Better error handling with `SoapHelpers`, consolidated SOAP logic
 
-? **`UpdateEngine/src/Functions/Core/ContentDeliveryFunctions.cs`**
+? **`UpdateEngine.Functions/src/Functions/Core/ContentDeliveryFunctions.cs`**
 - **Purpose**: Modern content delivery and download management
 - **Contains**: GetContent, GetContentHead, DownloadMetadata, DownloadContent, ListDownloads, ContentStatus
 - **Benefits**: Uses `FunctionHelpers` for consistent error handling, better parameter validation
 
-? **`UpdateEngine/src/Functions/Core/MetadataAccessFunctions.cs`**
+? **`UpdateEngine.Functions/src/Functions/Core/MetadataAccessFunctions.cs`**
 - **Purpose**: Metadata query, filtering, and export operations
 - **Contains**: QueryMetadata, QueryAvailableFilters, MatchDrivers, ExportMetadata, GetStoreStatus
 - **Benefits**: Integrated with `IQueryService`, consistent error handling, proper authorization
 
-? **`UpdateEngine/src/Functions/MetadataExportFunctions.cs`**
+? **`UpdateEngine.Functions/src/Functions/MetadataExportFunctions.cs`**
 - **Purpose**: Advanced metadata export capabilities
 - **Contains**: ExportMetadataAdvanced, ExportSyncSummaryToCsv
 - **Benefits**: NOT a duplicate - provides specialized export functionality beyond basic export
@@ -106,21 +106,21 @@ Cleaned up duplicate Azure Function implementations that were causing route conf
 
 ### Other Retained Files
 
-- ? `UpdateEngine/src/Functions/Management/UnifiedSyncFunctions.cs`
-- ? `UpdateEngine/src/Functions/Management/UnifiedHealthFunctions.cs`
-- ? `UpdateEngine/src/Functions/Management/DiagnosticFunctions.cs`
-- ? `UpdateEngine/src/Functions/Intelligence/AnomalyDetectionFunctions.cs`
-- ? `UpdateEngine/src/Functions/Core/UnifiedSyncFunction.cs`
-- ? `UpdateEngine/src/Functions/Core/UnifiedMetadataFunction.cs`
-- ? `UpdateEngine/src/Functions/Shared/SoapHelpers.cs`
-- ? `UpdateEngine/src/Functions/Shared/FunctionHelpers.cs`
-- ? `UpdateEngine/src/Functions/Shared/CommonModels.cs`
+- ? `UpdateEngine.Functions/src/Functions/Management/UnifiedSyncFunctions.cs`
+- ? `UpdateEngine.Functions/src/Functions/Management/UnifiedHealthFunctions.cs`
+- ? `UpdateEngine.Functions/src/Functions/Management/DiagnosticFunctions.cs`
+- ? `UpdateEngine.Functions/src/Functions/Intelligence/AnomalyDetectionFunctions.cs`
+- ? `UpdateEngine.Functions/src/Functions/Core/UnifiedSyncFunction.cs`
+- ? `UpdateEngine.Functions/src/Functions/Core/UnifiedMetadataFunction.cs`
+- ? `UpdateEngine.Functions/src/Functions/Shared/SoapHelpers.cs`
+- ? `UpdateEngine.Functions/src/Functions/Shared/FunctionHelpers.cs`
+- ? `UpdateEngine.Functions/src/Functions/Shared/CommonModels.cs`
 
 ## Configuration Fixes
 
 ### 1. ? Fixed MaintenanceSchedule Format
 
-**File**: `UpdateEngine/src/local.settings.json`
+**File**: `UpdateEngine.Functions/src/local.settings.json`
 
 **Before**:
 ```json
@@ -136,7 +136,7 @@ Cleaned up duplicate Azure Function implementations that were causing route conf
 
 ### 2. ? Enhanced Azure Blob Storage Health Check
 
-**File**: `UpdateEngine/core/HealthChecks/AzureBlobStorageHealthCheck.cs`
+**File**: `UpdateEngine.Core/src/HealthChecks/AzureBlobStorageHealthCheck.cs`
 
 **Changes**:
 - Added Azurite detection via connection string pattern matching
@@ -157,17 +157,17 @@ Cleaned up duplicate Azure Function implementations that were causing route conf
 
 ### Build Status
 ```bash
-dotnet build UpdateEngine/src/UpdateEngine.csproj
+dotnet build UpdateEngine.Functions/src/UpdateEngine.csproj
 # Result: ? Build succeeded with 1 warning(s) in 4.5s
 
-dotnet build UpdateEngine/core/UpdateEngine.Core.csproj
+dotnet build UpdateEngine.Core/src/UpdateEngine.Core.csproj
 # Result: ? Build succeeded with 13 warning(s) in 0.9s
 ```
 
 ### Remaining Function Files
 After cleanup, the following function files remain:
 ```
-UpdateEngine/src/Functions/
+UpdateEngine.Functions/src/Functions/
 ??? Core/
 ?   ??? WebServiceFunctions.cs          ? (Consolidated SOAP)
 ?   ??? ContentDeliveryFunctions.cs     ? (Modern content delivery)
@@ -238,7 +238,7 @@ WeeklyMaintenance: Timer trigger registered with schedule "0 0 2 */7 * *"
 - ? Verify health checks report correct status
 
 ### Manual Testing
-- ? Start Azure Functions via Aspire: `cd AppHost/src && dotnet run`
+- ? Start Azure Functions via Aspire: `cd UpdateEngine.AppHost/src && dotnet run`
 - ? Check function registration logs for conflicts (should be none)
 - ? Test SOAP endpoints: `curl http://localhost:7071/api/ClientWebService/client.asmx`
 - ? Test content delivery: `curl http://localhost:7071/api/content/{hash}`

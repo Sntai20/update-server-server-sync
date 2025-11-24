@@ -86,7 +86,7 @@ public static ContainerPackageStore OpenOrCreate(BlobServiceClient client, strin
 
 ## Changes Made
 
-### UpdateEngine/src/Core/ServiceCollectionExtensions.cs
+### UpdateEngine.Functions/src/Core/ServiceCollectionExtensions.cs
 
 **Before** (Lines 87-98):
 ```csharp
@@ -124,7 +124,7 @@ if (storageConfig.UseAzureStorageForContent)
 
 **Error**: `NU1109: Detected package downgrade: Microsoft.Extensions.Http.Resilience from 10.0.0 to 9.4.0`
 
-**Project**: `UpdateEngine/test/UpdateEngineTest.csproj`
+**Project**: `UpdateEngine.Functions/test/UpdateEngineTest.csproj`
 
 **Cause**: 
 - `Aspire.Hosting.Testing 13.0.0` requires `Microsoft.Extensions.Http.Resilience >= 10.0.0`

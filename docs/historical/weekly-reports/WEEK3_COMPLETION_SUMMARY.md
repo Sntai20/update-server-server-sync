@@ -50,13 +50,13 @@ Week 3 successfully integrated Redis-backed distributed caching into the Update 
 ### Files Created
 
 #### Core Implementation
-1. **`UpdateEngine/src/Core/Services/CacheService.cs`**  
+1. **`UpdateEngine.Functions/src/Core/Services/CacheService.cs`**  
    - Generic cache-aside pattern implementation
    - Automatic invalidation strategies
    - Graceful fallback for Redis unavailability
    - ~300 lines
 
-2. **`UpdateEngine/src/Core/HealthChecks/RedisHealthCheck.cs`**  
+2. **`UpdateEngine.Functions/src/Core/HealthChecks/RedisHealthCheck.cs`**  
    - Write/Read/Delete test cycle
    - Response time measurement
    - Comprehensive error categorization
@@ -69,13 +69,13 @@ Week 3 successfully integrated Redis-backed distributed caching into the Update 
    - ~50 lines
 
 #### Testing
-4. **`UpdateEngine/test/Unit/Services/CacheServiceTests.cs`**  
+4. **`UpdateEngine.Functions/test/Unit/Services/CacheServiceTests.cs`**  
    - 17 comprehensive unit tests
    - Mock-based testing (no Redis dependency)
    - 100% passing rate
    - ~420 lines
 
-5. **`UpdateEngine/test/Integration/Orchestrators/CachingIntegrationTests.cs`**  
+5. **`UpdateEngine.Functions/test/Integration/Orchestrators/CachingIntegrationTests.cs`**  
    - Removed due to API complexity (deferred)
    - Replaced with orchestrator integration tests
 
@@ -93,17 +93,17 @@ Week 3 successfully integrated Redis-backed distributed caching into the Update 
 ### Files Modified
 
 #### Core Orchestrators
-8. **`UpdateEngine/src/Core/Orchestrators/MetadataOrchestrator.cs`**  
+8. **`UpdateEngine.Functions/src/Core/Orchestrators/MetadataOrchestrator.cs`**  
    - Added `CacheService?` parameter
    - `GetStatisticsAsync()` - Cache-aside with 5min TTL
    - `GetUpdateDetailsAsync()` - Cache-aside with 60min TTL
 
-9. **`UpdateEngine/src/Core/Orchestrators/ContentOrchestrator.cs`**  
+9. **`UpdateEngine.Functions/src/Core/Orchestrators/ContentOrchestrator.cs`**  
    - Added `CacheService?` parameter
    - `GetStatisticsAsync()` - Cache-aside with 5min TTL
    - `CheckContentAvailabilityAsync()` - Per-update caching with 15min TTL
 
-10. **`UpdateEngine/src/Core/Orchestrators/SyncOrchestrator.cs`**  
+10. **`UpdateEngine.Functions/src/Core/Orchestrators/SyncOrchestrator.cs`**  
     - Added `CacheService?` parameter
     - `InvalidateCachesAfterSyncAsync()` - Smart invalidation after successful sync
 
@@ -121,22 +121,22 @@ Week 3 successfully integrated Redis-backed distributed caching into the Update 
     - Added detailed comments for each setting
 
 #### Infrastructure
-14. **`UpdateEngine/src/Core/ServiceCollectionExtensions.cs`**  
+14. **`UpdateEngine.Functions/src/Core/ServiceCollectionExtensions.cs`**  
     - Added Redis registration (conditional)
     - Added `CacheService` registration (nullable)
     - Added Redis health check registration
     - Added JSON serialization options
 
-15. **`AppHost/src/Program.cs`**  
+15. **`UpdateEngine.AppHost/src/Program.cs`**  
     - Added Redis container resource
     - Added reference to UpdateEngine functions
 
-16. **`AppHost/src/ConfigurationHelper.cs`**  
+16. **`UpdateEngine.AppHost/src/ConfigurationHelper.cs`**  
     - Added cache configuration mapping
     - Maps environment variables to functions
 
 #### Documentation
-17. **`UpdateEngine/src/README.md`**  
+17. **`UpdateEngine.Functions/src/README.md`**  
     - Added caching features section
     - Added performance benefits table
     - Added caching configuration examples
@@ -151,7 +151,7 @@ Week 3 successfully integrated Redis-backed distributed caching into the Update 
 ## ?? Testing Results
 
 ### Unit Tests
-**File**: `UpdateEngine/test/Unit/Services/CacheServiceTests.cs`  
+**File**: `UpdateEngine.Functions/test/Unit/Services/CacheServiceTests.cs`  
 **Status**: ? 17/17 passing (100%)
 
 | Test | Purpose | Status |
@@ -311,7 +311,7 @@ msupdate:                          # Configurable prefix
 ### Local Development with Aspire
 ```bash
 # 1. Start AppHost (includes Redis automatically)
-cd AppHost/src
+cd UpdateEngine.AppHost/src
 dotnet run
 
 # Result:
@@ -526,7 +526,7 @@ traces
    - Complete cache configuration example
    - Detailed comments for each setting
 
-5. **`UpdateEngine/src/README.md`** (Updated)
+5. **`UpdateEngine.Functions/src/README.md`** (Updated)
    - Caching features overview
    - Performance benefits table
    - Configuration examples

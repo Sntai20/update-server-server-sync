@@ -20,7 +20,7 @@ This directory contains all automation scripts organized by purpose.
 ### Test Scripts
 - [Run-InMemoryTests.ps1](../test/Run-InMemoryTests.ps1) - Run in-memory tests
 - [Test-Startup.ps1](../test/Test-Startup.ps1) - Test application startup
-- [Test-SyncWithDiagnostics.ps1](../../AppHost/src/Test-SyncWithDiagnostics.ps1) - Test sync with diagnostics
+- [Test-SyncWithDiagnostics.ps1](../../UpdateEngine.AppHost/src/Test-SyncWithDiagnostics.ps1) - Test sync with diagnostics
 
 ### Maintenance Scripts
 - [Fix-WCF-ServiceReferences.ps1](../maintenance/Fix-WCF-ServiceReferences.ps1) - Fix WCF service references

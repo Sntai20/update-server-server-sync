@@ -83,19 +83,19 @@ Content-Type: application/json
 ### 📁 **Files Modified/Created**
 
 #### **Core Implementation**
-1. **`UpdateEngine/src/Services/Models.cs`**
+1. **`UpdateEngine.Functions/src/Services/Models.cs`**
    - Added `LanguageFilters` to data models
    - Created `LanguageFilteredSyncRequest` model
 
-2. **`UpdateEngine/src/Functions/UnifiedSyncFunctions.cs`**
+2. **`UpdateEngine.Functions/src/Functions/UnifiedSyncFunctions.cs`**
    - Enhanced with language filtering support
    - Added new `SyncWithLanguageFilter` endpoint
    - Updated all sync methods with automatic language filtering
 
-3. **`AppHost/src/appsettings.Development.json`**
+3. **`UpdateEngine.AppHost/src/appsettings.Development.json`**
    - Added `SupportedLanguages` configuration
 
-4. **`AppHost/src/appsettings.json`**
+4. **`UpdateEngine.AppHost/src/appsettings.json`**
    - Added `SupportedLanguages` configuration
 
 #### **Documentation & Testing**
