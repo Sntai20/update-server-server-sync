@@ -32,8 +32,6 @@ public static class ConfigurationHelper
         // Set storage environment variables from StorageConfiguration
         project
             .WithEnvironment("UpdateEngine__ServiceConfiguration__MaxUpdateCount", appConfig.ServiceConfiguration.MaxUpdateCount.ToString())
-            .WithEnvironment("UpdateEngine__StorageConfiguration__UseAzureStorageForMetadata", appConfig.StorageConfiguration.UseAzureStorageForMetadata.ToString())
-            .WithEnvironment("UpdateEngine__StorageConfiguration__UseAzureStorageForContent", appConfig.StorageConfiguration.UseAzureStorageForContent.ToString())
             .WithEnvironment("UpdateEngine__StorageConfiguration__MetadataContainerName", appConfig.StorageConfiguration.MetadataContainerName)
             .WithEnvironment("UpdateEngine__StorageConfiguration__ContentContainerName", appConfig.StorageConfiguration.ContentContainerName)
             .WithEnvironment("UpdateEngine__StorageConfiguration__ContentPathPrefix", appConfig.StorageConfiguration.ContentPathPrefix ?? "Content")
@@ -85,12 +83,11 @@ public static class ConfigurationHelper
         configuration.Bind(appConfig);
 
         // Set storage environment variables from StorageConfiguration
-        // IMPORTANT: Use hierarchical naming (UpdateEngine__StorageConfiguration__*) 
-        // to match the configuration section structure that Functions reads
+        // IMPORTANT: Do NOT set UseAzureStorageForMetadata/UseAzureStorageForContent as environment variables
+        // They should come from shared appsettings.Development.json (already set to true)
+        // Setting them here would override the JSON configuration
         functions
             .WithEnvironment("UpdateEngine__ServiceConfiguration__MaxUpdateCount", appConfig.ServiceConfiguration.MaxUpdateCount.ToString())
-            .WithEnvironment("UpdateEngine__StorageConfiguration__UseAzureStorageForMetadata", appConfig.StorageConfiguration.UseAzureStorageForMetadata.ToString())
-            .WithEnvironment("UpdateEngine__StorageConfiguration__UseAzureStorageForContent", appConfig.StorageConfiguration.UseAzureStorageForContent.ToString())
             .WithEnvironment("UpdateEngine__StorageConfiguration__MetadataContainerName", appConfig.StorageConfiguration.MetadataContainerName)
             .WithEnvironment("UpdateEngine__StorageConfiguration__ContentContainerName", appConfig.StorageConfiguration.ContentContainerName)
             .WithEnvironment("UpdateEngine__StorageConfiguration__ContentPathPrefix", appConfig.StorageConfiguration.ContentPathPrefix ?? "Content")
@@ -167,5 +164,8 @@ public static class ConfigurationHelper
         // - ConnectionStrings__ContentStorageConnection (from .WithReference(data, "ContentStorageConnection"))
         // - ConnectionStrings__Redis (from .WithReference(redis))
         // Azure Functions configuration system will read these automatically
+        //
+        // Storage configuration (UseAzureStorageForMetadata/UseAzureStorageForContent) comes from
+        // shared/appsettings.Development.json and should NOT be overridden here
     }
 }

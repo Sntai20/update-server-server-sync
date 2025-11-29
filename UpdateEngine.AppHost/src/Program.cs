@@ -170,8 +170,9 @@ app.Run();
 static void ValidateConfiguration(IConfiguration configuration)
 {
     // Create and bind AppConfig to validate the configuration structure
+    // IMPORTANT: Must bind from the UpdateEngine section, not the root
     var appConfig = new AppConfig();
-    configuration.Bind(appConfig);
+    configuration.GetSection(AppConfig.SectionName).Bind(appConfig);
     
     // Use the built-in validation method from AppConfig
     try

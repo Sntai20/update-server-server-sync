@@ -185,6 +185,12 @@ namespace UpdateEngine.Metadata.Storage.Azure
             {
                 var registeredIndexes = GetRegisteredIndexes();
 
+                // Ensure ContainedIndexes is not null (handle empty or malformed JSON)
+                if (toc.ContainedIndexes == null)
+                {
+                    toc.ContainedIndexes = new List<IndexDefinition>();
+                }
+
                 this.UnknownIndexes = toc
                     .ContainedIndexes
                     .Where(index => registeredIndexes.Any(knownIndex => knownIndex == index))

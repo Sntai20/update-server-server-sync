@@ -157,36 +157,100 @@ namespace UpdateEngine.Metadata.Storage.Azure
 
                         var blockId = Convert.ToBase64String(BitConverter.GetBytes(i));
 
-                        // Download block from source and upload to blob
-                        using (var request = new HttpRequestMessage { RequestUri = new Uri(file.Source), Method = HttpMethod.Get })
+                        // Retry logic for downloading block from source
+                        const int maxRetries = 3;
+                        var retryDelay = TimeSpan.FromSeconds(2);
+                        Exception lastException = null;
+                        
+                        for (int retry = 0; retry < maxRetries; retry++)
                         {
-                            request.Headers.Range = new System.Net.Http.Headers.RangeHeaderValue(startOffset, startOffset + blockSize - 1);
-                            using var response = client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancelToken).GetAwaiter().GetResult();
-                            if (!response.IsSuccessStatusCode)
+                            try
                             {
-                                throw new HttpRequestException($"Failed to download block from {file.Source}: {response.ReasonPhrase}");
+                                // Download block from source and upload to blob
+                                using (var request = new HttpRequestMessage { RequestUri = new Uri(file.Source), Method = HttpMethod.Get })
+                                {
+                                    request.Headers.Range = new System.Net.Http.Headers.RangeHeaderValue(startOffset, startOffset + blockSize - 1);
+                                    
+                                    // Set timeout for this request (5 minutes for large blocks)
+                                    using var timeoutCts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+                                    using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancelToken, timeoutCts.Token);
+                                    
+                                    using var response = client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, linkedCts.Token).GetAwaiter().GetResult();
+                                    if (!response.IsSuccessStatusCode)
+                                    {
+                                        throw new HttpRequestException($"Failed to download block {i}/{blockCount} from {file.Source}: {response.ReasonPhrase}");
+                                    }
+
+                                    using var httpStream = response.Content.ReadAsStream(linkedCts.Token);
+                                    
+                                    // Buffer the stream content to support Length property for Azure Blob staging
+                                    // Use larger buffer for 64MB blocks
+                                    using var bufferedStream = new MemoryStream((int)blockSize);
+                                    
+                                    // Copy with progress tracking and cancellation support
+                                    var buffer = new byte[81920]; // 80KB buffer
+                                    int bytesRead;
+                                    long totalBytesRead = 0;
+                                    
+                                    while ((bytesRead = httpStream.Read(buffer, 0, buffer.Length)) > 0)
+                                    {
+                                        linkedCts.Token.ThrowIfCancellationRequested();
+                                        bufferedStream.Write(buffer, 0, bytesRead);
+                                        totalBytesRead += bytesRead;
+                                        
+                                        // Report progress for large blocks
+                                        if (totalBytesRead % (10 * 1024 * 1024) == 0) // Every 10MB
+                                        {
+                                            Console.WriteLine($"[BlobContentStore] Downloaded {totalBytesRead / (1024 * 1024)}MB of block {i}/{blockCount}");
+                                        }
+                                    }
+                                    
+                                    if (totalBytesRead != blockSize)
+                                    {
+                                        throw new HttpRequestException($"Downloaded {totalBytesRead} bytes but expected {blockSize} bytes for block {i}/{blockCount}");
+                                    }
+                                    
+                                    bufferedStream.Position = 0; // Reset position for reading
+                                    
+                                    fileBlob.StageBlock(blockId, bufferedStream);
+                                    
+                                    Console.WriteLine($"[BlobContentStore] Successfully staged block {i}/{blockCount} ({blockSize / (1024 * 1024)}MB)");
+                                }
+
+                                blockIdList.Add(blockId);
+
+                                if (cancellationSource.IsCancellationRequested)
+                                {
+                                    break;
+                                }
+
+                                Interlocked.Add(ref this._DownloadedSize, blockSize);
+                                progress.Current += blockSize;
+                                this.Progress?.Invoke(this, progress);
+                                
+                                // Success - break retry loop
+                                break;
                             }
-
-                            using var httpStream = response.Content.ReadAsStream(cancelToken);
-                            
-                            // Buffer the stream content to support Length property for Azure Blob staging
-                            using var bufferedStream = new MemoryStream();
-                            httpStream.CopyTo(bufferedStream);
-                            bufferedStream.Position = 0; // Reset position for reading
-                            
-                            fileBlob.StageBlock(blockId, bufferedStream);
+                            catch (Exception ex) when (ex is HttpRequestException || 
+                                                       ex is TaskCanceledException || 
+                                                       ex is OperationCanceledException ||
+                                                       ex is System.Net.Http.HttpIOException)
+                            {
+                                lastException = ex;
+                                
+                                if (retry < maxRetries - 1)
+                                {
+                                    Console.WriteLine($"[BlobContentStore] Block {i}/{blockCount} download failed (attempt {retry + 1}/{maxRetries}): {ex.Message}. Retrying in {retryDelay.TotalSeconds}s...");
+                                    System.Threading.Thread.Sleep(retryDelay);
+                                    retryDelay = TimeSpan.FromSeconds(retryDelay.TotalSeconds * 2); // Exponential backoff
+                                }
+                                else
+                                {
+                                    Console.WriteLine($"[BlobContentStore] Block {i}/{blockCount} download failed after {maxRetries} attempts: {ex.Message}");
+                                    throw new HttpRequestException($"Failed to download block {i}/{blockCount} after {maxRetries} attempts. Last error: {ex.Message}", ex);
+                                }
+                            }
                         }
-
-                        blockIdList.Add(blockId);
-
-                        if (cancellationSource.IsCancellationRequested)
-                        {
-                            break;
-                        }
-
-                        Interlocked.Add(ref this._DownloadedSize, blockSize);
-                        progress.Current += blockSize;
-                        this.Progress?.Invoke(this, progress);
                     }
 
                     fileBlob.CommitBlockList(blockIdList);

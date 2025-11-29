@@ -9,9 +9,9 @@ namespace UpdateEngine.Configuration;
 /// </summary>
 public class StorageConfiguration
 {
-    // Local storage paths
-    public string MetadataPath { get; set; } = "./LocalMetadataStore";
-    public string ContentPath { get; set; } = "./LocalContentStore";
+    // Local storage paths - should be null when using Azure Storage
+    public string? MetadataPath { get; set; }
+    public string? ContentPath { get; set; }
 
     // Azure Storage settings
     public bool UseAzureStorageForMetadata { get; set; }
@@ -20,9 +20,9 @@ public class StorageConfiguration
     public string AzureStorageAccountName { get; set; } = string.Empty;
     
     // Container names
-    public string MetadataContainerName { get; set; } = "metadata";
-    public string ContentContainerName { get; set; } = "content";
-    public string ReportsContainerName { get; set; } = "reports";
+    public string MetadataContainerName { get; set; } = string.Empty;
+    public string ContentContainerName { get; set; } = string.Empty;
+    public string ReportsContainerName { get; set; } = string.Empty;
     
     // Content path prefix
     public string ContentPathPrefix { get; set; } = "Content";

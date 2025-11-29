@@ -115,9 +115,12 @@ public static class ServiceCollectionExtensions
             var config = provider.GetRequiredService<IOptions<AppConfig>>().Value;
             var storageConfig = config.StorageConfiguration;
 
-            // Try to get connection string from Aspire first (ConnectionStrings:MetadataStorageConnection)
-            // Fall back to StorageConfiguration.AzureStorageConnectionString if not available
-            var connectionString = configuration.GetConnectionString("MetadataStorageConnection") 
+            // Try multiple connection string sources in order of precedence:
+            // 1. Direct environment variable (Aspire flat format): MetadataStorageConnection
+            // 2. ConnectionStrings section: ConnectionStrings__MetadataStorageConnection  
+            // 3. Configuration value: StorageConfiguration.AzureStorageConnectionString
+            var connectionString = Environment.GetEnvironmentVariable("MetadataStorageConnection")
+                ?? configuration.GetConnectionString("MetadataStorageConnection") 
                 ?? storageConfig.AzureStorageConnectionString;
 
             // Log configuration for debugging
@@ -125,8 +128,10 @@ public static class ServiceCollectionExtensions
             logger?.LogInformation("  UseAzureStorageForMetadata: {UseAzure}", storageConfig.UseAzureStorageForMetadata);
             logger?.LogInformation("  MetadataPath: {MetadataPath}", storageConfig.MetadataPath);
             logger?.LogInformation("  MetadataContainerName: {ContainerName}", storageConfig.MetadataContainerName);
-            logger?.LogInformation("  Connection String from Aspire: {HasConnection}", !string.IsNullOrEmpty(configuration.GetConnectionString("MetadataStorageConnection")));
-            logger?.LogInformation("  Connection String from Config: {HasConnection}", !string.IsNullOrEmpty(storageConfig.AzureStorageConnectionString));
+            logger?.LogInformation("  Connection String from Environment: {HasEnvVar}", !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("MetadataStorageConnection")));
+            logger?.LogInformation("  Connection String from ConnectionStrings: {HasConnectionString}", !string.IsNullOrEmpty(configuration.GetConnectionString("MetadataStorageConnection")));
+            logger?.LogInformation("  Connection String from Config: {HasConfig}", !string.IsNullOrEmpty(storageConfig.AzureStorageConnectionString));
+            logger?.LogInformation("  Final Connection String Available: {HasConnection}", !string.IsNullOrEmpty(connectionString));
 
             // Decide whether to use Azure Storage based on:
             // 1. Configuration flag is true AND connection string is available, OR
@@ -171,9 +176,14 @@ public static class ServiceCollectionExtensions
                 return (IContentStore?)null;
             }
 
-            // Try to get connection string from Aspire first (ConnectionStrings:ContentStorageConnection or MetadataStorageConnection)
-            // Fall back to StorageConfiguration.AzureStorageConnectionString if not available
-            var connectionString = configuration.GetConnectionString("ContentStorageConnection") 
+            // Try multiple connection string sources in order of precedence:
+            // 1. Direct environment variable (Aspire flat format): ContentStorageConnection
+            // 2. ConnectionStrings section: ConnectionStrings__ContentStorageConnection
+            // 3. Fall back to MetadataStorageConnection if ContentStorageConnection not found
+            // 4. Configuration value: StorageConfiguration.AzureStorageConnectionString
+            var connectionString = Environment.GetEnvironmentVariable("ContentStorageConnection")
+                ?? configuration.GetConnectionString("ContentStorageConnection") 
+                ?? Environment.GetEnvironmentVariable("MetadataStorageConnection")
                 ?? configuration.GetConnectionString("MetadataStorageConnection")
                 ?? storageConfig.AzureStorageConnectionString;
 

@@ -82,6 +82,22 @@ static void ConfigureLogging(HostBuilderContext context)
             // Check raw environment variable
             var envVar = Environment.GetEnvironmentVariable("ConnectionStrings__MetadataStorageConnection");
             tempLogger.LogInformation("Environment variable ConnectionStrings__MetadataStorageConnection: {HasEnvVar}", !string.IsNullOrEmpty(envVar));
+            
+            // COMPREHENSIVE DIAGNOSTICS: List ALL connection string environment variables
+            tempLogger.LogInformation("=== All Connection String Environment Variables ===");
+            var allEnvVars = Environment.GetEnvironmentVariables();
+            foreach (var key in allEnvVars.Keys)
+            {
+                var keyStr = key.ToString() ?? "";
+                if (keyStr.Contains("Connection", StringComparison.OrdinalIgnoreCase) || 
+                    keyStr.Contains("Storage", StringComparison.OrdinalIgnoreCase) ||
+                    keyStr.Contains("UpdateEngine", StringComparison.OrdinalIgnoreCase))
+                {
+                    var value = allEnvVars[key]?.ToString() ?? "";
+                    var preview = value.Length > 100 ? value.Substring(0, 100) + "..." : value;
+                    tempLogger.LogInformation("  {Key} = {Value}", keyStr, preview);
+                }
+            }
         }
     }
 

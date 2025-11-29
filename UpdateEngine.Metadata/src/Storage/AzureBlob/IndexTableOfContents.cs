@@ -11,7 +11,7 @@ namespace UpdateEngine.Metadata.Storage.Azure
     {
         public int Version;
 
-        public List<IndexDefinition> ContainedIndexes;
+        public List<IndexDefinition> ContainedIndexes = new();
 
         public List<int> IndexedPackages = new();
 

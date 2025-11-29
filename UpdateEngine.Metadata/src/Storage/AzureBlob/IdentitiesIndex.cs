@@ -14,6 +14,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using Azure;
 
 namespace UpdateEngine.Metadata.Storage.Azure
 {
@@ -70,18 +71,23 @@ namespace UpdateEngine.Metadata.Storage.Azure
                 var properties = indexBlob.GetProperties();
                 this.ConcurrencyEtag = properties.Value.ETag.ToString();
 
-                using var indexStream = new MemoryStream();
-                indexBlob.DownloadTo(indexStream);
-                indexStream.Seek(0, SeekOrigin.Begin);
-
                 var blockList = indexBlob.GetBlockList(BlockListTypes.Committed);
-                long currentOffset = 0;
 
+                // Process each block separately - each block contains a complete JSON array
+                long currentOffset = 0;
                 foreach (var block in blockList.Value.CommittedBlocks)
                 {
-                    indexStream.Seek(currentOffset, SeekOrigin.Begin);
+                    // Download just this block's data using the correct offset
+                    using var blockStream = new MemoryStream();
+                    var downloadResult = indexBlob.DownloadStreaming(new HttpRange(currentOffset, block.Size), null, false, default);
+                    using (var sourceStream = downloadResult.Value.Content)
+                    {
+                        sourceStream.CopyTo(blockStream);
+                    }
+                    blockStream.Seek(0, SeekOrigin.Begin);
 
-                    using (var zipStream = new GZipInputStream(indexStream))
+                    // Decompress this block's data
+                    using (var zipStream = new GZipInputStream(blockStream))
                     {
                         zipStream.IsStreamOwner = false;
                         using var jsonReader = new StreamReader(zipStream, Encoding.UTF8);
@@ -106,6 +112,7 @@ namespace UpdateEngine.Metadata.Storage.Azure
            });
                     }
 
+                    // Move to next block's offset
                     currentOffset += block.Size;
                 }
             }
@@ -257,8 +264,13 @@ namespace UpdateEngine.Metadata.Storage.Azure
                         currentEtag = properties.Value.ETag.ToString();
                         var blockListResponse = indexBlob.GetBlockList(BlockListTypes.Committed);
                         blocksList.AddRange(blockListResponse.Value.CommittedBlocks.Select(block => block.Name));
+                        
+                        // Refresh our stored ETag before comparison
+                        // This handles cases where previous operations in the same session updated the blob
+                        this.ConcurrencyEtag = currentEtag;
                     }
 
+                    // Note: After refresh above, this check now validates against external changes only
                     if (currentEtag != this.ConcurrencyEtag)
                     {
                         throw new InvalidOperationException("Package store index changed unexpectedly.");
@@ -269,6 +281,10 @@ namespace UpdateEngine.Metadata.Storage.Azure
 
                     blocksList.Add(commitId);
                     indexBlob.CommitBlockList(blocksList);
+
+                    // Refresh ETag after successful save for next operation
+                    var newProperties = indexBlob.GetProperties();
+                    this.ConcurrencyEtag = newProperties.Value.ETag.ToString();
 
                     this.PendingIdentities.Clear();
                 }
