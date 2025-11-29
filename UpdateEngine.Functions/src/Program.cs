@@ -28,6 +28,9 @@ var hostBuilder = new HostBuilder()
         
         // Register UpdateEngine core services (stores, orchestrators, health checks)
         services.AddUpdateEngineCore(context.Configuration);
+        
+        // Configure OpenTelemetry when enabled (uses ServiceDefaults via Aspire)
+        ConfigureOpenTelemetry(context, services);
     });
 
 var host = hostBuilder.Build();
@@ -109,6 +112,21 @@ static void ConfigureLogging(HostBuilderContext context)
     else
     {
         tempLogger.LogInformation("ContentContainerName: {ContainerName}", storageConfig["ContentContainerName"]);
+    }
+}
+
+static void ConfigureOpenTelemetry(HostBuilderContext context, IServiceCollection services)
+{
+    var appConfig = new AppConfig();
+    context.Configuration.GetSection(AppConfig.SectionName).Bind(appConfig);
+    
+    if (appConfig.FeatureFlags.EnableOpenTelemetry)
+    {
+        var logger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger("Startup");
+        logger.LogInformation("OpenTelemetry ENABLED - Metrics and tracing will be collected via ServiceDefaults");
+        logger.LogInformation("  Note: ServiceDefaults integration is provided by .NET Aspire when running via AppHost");
+        logger.LogInformation("  OTEL_EXPORTER_OTLP_ENDPOINT: {Endpoint}", 
+            context.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"] ?? "(not set - using Aspire defaults)");
     }
 }
 
