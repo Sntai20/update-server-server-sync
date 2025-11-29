@@ -15,6 +15,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace UpdateEngine.Metadata.Storage.Azure
 {
@@ -30,6 +31,7 @@ namespace UpdateEngine.Metadata.Storage.Azure
 
         readonly BlobContainerClient ParentContainer;
         readonly string PathPrefix;
+        private readonly ILogger<BlobContentStore> _logger;
 
         /// <summary>
         /// List of pending downloads
@@ -49,10 +51,11 @@ namespace UpdateEngine.Metadata.Storage.Azure
         long _DownloadedSize;
         int _QueuedCount;
 
-        private BlobContentStore(BlobContainerClient contentContainer, string pathPrefix = "")
+        private BlobContentStore(BlobContainerClient contentContainer, string pathPrefix, ILogger<BlobContentStore> logger)
         {
             this.ParentContainer = contentContainer;
             this.PathPrefix = pathPrefix;
+            this._logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         /// <summary>
@@ -61,13 +64,19 @@ namespace UpdateEngine.Metadata.Storage.Azure
         /// <param name="client">The Azure Blob service client to use</param>
         /// <param name="containerName">The container name where to store update content</param>
         /// <param name="pathPrefix">Optional path prefix for organizing blobs within the container</param>
+        /// <param name="logger">Logger for structured logging</param>
         /// <returns></returns>
-        public static BlobContentStore OpenOrCreate(BlobServiceClient client, string containerName, string pathPrefix = "")
+        public static BlobContentStore OpenOrCreate(BlobServiceClient client, string containerName, string pathPrefix, ILogger<BlobContentStore> logger)
         {
+            if (logger == null)
+            {
+                throw new ArgumentNullException(nameof(logger));
+            }
+
             var container = client.GetBlobContainerClient(containerName);
             container.CreateIfNotExists();
 
-            return new BlobContentStore(container, pathPrefix);
+            return new BlobContentStore(container, pathPrefix, logger);
         }
 
         /// <inheritdoc cref="IContentStore.Download(IEnumerable{IContentFile}, CancellationToken)"/>
@@ -218,7 +227,8 @@ namespace UpdateEngine.Metadata.Storage.Azure
                                         // Report progress for large blocks
                                         if (totalBytesRead % (10 * 1024 * 1024) == 0) // Every 10MB
                                         {
-                                            Console.WriteLine($"[BlobContentStore] Downloaded {totalBytesRead / (1024 * 1024)}MB of block {i}/{blockCount}");
+                                            _logger.LogInformation("Downloaded {BytesMB}MB of block {BlockIndex}/{TotalBlocks}", 
+                                                totalBytesRead / (1024 * 1024), i, blockCount);
                                         }
                                     }
                                     
@@ -231,7 +241,8 @@ namespace UpdateEngine.Metadata.Storage.Azure
                                     
                                     fileBlob.StageBlock(blockId, bufferedStream);
                                     
-                                    Console.WriteLine($"[BlobContentStore] Successfully staged block {i}/{blockCount} ({blockSize / (1024 * 1024)}MB)");
+                                    _logger.LogInformation("Successfully staged block {BlockIndex}/{TotalBlocks} ({SizeMB}MB)", 
+                                        i, blockCount, blockSize / (1024 * 1024));
                                 }
 
                                 blockIdList.Add(blockId);
@@ -257,13 +268,15 @@ namespace UpdateEngine.Metadata.Storage.Azure
                                 
                                 if (retry < maxRetries - 1)
                                 {
-                                    Console.WriteLine($"[BlobContentStore] Block {i}/{blockCount} download failed (attempt {retry + 1}/{maxRetries}): {ex.Message}. Retrying in {retryDelay.TotalSeconds}s...");
+                                    _logger.LogWarning(ex, "Block {BlockIndex}/{TotalBlocks} download failed (attempt {Attempt}/{MaxRetries}). Retrying in {DelaySeconds}s", 
+                                        i, blockCount, retry + 1, maxRetries, retryDelay.TotalSeconds);
                                     System.Threading.Thread.Sleep(retryDelay);
                                     retryDelay = TimeSpan.FromSeconds(retryDelay.TotalSeconds * 2); // Exponential backoff
                                 }
                                 else
                                 {
-                                    Console.WriteLine($"[BlobContentStore] Block {i}/{blockCount} download failed after {maxRetries} attempts: {ex.Message}");
+                                    _logger.LogError(ex, "Block {BlockIndex}/{TotalBlocks} download failed after {MaxRetries} attempts", 
+                                        i, blockCount, maxRetries);
                                     throw new HttpRequestException($"Failed to download block {i}/{blockCount} after {maxRetries} attempts. Last error: {ex.Message}", ex);
                                 }
                             }
@@ -343,8 +356,8 @@ namespace UpdateEngine.Metadata.Storage.Azure
                 ? updateFile.Digest.HexString.ToLower()
                 : $"{this.PathPrefix.TrimEnd('/')}/{updateFile.Digest.HexString.ToLower()}";
             
-            // Debug logging to track blob path construction
-            Console.WriteLine($"[BlobContentStore] Creating blob path: '{blobName}' (PathPrefix: '{this.PathPrefix}', Hash: '{updateFile.Digest.HexString}')");
+            _logger.LogDebug("Creating blob path: {BlobName} (PathPrefix: {PathPrefix}, Hash: {Hash})", 
+                blobName, PathPrefix, updateFile.Digest.HexString);
             
             return this.ParentContainer.GetBlockBlobClient(blobName);
         }

@@ -207,12 +207,14 @@ public static class ServiceCollectionExtensions
                 }
 
                 logger?.LogInformation("Opening Azure Blob Storage content store (container: {Container})", storageConfig.ContentContainerName);
-                // Azure Blob Storage
+                // Azure Blob Storage - inject logger for BlobContentStore
                 var blobServiceClient = new Azure.Storage.Blobs.BlobServiceClient(connectionString);
+                var blobLogger = provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<UpdateEngine.Metadata.Storage.Azure.BlobContentStore>>();
                 return (IContentStore?)UpdateEngine.Metadata.Storage.Azure.BlobContentStore.OpenOrCreate(
                     blobServiceClient, 
                     storageConfig.ContentContainerName, 
-                    pathPrefix: "content");
+                    pathPrefix: "content",
+                    logger: blobLogger);
             }
             else
             {
