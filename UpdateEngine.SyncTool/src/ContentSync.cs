@@ -12,6 +12,7 @@ namespace UpdateEngine.SyncTool
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading;
+    using Microsoft.Extensions.Logging;
 
     class ContentSync
     {
@@ -132,7 +133,16 @@ namespace UpdateEngine.SyncTool
                     try 
                     {
                         var blobServiceClient = new BlobServiceClient(options.ContentStoreConnectionString);
-                        return UpdateEngine.Metadata.Storage.Azure.BlobContentStore.OpenOrCreate(blobServiceClient, options.ContentPath);
+                        
+                        // Create console logger for BlobContentStore
+                        var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+                        var logger = loggerFactory.CreateLogger<UpdateEngine.Metadata.Storage.Azure.BlobContentStore>();
+                        
+                        return UpdateEngine.Metadata.Storage.Azure.BlobContentStore.OpenOrCreate(
+                            blobServiceClient, 
+                            options.ContentPath, 
+                            pathPrefix: "content",
+                            logger: logger);
                     }
                     catch (Exception ex)
                     {

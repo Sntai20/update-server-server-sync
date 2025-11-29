@@ -305,7 +305,8 @@ public class SyncService : ISyncService
                 // Skip null GUID packages - these are placeholders or invalid references
                 if (bundledUpdate.ToString().Contains("00000000-0000-0000-0000-000000000000"))
                 {
-                    this.logger.LogWarning("Skipping bundled update with null GUID: {BundledUpdate}", bundledUpdate);
+                    // Log at debug level - null GUIDs are common placeholders in metadata
+                    this.logger.LogDebug("Skipping bundled update with null GUID: {BundledUpdate}", bundledUpdate);
                     continue;
                 }
 
