@@ -76,6 +76,13 @@ namespace UpdateEngine.Metadata.Storage.Azure
             var queuedFiles = new List<IContentFile>();
             foreach (var file in files)
             {
+                // Skip files without a valid source URL
+                if (string.IsNullOrEmpty(file.Source))
+                {
+                    // Skip silently - this is expected for many file types (ARM64, FoD, metadata, etc.)
+                    continue;
+                }
+
                 if (this.PendingFileDownloads.TryAdd(file.Source, file))
                 {
                     queuedFiles.Add(file);
@@ -95,6 +102,16 @@ namespace UpdateEngine.Metadata.Storage.Azure
 
             foreach (var file in queuedFiles)
             {
+                // Additional safety check for digest
+                if (file.Digest == null)
+                {
+                    // Skip silently - missing digest means we can't verify file integrity
+                    Interlocked.Add(ref this._QueuedSize, (long)file.Size * -1);
+                    Interlocked.Decrement(ref this._QueuedCount);
+                    this.PendingFileDownloads.TryRemove(file.Source, out _);
+                    continue;
+                }
+
                 progress.Maximum = (long)file.Size;
                 progress.CurrentOperation = PackagesOperationType.DownloadFileStart;
                 this.Progress?.Invoke(this, progress);
