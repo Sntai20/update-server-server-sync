@@ -57,7 +57,8 @@ namespace Microsoft.Extensions.Hosting
                 {
                     metrics.AddAspNetCoreInstrumentation()
                         .AddHttpClientInstrumentation()
-                        .AddRuntimeInstrumentation();
+                        .AddRuntimeInstrumentation()
+                        .AddMeter("UpdateEngine.BlobContentStore");
                 })
                 .WithTracing(tracing =>
                 {

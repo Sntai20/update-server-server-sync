@@ -10,6 +10,7 @@ using UpdateEngine.Metadata.ObjectModel;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -99,8 +100,9 @@ namespace UpdateEngine.Metadata.Storage.Azure
             }
 
             Interlocked.Add(ref this._QueuedCount, queuedFiles.Count);
-
-            Interlocked.Add(ref this._QueuedSize, queuedFiles.Sum(f => (long)f.Size));
+            var queuedSize = queuedFiles.Sum(f => (long)f.Size);
+            Interlocked.Add(ref this._QueuedSize, queuedSize);
+            BlobContentStoreMetrics.AddQueuedBytes(queuedSize);
 
             var cancellationSource = new CancellationTokenSource();
             var progress = new ContentOperationProgress();
@@ -117,188 +119,227 @@ namespace UpdateEngine.Metadata.Storage.Azure
                     // Skip silently - missing digest means we can't verify file integrity
                     Interlocked.Add(ref this._QueuedSize, (long)file.Size * -1);
                     Interlocked.Decrement(ref this._QueuedCount);
+                    BlobContentStoreMetrics.AddQueuedBytes((long)file.Size * -1);
                     this.PendingFileDownloads.TryRemove(file.Source, out _);
                     continue;
                 }
 
-                progress.Maximum = (long)file.Size;
-                progress.CurrentOperation = PackagesOperationType.DownloadFileStart;
-                this.Progress?.Invoke(this, progress);
+                // Start download with metrics
+                var downloadStopwatch = Stopwatch.StartNew();
+                BlobContentStoreMetrics.IncrementActiveDownloads();
+                BlobContentStoreMetrics.DownloadsStarted.Add(1, new KeyValuePair<string, object?>("file_size", file.Size));
 
-                if (this.Contains(file))
+                try
                 {
-                    Interlocked.Add(ref this._DownloadedSize, (long)file.Size);
-                    Interlocked.Decrement(ref this._QueuedCount);
+                    progress.Maximum = (long)file.Size;
+                    progress.CurrentOperation = PackagesOperationType.DownloadFileStart;
+                    this.Progress?.Invoke(this, progress);
 
-                    progress.Current = (long)file.Size;
+                    if (this.Contains(file))
+                    {
+                        Interlocked.Add(ref this._DownloadedSize, (long)file.Size);
+                        Interlocked.Decrement(ref this._QueuedCount);
+
+                        progress.Current = (long)file.Size;
+                        progress.CurrentOperation = PackagesOperationType.DownloadFileEnd;
+                        this.Progress?.Invoke(this, progress);
+
+                        this.PendingFileDownloads.TryRemove(file.Source, out _);
+                        
+                        BlobContentStoreMetrics.DownloadsCompleted.Add(1);
+                        BlobContentStoreMetrics.DownloadDuration.Record(downloadStopwatch.Elapsed.TotalSeconds, 
+                            new KeyValuePair<string, object?>("cached", true));
+                        
+                        continue;
+                    }
+
+                    progress.CurrentOperation = PackagesOperationType.DownloadFileProgress;
+                    var fileBlob = this.GetBlobForFile(file);
+
+                    using (var client = new HttpClient())
+                    {
+                        var fileSizeOnServer = GetFileSizeOnSourceServer(client, file.Source, cancelToken);
+                        if (cancelToken.IsCancellationRequested)
+                        {
+                            break;
+                        }
+
+                        if (fileSizeOnServer != (long)file.Size)
+                        {
+                            throw new InvalidDataException($"Mismatch in file size. Expected {file.Size}, server has {fileSizeOnServer}");
+                        }
+
+                        int startBlock = 0;
+                        var blockCount = fileSizeOnServer / BlockSize + (fileSizeOnServer % BlockSize == 0 ? 0 : 1);
+                        List<string> blockIdList;
+
+                        if (fileBlob.Exists())
+                        {
+                            var blockListResponse = fileBlob.GetBlockList(BlockListTypes.Uncommitted);
+                            var fileBlocks = blockListResponse.Value.UncommittedBlocks.ToList();
+
+                            if (fileBlocks.Count <= blockCount)
+                            {
+                                startBlock = fileBlocks.Count;
+                            }
+
+                            blockIdList = fileBlocks.Select(b => b.Name).ToList();
+                        }
+                        else
+                        {
+                            blockIdList = new List<string>();
+                        }
+
+                        for (int i = startBlock; i < blockCount; i++)
+                        {
+                            var startOffset = i * BlockSize;
+                            var blockSize = (fileSizeOnServer % BlockSize != 0 && i == (blockCount - 1) ? fileSizeOnServer % BlockSize : BlockSize);
+
+                            var blockId = Convert.ToBase64String(BitConverter.GetBytes(i));
+
+                            // Retry logic for downloading block from source
+                            const int maxRetries = 3;
+                            var retryDelay = TimeSpan.FromSeconds(2);
+                            Exception lastException = null;
+                            
+                            var blockStopwatch = Stopwatch.StartNew();
+                            
+                            for (int retry = 0; retry < maxRetries; retry++)
+                            {
+                                try
+                                {
+                                    // Download block from source and upload to blob
+                                    using (var request = new HttpRequestMessage { RequestUri = new Uri(file.Source), Method = HttpMethod.Get })
+                                    {
+                                        request.Headers.Range = new System.Net.Http.Headers.RangeHeaderValue(startOffset, startOffset + blockSize - 1);
+                                        
+                                        using var timeoutCts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+                                        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancelToken, timeoutCts.Token);
+                                        
+                                        using var response = client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, linkedCts.Token).GetAwaiter().GetResult();
+                                        if (!response.IsSuccessStatusCode)
+                                        {
+                                            throw new HttpRequestException($"Failed to download block {i}/{blockCount} from {file.Source}: {response.ReasonPhrase}");
+                                        }
+
+                                        using var httpStream = response.Content.ReadAsStream(linkedCts.Token);
+                                        using var bufferedStream = new MemoryStream((int)blockSize);
+                                        
+                                        var buffer = new byte[81920]; // 80KB buffer
+                                        int bytesRead;
+                                        long totalBytesRead = 0;
+                                        
+                                        while ((bytesRead = httpStream.Read(buffer, 0, buffer.Length)) > 0)
+                                        {
+                                            linkedCts.Token.ThrowIfCancellationRequested();
+                                            bufferedStream.Write(buffer, 0, bytesRead);
+                                            totalBytesRead += bytesRead;
+                                            
+                                            // Report progress for large blocks
+                                            if (totalBytesRead % (10 * 1024 * 1024) == 0) // Every 10MB
+                                            {
+                                                _logger.LogInformation("Downloaded {BytesMB}MB of block {BlockIndex}/{TotalBlocks}", 
+                                                    totalBytesRead / (1024 * 1024), i, blockCount);
+                                            }
+                                        }
+                                        
+                                        if (totalBytesRead != blockSize)
+                                        {
+                                            throw new HttpRequestException($"Downloaded {totalBytesRead} bytes but expected {blockSize} bytes for block {i}/{blockCount}");
+                                        }
+                                        
+                                        bufferedStream.Position = 0; // Reset position for reading
+                                        
+                                        fileBlob.StageBlock(blockId, bufferedStream);
+
+                                        // Record metrics
+                                        BlobContentStoreMetrics.BytesDownloaded.Add(totalBytesRead);
+                                        BlobContentStoreMetrics.BytesStaged.Add(totalBytesRead);
+                                        BlobContentStoreMetrics.BlocksStaged.Add(1);
+                                        BlobContentStoreMetrics.BlockSize.Record(totalBytesRead);
+                                        BlobContentStoreMetrics.BlockDownloadDuration.Record(blockStopwatch.Elapsed.TotalSeconds);
+                                        
+                                        _logger.LogInformation("Successfully staged block {BlockIndex}/{TotalBlocks} ({SizeMB}MB)", 
+                                            i, blockCount, blockSize / (1024 * 1024));
+                                    }
+
+                                    blockIdList.Add(blockId);
+
+                                    if (cancellationSource.IsCancellationRequested)
+                                    {
+                                        break;
+                                    }
+
+                                    Interlocked.Add(ref this._DownloadedSize, blockSize);
+                                    progress.Current += blockSize;
+                                    this.Progress?.Invoke(this, progress);
+                                    
+                                    // Success - break retry loop
+                                    break;
+                                }
+                                catch (Exception ex) when (ex is HttpRequestException || 
+                                                           ex is TaskCanceledException || 
+                                                           ex is OperationCanceledException ||
+                                                           ex is System.Net.Http.HttpIOException)
+                                {
+                                    lastException = ex;
+                                    BlobContentStoreMetrics.BlockRetriesTotal.Add(1, 
+                                        new KeyValuePair<string, object?>("retry_attempt", retry + 1),
+                                        new KeyValuePair<string, object?>("exception_type", ex.GetType().Name));
+                                    
+                                    if (retry < maxRetries - 1)
+                                    {
+                                        _logger.LogWarning(ex, "Block {BlockIndex}/{TotalBlocks} download failed (attempt {Attempt}/{MaxRetries}). Retrying in {DelaySeconds}s", 
+                                            i, blockCount, retry + 1, maxRetries, retryDelay.TotalSeconds);
+                                        System.Threading.Thread.Sleep(retryDelay);
+                                        retryDelay = TimeSpan.FromSeconds(retryDelay.TotalSeconds * 2); // Exponential backoff
+                                    }
+                                    else
+                                    {
+                                        _logger.LogError(ex, "Block {BlockIndex}/{TotalBlocks} download failed after {MaxRetries} attempts", 
+                                            i, blockCount, maxRetries);
+                                        BlobContentStoreMetrics.DownloadsFailed.Add(1, 
+                                            new KeyValuePair<string, object?>("reason", "max_retries_exceeded"));
+                                        throw new HttpRequestException($"Failed to download block {i}/{blockCount} after {maxRetries} attempts. Last error: {ex.Message}", ex);
+                                    }
+                                }
+                            }
+                        }
+
+                        fileBlob.CommitBlockList(blockIdList);
+
+                        // Write marker file
+                        var markerBlob = this.GetBlobMarkerForFile(file);
+                        using var markerStream = new MemoryStream(Convert.FromBase64String(file.Digest.DigestBase64));
+                        markerBlob.Upload(markerStream);
+                    }
+
+                    Interlocked.Add(ref this._DownloadedSize, (long)file.Size * -1);
+                    Interlocked.Add(ref this._QueuedSize, (long)file.Size * -1);
+                    BlobContentStoreMetrics.AddQueuedBytes((long)file.Size * -1);
+                    Interlocked.Decrement(ref this._QueuedCount);
                     progress.CurrentOperation = PackagesOperationType.DownloadFileEnd;
                     this.Progress?.Invoke(this, progress);
 
-                    this.PendingFileDownloads.TryRemove(file.Source, out var completeFileRemoved);
-
-                    continue;
+                    this.PendingFileDownloads.TryRemove(file.Source, out var downloadedFileRemoved);
+                    
+                    // Record successful download
+                    BlobContentStoreMetrics.DownloadsCompleted.Add(1);
+                    BlobContentStoreMetrics.DownloadDuration.Record(downloadStopwatch.Elapsed.TotalSeconds, 
+                        new KeyValuePair<string, object?>("cached", false),
+                        new KeyValuePair<string, object?>("file_size", file.Size));
                 }
-
-                progress.CurrentOperation = PackagesOperationType.DownloadFileProgress;
-                var fileBlob = this.GetBlobForFile(file);
-
-                using (var client = new HttpClient())
+                catch (Exception ex)
                 {
-                    var fileSizeOnServer = GetFileSizeOnSourceServer(client, file.Source, cancelToken);
-                    if (cancelToken.IsCancellationRequested)
-                    {
-                        break;
-                    }
-
-                    if (fileSizeOnServer != (long)file.Size)
-                    {
-                        throw new InvalidDataException($"Mismatch in file size. Expected {file.Size}, server has {fileSizeOnServer}");
-                    }
-
-                    int startBlock = 0;
-                    var blockCount = fileSizeOnServer / BlockSize + (fileSizeOnServer % BlockSize == 0 ? 0 : 1);
-                    List<string> blockIdList;
-
-                    if (fileBlob.Exists())
-                    {
-                        var blockListResponse = fileBlob.GetBlockList(BlockListTypes.Uncommitted);
-                        var fileBlocks = blockListResponse.Value.UncommittedBlocks.ToList();
-
-                        if (fileBlocks.Count <= blockCount)
-                        {
-                            startBlock = fileBlocks.Count;
-                        }
-
-                        blockIdList = fileBlocks.Select(b => b.Name).ToList();
-                    }
-                    else
-                    {
-                        blockIdList = new List<string>();
-                    }
-
-                    for (int i = startBlock; i < blockCount; i++)
-                    {
-                        var startOffset = i * BlockSize;
-                        var blockSize = (fileSizeOnServer % BlockSize != 0 && i == (blockCount - 1) ? fileSizeOnServer % BlockSize : BlockSize);
-
-                        var blockId = Convert.ToBase64String(BitConverter.GetBytes(i));
-
-                        // Retry logic for downloading block from source
-                        const int maxRetries = 3;
-                        var retryDelay = TimeSpan.FromSeconds(2);
-                        Exception lastException = null;
-                        
-                        for (int retry = 0; retry < maxRetries; retry++)
-                        {
-                            try
-                            {
-                                // Download block from source and upload to blob
-                                using (var request = new HttpRequestMessage { RequestUri = new Uri(file.Source), Method = HttpMethod.Get })
-                                {
-                                    request.Headers.Range = new System.Net.Http.Headers.RangeHeaderValue(startOffset, startOffset + blockSize - 1);
-                                    
-                                    // Set timeout for this request (5 minutes for large blocks)
-                                    using var timeoutCts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
-                                    using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancelToken, timeoutCts.Token);
-                                    
-                                    using var response = client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, linkedCts.Token).GetAwaiter().GetResult();
-                                    if (!response.IsSuccessStatusCode)
-                                    {
-                                        throw new HttpRequestException($"Failed to download block {i}/{blockCount} from {file.Source}: {response.ReasonPhrase}");
-                                    }
-
-                                    using var httpStream = response.Content.ReadAsStream(linkedCts.Token);
-                                    
-                                    // Buffer the stream content to support Length property for Azure Blob staging
-                                    // Use larger buffer for 64MB blocks
-                                    using var bufferedStream = new MemoryStream((int)blockSize);
-                                    
-                                    // Copy with progress tracking and cancellation support
-                                    var buffer = new byte[81920]; // 80KB buffer
-                                    int bytesRead;
-                                    long totalBytesRead = 0;
-                                    
-                                    while ((bytesRead = httpStream.Read(buffer, 0, buffer.Length)) > 0)
-                                    {
-                                        linkedCts.Token.ThrowIfCancellationRequested();
-                                        bufferedStream.Write(buffer, 0, bytesRead);
-                                        totalBytesRead += bytesRead;
-                                        
-                                        // Report progress for large blocks
-                                        if (totalBytesRead % (10 * 1024 * 1024) == 0) // Every 10MB
-                                        {
-                                            _logger.LogInformation("Downloaded {BytesMB}MB of block {BlockIndex}/{TotalBlocks}", 
-                                                totalBytesRead / (1024 * 1024), i, blockCount);
-                                        }
-                                    }
-                                    
-                                    if (totalBytesRead != blockSize)
-                                    {
-                                        throw new HttpRequestException($"Downloaded {totalBytesRead} bytes but expected {blockSize} bytes for block {i}/{blockCount}");
-                                    }
-                                    
-                                    bufferedStream.Position = 0; // Reset position for reading
-                                    
-                                    fileBlob.StageBlock(blockId, bufferedStream);
-                                    
-                                    _logger.LogInformation("Successfully staged block {BlockIndex}/{TotalBlocks} ({SizeMB}MB)", 
-                                        i, blockCount, blockSize / (1024 * 1024));
-                                }
-
-                                blockIdList.Add(blockId);
-
-                                if (cancellationSource.IsCancellationRequested)
-                                {
-                                    break;
-                                }
-
-                                Interlocked.Add(ref this._DownloadedSize, blockSize);
-                                progress.Current += blockSize;
-                                this.Progress?.Invoke(this, progress);
-                                
-                                // Success - break retry loop
-                                break;
-                            }
-                            catch (Exception ex) when (ex is HttpRequestException || 
-                                                       ex is TaskCanceledException || 
-                                                       ex is OperationCanceledException ||
-                                                       ex is System.Net.Http.HttpIOException)
-                            {
-                                lastException = ex;
-                                
-                                if (retry < maxRetries - 1)
-                                {
-                                    _logger.LogWarning(ex, "Block {BlockIndex}/{TotalBlocks} download failed (attempt {Attempt}/{MaxRetries}). Retrying in {DelaySeconds}s", 
-                                        i, blockCount, retry + 1, maxRetries, retryDelay.TotalSeconds);
-                                    System.Threading.Thread.Sleep(retryDelay);
-                                    retryDelay = TimeSpan.FromSeconds(retryDelay.TotalSeconds * 2); // Exponential backoff
-                                }
-                                else
-                                {
-                                    _logger.LogError(ex, "Block {BlockIndex}/{TotalBlocks} download failed after {MaxRetries} attempts", 
-                                        i, blockCount, maxRetries);
-                                    throw new HttpRequestException($"Failed to download block {i}/{blockCount} after {maxRetries} attempts. Last error: {ex.Message}", ex);
-                                }
-                            }
-                        }
-                    }
-
-                    fileBlob.CommitBlockList(blockIdList);
-
-                    // Write marker file
-                    var markerBlob = this.GetBlobMarkerForFile(file);
-                    using var markerStream = new MemoryStream(Convert.FromBase64String(file.Digest.DigestBase64));
-                    markerBlob.Upload(markerStream);
-
+                    BlobContentStoreMetrics.DownloadsFailed.Add(1, 
+                        new KeyValuePair<string, object?>("exception_type", ex.GetType().Name));
+                    _logger.LogError(ex, "Failed to download file {FileSource}", file.Source);
+                    throw;
                 }
-
-                Interlocked.Add(ref this._DownloadedSize, (long)file.Size * -1);
-                Interlocked.Add(ref this._QueuedSize, (long)file.Size * -1);
-                Interlocked.Decrement(ref this._QueuedCount);
-                progress.CurrentOperation = PackagesOperationType.DownloadFileEnd;
-                this.Progress?.Invoke(this, progress);
-
-                this.PendingFileDownloads.TryRemove(file.Source, out var downloadedFileRemoved);
+                finally
+                {
+                    BlobContentStoreMetrics.DecrementActiveDownloads();
+                }
             }
         }
 
