@@ -37,22 +37,26 @@ public class DownstreamSyncService : IDownstreamSyncService
     /// <summary>
     /// Syncs metadata from upstream Functions API to local metadata store.
     /// </summary>
-    public async Task SyncMetadataFromUpstreamAsync(
+    public async Task<SyncResult> SyncMetadataFromUpstreamAsync(
         ServiceMetadataFilter? filter = null,
         CancellationToken cancellationToken = default)
     {
+        var startTime = DateTime.UtcNow;
         this.logger.LogInformation("Starting downstream metadata sync from upstream Functions API");
 
         try
         {
-            // Call the upstream Functions API to export metadata
-            var exportRequest = new
+            // Build export request
+            var exportRequest = new MetadataExportRequest
             {
+                ProductsFilter = filter?.ProductFilters,
+                ClassificationsFilter = filter?.ClassificationFilters,
                 Format = "json",
                 IncludeSuperseded = false,
-                Filter = filter
+                IncludeContent = false
             };
 
+            // Call upstream Functions API to export metadata
             var response = await this.httpClient.PostAsJsonAsync(
                 "/api/metadata/export",
                 exportRequest,
@@ -60,36 +64,75 @@ public class DownstreamSyncService : IDownstreamSyncService
 
             response.EnsureSuccessStatusCode();
 
-            // Read the metadata packages from response
-            var metadataJson = await response.Content.ReadAsStringAsync(cancellationToken);
-            var packages = JsonSerializer.Deserialize<List<Dictionary<string, object>>>(metadataJson);
-
-            if (packages == null || !packages.Any())
+            // Deserialize the MetadataExportResult envelope
+            var exportResult = await response.Content.ReadFromJsonAsync<MetadataExportResult>(cancellationToken);
+            
+            if (exportResult == null || !exportResult.Success)
             {
-                this.logger.LogInformation("No metadata packages received from upstream");
-                return;
+                var errorMessage = exportResult?.ErrorMessage ?? "Unknown error during metadata export";
+                this.logger.LogError("Metadata export failed: {ErrorMessage}", errorMessage);
+                
+                return new SyncResult
+                {
+                    Success = false,
+                    StartTime = startTime,
+                    EndTime = DateTime.UtcNow,
+                    ErrorMessage = errorMessage,
+                    UpdatesSynced = false
+                };
+            }
+
+            // Extract and deserialize the actual metadata from ExportData
+            List<Dictionary<string, object>>? packages = null;
+            
+            if (!string.IsNullOrEmpty(exportResult.ExportData))
+            {
+                packages = JsonSerializer.Deserialize<List<Dictionary<string, object>>>(exportResult.ExportData);
+            }
+
+            if (packages == null || packages.Count == 0)
+            {
+                this.logger.LogWarning("No metadata packages received from upstream");
+                
+                return new SyncResult
+                {
+                    Success = true,
+                    StartTime = startTime,
+                    EndTime = DateTime.UtcNow,
+                    UpdatesSynced = false,
+                    ItemsProcessed = 0
+                };
             }
 
             this.logger.LogInformation("Received {Count} metadata packages from upstream", packages.Count);
 
-            // TODO: Convert JSON packages back to IPackage objects and import into local store
-            // This will require a metadata import/merge API on IMetadataStore
-            // For now, log a warning that full import is not yet implemented
+            // TODO: Import metadata into local store
+            // For now, just log what we received
             this.logger.LogWarning(
-                "Metadata import from JSON not yet implemented. Received {Count} packages that need to be imported.",
+                "Metadata import not yet implemented. Received {Count} packages but did not import them",
                 packages.Count);
 
-            this.logger.LogInformation("Downstream metadata sync completed");
-        }
-        catch (HttpRequestException ex)
-        {
-            this.logger.LogError(ex, "HTTP error syncing metadata from upstream: {Message}", ex.Message);
-            throw;
+            return new SyncResult
+            {
+                Success = true,
+                StartTime = startTime,
+                EndTime = DateTime.UtcNow,
+                UpdatesSynced = true,
+                ItemsProcessed = packages.Count
+            };
         }
         catch (Exception ex)
         {
             this.logger.LogError(ex, "Error syncing metadata from upstream: {Message}", ex.Message);
-            throw;
+            
+            return new SyncResult
+            {
+                Success = false,
+                StartTime = startTime,
+                EndTime = DateTime.UtcNow,
+                ErrorMessage = ex.Message,
+                UpdatesSynced = false
+            };
         }
     }
 
@@ -124,7 +167,7 @@ public class DownstreamSyncService : IDownstreamSyncService
 
             queryResponse.EnsureSuccessStatusCode();
 
-            var queryResult = await queryResponse.Content.ReadFromJsonAsync<MetadataQueryResult>(cancellationToken);
+            var queryResult = await queryResponse.Content.ReadFromJsonAsync<DownstreamMetadataQueryResult>(cancellationToken);
             
             if (queryResult?.Updates == null || !queryResult.Updates.Any())
             {
@@ -134,7 +177,7 @@ public class DownstreamSyncService : IDownstreamSyncService
 
             this.logger.LogInformation("Found {Count} updates with content to sync", queryResult.Updates.Count);
 
-            // Download each content file that doesn't exist locally
+            // Download each content file
             var totalFiles = 0;
             var downloadedFiles = 0;
 
@@ -149,13 +192,6 @@ public class DownstreamSyncService : IDownstreamSyncService
                 {
                     totalFiles++;
 
-                    // Check if file already exists locally
-                    if (this.contentStore.Contains(file))
-                    {
-                        this.logger.LogDebug("Content file already exists: {FileName}", file.FileName);
-                        continue;
-                    }
-
                     // Download from upstream
                     try
                     {
@@ -163,7 +199,7 @@ public class DownstreamSyncService : IDownstreamSyncService
                             file.FileName, file.Size);
 
                         var contentResponse = await this.httpClient.GetAsync(
-                            $"/api/content/{file.Digests.Sha256Digest}",
+                            $"/api/content/{file.Digests?.Sha256Digest}",
                             HttpCompletionOption.ResponseHeadersRead,
                             cancellationToken);
 
@@ -233,15 +269,15 @@ public class DownstreamSyncService : IDownstreamSyncService
 /// </summary>
 public interface IDownstreamSyncService
 {
-    Task SyncMetadataFromUpstreamAsync(ServiceMetadataFilter? filter = null, CancellationToken cancellationToken = default);
+    Task<SyncResult> SyncMetadataFromUpstreamAsync(ServiceMetadataFilter? filter = null, CancellationToken cancellationToken = default);
     Task SyncContentFromUpstreamAsync(ServiceMetadataFilter? filter = null, CancellationToken cancellationToken = default);
     Task<UpstreamSyncStatus> GetUpstreamSyncStatusAsync(CancellationToken cancellationToken = default);
 }
 
 /// <summary>
-/// Model for metadata query results from upstream.
+/// Model for metadata query results from upstream (downstream-specific model to avoid conflicts).
 /// </summary>
-public class MetadataQueryResult
+public class DownstreamMetadataQueryResult
 {
     public List<UpdateInfo>? Updates { get; set; }
 }
@@ -253,13 +289,13 @@ public class UpdateInfo
 {
     public string? UpdateId { get; set; }
     public string? Title { get; set; }
-    public List<FileInfo>? Files { get; set; }
+    public List<DownstreamFileInfo>? Files { get; set; }
 }
 
 /// <summary>
-/// Model for file information from upstream.
+/// Model for file information from upstream (downstream-specific to avoid conflicts).
 /// </summary>
-public class FileInfo
+public class DownstreamFileInfo
 {
     public string? FileName { get; set; }
     public long Size { get; set; }
@@ -291,9 +327,15 @@ public class UpstreamSyncStatus
 /// </summary>
 internal class NoOpDownstreamSyncService : IDownstreamSyncService
 {
-    public Task SyncMetadataFromUpstreamAsync(ServiceMetadataFilter? filter = null, CancellationToken cancellationToken = default)
+    public Task<SyncResult> SyncMetadataFromUpstreamAsync(ServiceMetadataFilter? filter = null, CancellationToken cancellationToken = default)
     {
-        return Task.CompletedTask;
+        return Task.FromResult(new SyncResult
+        {
+            Success = false,
+            StartTime = DateTime.UtcNow,
+            EndTime = DateTime.UtcNow,
+            ErrorMessage = "Downstream sync is disabled"
+        });
     }
 
     public Task SyncContentFromUpstreamAsync(ServiceMetadataFilter? filter = null, CancellationToken cancellationToken = default)

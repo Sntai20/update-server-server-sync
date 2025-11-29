@@ -68,38 +68,82 @@ namespace UpdateEngine.Metadata.Storage.Local
         {
             TargetPath = path;
 
+            bool existingStoreValid = false;
+            bool storeIsCorrupted = false;
+            ZipStreamIndexContainer? indexContainer = null;
+
+            // Try to open existing store
             if (Directory.Exists(path) && IsValidDirectory(path))
             {
-                ReadToc();
-                ReadIdentities();
+                try
+                {
+                    ReadToc();
+                    ReadIdentities();
 
-                var indexContainerPath = Path.Combine(path, IndexesContainerFileName);
-                if (File.Exists(indexContainerPath))
-                {
-                    Indexes = ZipStreamIndexContainer.Open(File.OpenRead(indexContainerPath));
-                    if (Indexes.GetStatus() != ZipStreamIndexContainer.IndexContainerStatus.Valid)
+                    // Validate store integrity - check for duplicate identities
+                    var duplicateCount = _IndexToIdentityMap.Count - _IdentityToIndexMap.Count;
+                    if (duplicateCount > 0)
                     {
-                        _IsReindexingRequired = true;
+                        throw new InvalidDataException($"Store is corrupted: found {duplicateCount} duplicate package identities");
                     }
-                }
-                else
-                {
-                    Indexes = ZipStreamIndexContainer.Create();
-                    if (_IdentityToIndexMap.Count > 0)
+
+                    var indexContainerPath = Path.Combine(path, IndexesContainerFileName);
+                    if (File.Exists(indexContainerPath))
                     {
-                        _IsReindexingRequired = true;
+                        indexContainer = ZipStreamIndexContainer.Open(File.OpenRead(indexContainerPath));
+                        if (indexContainer.GetStatus() != ZipStreamIndexContainer.IndexContainerStatus.Valid)
+                        {
+                            _IsReindexingRequired = true;
+                        }
+                    }
+                    else
+                    {
+                        indexContainer = ZipStreamIndexContainer.Create();
+                        if (_IdentityToIndexMap.Count > 0)
+                        {
+                            _IsReindexingRequired = true;
+                        }
+                    }
+
+                    existingStoreValid = true;
+                }
+                catch (InvalidDataException ex)
+                {
+                    if (mode == FileMode.OpenOrCreate)
+                    {
+                        // Store is corrupted - delete and recreate
+                        Console.WriteLine($"Corrupted store detected at {path}: {ex.Message}");
+                        Console.WriteLine("Deleting corrupted store and starting fresh...");
+                        
+                        try
+                        {
+                            Directory.Delete(path, recursive: true);
+                            storeIsCorrupted = true;
+                        }
+                        catch (Exception deleteEx)
+                        {
+                            throw new InvalidOperationException(
+                                $"Failed to delete corrupted store at {path}: {deleteEx.Message}", deleteEx);
+                        }
+                    }
+                    else
+                    {
+                        // In Open mode, let it fail
+                        throw;
                     }
                 }
             }
-            else
+
+            // Create new store if needed
+            if (!existingStoreValid)
             {
-                if (mode == FileMode.Open)
+                if (mode == FileMode.Open && !storeIsCorrupted)
                 {
                     throw new DirectoryNotFoundException($"The store does not exist or is corrupt: {path}");
                 }
 
                 Directory.CreateDirectory(path);
-                Indexes = ZipStreamIndexContainer.Create();
+                indexContainer = ZipStreamIndexContainer.Create();
                 TOC = new TableOfContent
                 {
                     TocVersion = TableOfContent.CurrentVersion
@@ -109,6 +153,9 @@ namespace UpdateEngine.Metadata.Storage.Local
                 _IndexToIdentityMap = new Dictionary<int, IPackageIdentity>();
                 _PackageTypeIndex = new Dictionary<int, int>();
             }
+
+            // Assign the readonly field once at the end
+            Indexes = indexContainer ?? throw new InvalidOperationException("Failed to initialize index container");
         }
 
         public static bool Exists(string path)
@@ -232,7 +279,21 @@ namespace UpdateEngine.Metadata.Storage.Local
                 }
             }
 
-            _IdentityToIndexMap = _IndexToIdentityMap.ToDictionary(pair => pair.Value, pair => pair.Key);
+            // Build reverse map - wrap ArgumentException from duplicates in InvalidDataException
+            try
+            {
+                _IdentityToIndexMap = _IndexToIdentityMap.ToDictionary(pair => pair.Value, pair => pair.Key);
+            }
+            catch (ArgumentException ex) when (ex.Message.Contains("already been added"))
+            {
+                // Calculate how many duplicates exist
+                var uniqueIdentities = _IndexToIdentityMap.Values.Distinct().Count();
+                var duplicateCount = _IndexToIdentityMap.Count - uniqueIdentities;
+                
+                throw new InvalidDataException(
+                    $"Store is corrupted: found {duplicateCount} duplicate package identities. " +
+                    $"Duplicate key: {ex.Message}", ex);
+            }
         }
 
         public bool ContainsPackage(IPackageIdentity packageIdentity)

@@ -114,9 +114,21 @@ public class SyncWorker : BackgroundService
             };
 
             // Sync metadata from Functions
-            await this.downstreamSyncService.SyncMetadataFromUpstreamAsync(filter, cancellationToken);
+            var result = await this.downstreamSyncService.SyncMetadataFromUpstreamAsync(filter, cancellationToken);
             
-            this.logger.LogInformation("Downstream metadata sync completed");
+            if (result.Success)
+            {
+                this.logger.LogInformation(
+                    "Downstream metadata sync completed: {ItemsProcessed} items processed",
+                    result.ItemsProcessed);
+            }
+            else
+            {
+                this.logger.LogWarning(
+                    "Downstream metadata sync failed: {ErrorMessage}",
+                    result.ErrorMessage);
+                return; // Don't proceed to content sync if metadata sync failed
+            }
 
             // Sync content if enabled
             if (currentConfig.DownstreamConfiguration.EnableContentSync)

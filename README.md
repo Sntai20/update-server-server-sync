@@ -344,3 +344,17 @@ contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additio
 - [Quick Reference](./QUICK_REFERENCE.md) - Developer quick reference
 - [Reorganization Summary](./REORGANIZATION_SUMMARY.md) - How we organized this repo
 - [Security Policy](./SECURITY.md) - Security and vulnerability reporting
+
+### Find Recently Modified Local Stores
+
+Find both folders from the repository root: LocalMetadataStore and LocalContentStore, and filter them by LastWriteTime.
+
+```powershell
+# Changed in the last 15 minutes
+Get-ChildItem . -Recurse -Directory |
+  Where-Object {
+    $_.Name -match '^(LocalMetadataStore|LocalContentStore)$' -and
+    $_.LastWriteTime -gt (Get-Date).AddMinutes(-15)
+  } |
+   Sort-Object LastWriteTime -Descending 
+```

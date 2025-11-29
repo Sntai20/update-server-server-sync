@@ -6,11 +6,5 @@
     
     // Development: Use empty string to let Aspire provide the storage connection
     "AzureWebJobsStorage": ""
-  },
-  "UpdateEngine": {
-    "StorageConfiguration": {
-      "MetadataPath": "./LocalMetadataStore",
-      "ContentPath": "./LocalContentStore"
-    }
   }
 }

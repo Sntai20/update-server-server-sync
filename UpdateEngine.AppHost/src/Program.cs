@@ -31,11 +31,17 @@ ValidateConfiguration(builder.Configuration);
 
 /// <summary>
 /// Configures Azure Storage for the appropriate environment.
-/// - Development: Uses Azurite storage emulator with dynamic ports
+/// - Development: Uses Azurite storage emulator with bind mount to local directory
+///   This allows direct inspection of blob files and persists data across restarts
 /// - Production: Uses real Azure Storage with connection strings from configuration
 /// </summary>
 var storage = builder.Environment.EnvironmentName == Environments.Development
-    ? builder.AddAzureStorage("Storage").RunAsEmulator()
+    ? builder.AddAzureStorage("Storage").RunAsEmulator(emulator =>
+    {
+        // Bind mount to output directory for easy inspection and data persistence
+        // Blob files will be visible in out/azurite-data directory
+        emulator.WithDataBindMount("out/azurite-data");
+    })
     : builder.AddAzureStorage("Storage");
 
 var data = storage.AddBlobs("data");
@@ -104,52 +110,52 @@ ConfigurationHelper.ConfigureUpdateFunctions(updateFunctions, builder.Configurat
 /// - When WorkerService:UseFileSystem is false AND UseAzureStorageForMetadata is true: Uses Azurite (cloud emulation)
 /// This provides flexibility for different development scenarios while maintaining cloud-first defaults.
 /// </summary>
-var workerServiceUseFileSystem = builder.Configuration.GetValue<bool>("WorkerService:UseFileSystem", false);
+//var workerServiceUseFileSystem = builder.Configuration.GetValue<bool>("WorkerService:UseFileSystem", false);
 
 // Also check the WorkerService's own storage configuration to respect its settings
-var workerServiceConfig = new UpdateEngine.Configuration.AppConfig();
-builder.Configuration.GetSection(UpdateEngine.Configuration.AppConfig.SectionName).Bind(workerServiceConfig);
-var workerServiceWantsAzure = workerServiceConfig.StorageConfiguration.UseAzureStorageForMetadata 
-    || workerServiceConfig.StorageConfiguration.UseAzureStorageForContent;
+//var workerServiceConfig = new UpdateEngine.Configuration.AppConfig();
+//builder.Configuration.GetSection(UpdateEngine.Configuration.AppConfig.SectionName).Bind(workerServiceConfig);
+//var workerServiceWantsAzure = workerServiceConfig.StorageConfiguration.UseAzureStorageForMetadata 
+//    || workerServiceConfig.StorageConfiguration.UseAzureStorageForContent;
 
 // Use filesystem if explicitly requested OR if WorkerService config says not to use Azure
-var useFilesystemForWorkerService = workerServiceUseFileSystem || !workerServiceWantsAzure;
+//var useFilesystemForWorkerService = workerServiceUseFileSystem || !workerServiceWantsAzure;
 
-/// <summary>
-/// Configures the Worker Service ASP.NET Core project with dependencies.
-/// Worker Service provides REST API endpoints and background workers for sync operations.
-/// Runs on default ASP.NET Core ports with health check endpoints for Kubernetes/Docker compatibility.
-/// When downstream sync is enabled, WorkerService pulls from Functions and caches to local filesystem.
-/// </summary>
-var workerService = builder.AddProject<Projects.WorkerService>("WorkerService")
-    .WithReference(redis);
+///// <summary>
+///// Configures the Worker Service ASP.NET Core project with dependencies.
+///// Worker Service provides REST API endpoints and background workers for sync operations.
+///// Runs on default ASP.NET Core ports with health check endpoints for Kubernetes/Docker compatibility.
+///// When downstream sync is enabled, WorkerService pulls from Functions and caches to local filesystem.
+///// </summary>
+//var workerService = builder.AddProject<Projects.WorkerService>("WorkerService")
+//    .WithReference(redis);
 
-// Conditionally add storage references only when using Azurite
-if (!useFilesystemForWorkerService)
-{
-    workerService
-        .WithReference(data, "MetadataStorageConnection")
-        .WithReference(data, "ContentStorageConnection")
-        .WaitFor(storage);
+//// Conditionally add storage references only when using Azurite
+//if (!useFilesystemForWorkerService)
+//{
+//    workerService
+//        .WithReference(data, "MetadataStorageConnection")
+//        .WithReference(data, "ContentStorageConnection")
+//        .WaitFor(storage);
     
-    Console.WriteLine("WorkerService: Using Azurite storage emulator (cloud emulation mode)");
-}
-else
-{
-    Console.WriteLine("WorkerService: Using local filesystem storage for downstream cache (paths from appsettings.Development.json)");
+//    Console.WriteLine("WorkerService: Using Azurite storage emulator (cloud emulation mode)");
+//}
+//else
+//{
+//    Console.WriteLine("WorkerService: Using local filesystem storage for downstream cache (paths from appsettings.Development.json)");
     
-    // Add reference to UpdateEngine for service discovery (downstream sync)
-    if (workerServiceConfig.DownstreamConfiguration.SyncFromUpstream)
-    {
-        workerService.WithReference(updateFunctions);
-        Console.WriteLine("WorkerService: Downstream sync ENABLED - Will pull from UpdateEngine Functions");
-    }
-}
+//    // Add reference to UpdateEngine for service discovery (downstream sync)
+//    if (workerServiceConfig.DownstreamConfiguration.SyncFromUpstream)
+//    {
+//        workerService.WithReference(updateFunctions);
+//        Console.WriteLine("WorkerService: Downstream sync ENABLED - Will pull from UpdateEngine Functions");
+//    }
+//}
 
-workerService.WaitFor(redis);
+//workerService.WaitFor(redis);
 
-// Apply configuration to Worker Service using generic method
-ConfigurationHelper.ConfigureUpdateEngine(workerService, builder.Configuration);
+//// Apply configuration to Worker Service using generic method
+//ConfigurationHelper.ConfigureUpdateEngine(workerService, builder.Configuration);
 
 var app = builder.Build();
 

@@ -408,19 +408,37 @@ public class QueryService : IQueryService
                 filter.ComputerHardwareIdFilter = computerHardwareIdFilterGuid;
             }
 
-            // Parse classification and product filters
+            // Parse classification and product filters (support both GUIDs and names)
             var categoryGuids = new List<Guid>();
 
             if (request.ClassificationsFilter != null)
             {
                 foreach (var classification in request.ClassificationsFilter)
                 {
-                    if (!Guid.TryParse(classification, out Guid classificationGuid))
+                    if (Guid.TryParse(classification, out Guid classificationGuid))
                     {
-                        this.logger.LogError($"Invalid classification GUID: {classification}");
-                        return null;
+                        // It's a GUID - use it directly
+                        categoryGuids.Add(classificationGuid);
                     }
-                    categoryGuids.Add(classificationGuid);
+                    else
+                    {
+                        // It's a name - look it up in the metadata store
+                        var matchingCategory = this.metadataStore
+                            .OfType<ClassificationCategory>()
+                            .FirstOrDefault(c => c.Title != null && 
+                                c.Title.Equals(classification, StringComparison.OrdinalIgnoreCase));
+
+                        if (matchingCategory != null && matchingCategory.Id?.OpenId != null && matchingCategory.Id.OpenId.Length == 16)
+                        {
+                            categoryGuids.Add(new Guid(matchingCategory.Id.OpenId));
+                            this.logger.LogInformation("Resolved classification name '{Name}' to GUID {Guid}", 
+                                classification, new Guid(matchingCategory.Id.OpenId));
+                        }
+                        else
+                        {
+                            this.logger.LogWarning("Classification '{Name}' not found in metadata store - skipping", classification);
+                        }
+                    }
                 }
             }
 
@@ -428,12 +446,30 @@ public class QueryService : IQueryService
             {
                 foreach (var product in request.ProductsFilter)
                 {
-                    if (!Guid.TryParse(product, out Guid productGuid))
+                    if (Guid.TryParse(product, out Guid productGuid))
                     {
-                        this.logger.LogError($"Invalid product GUID: {product}");
-                        return null;
+                        // It's a GUID - use it directly
+                        categoryGuids.Add(productGuid);
                     }
-                    categoryGuids.Add(productGuid);
+                    else
+                    {
+                        // It's a name - look it up in the metadata store
+                        var matchingProduct = this.metadataStore
+                            .OfType<ProductCategory>()
+                            .FirstOrDefault(p => p.Title != null && 
+                                p.Title.Equals(product, StringComparison.OrdinalIgnoreCase));
+
+                        if (matchingProduct != null && matchingProduct.Id?.OpenId != null && matchingProduct.Id.OpenId.Length == 16)
+                        {
+                            categoryGuids.Add(new Guid(matchingProduct.Id.OpenId));
+                            this.logger.LogInformation("Resolved product name '{Name}' to GUID {Guid}", 
+                                product, new Guid(matchingProduct.Id.OpenId));
+                        }
+                        else
+                        {
+                            this.logger.LogWarning("Product '{Name}' not found in metadata store - skipping", product);
+                        }
+                    }
                 }
             }
 

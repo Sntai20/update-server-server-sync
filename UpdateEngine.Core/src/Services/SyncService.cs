@@ -52,7 +52,16 @@ public class SyncService : ISyncService
             
             categoriesSource.CopyTo(this.metadataStore, cancellationToken);
             
+            // Flush to persist changes to Azure Blob Storage
+            this.logger.LogInformation("Flushing metadata store to persist categories");
+            this.metadataStore.Flush();
+            
             this.logger.LogInformation("Categories synchronization completed");
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Categories synchronization failed: {Message}", ex.Message);
+            throw;
         }
         finally
         {
@@ -70,14 +79,23 @@ public class SyncService : ISyncService
 
         try
         {
-            this.logger.LogInformation("Starting updates synchronization with filter");
+            this.logger.LogInformation("Starting updates synchronization with filter: {@Filter}", filter);
 
             var upstreamEndpoint = Endpoint.Default;
             var updatesSource = new UpstreamUpdatesSource(upstreamEndpoint, filter);
             
             updatesSource.CopyTo(this.metadataStore, cancellationToken);
             
+            // Flush to persist changes to Azure Blob Storage
+            this.logger.LogInformation("Flushing metadata store to persist updates");
+            this.metadataStore.Flush();
+            
             this.logger.LogInformation("Updates synchronization completed");
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Updates synchronization failed: {Message}", ex.Message);
+            throw;
         }
         finally
         {

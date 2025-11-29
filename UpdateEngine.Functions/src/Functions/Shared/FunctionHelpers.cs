@@ -29,44 +29,47 @@ public static class FunctionHelpers
         try
         {
             var result = await operation();
-            return CreateJsonResponse(req, result, jsonOptions);
+            return await CreateJsonResponseAsync(req, result, jsonOptions);
         }
         catch (ArgumentException ex)
         {
             logger.LogWarning(ex, "Invalid request parameters: {Message}", ex.Message);
-            return CreateErrorResponse(req, $"Invalid request: {ex.Message}", HttpStatusCode.BadRequest);
+            return await CreateErrorResponseAsync(req, $"Invalid request: {ex.Message}", HttpStatusCode.BadRequest);
         }
         catch (UnauthorizedAccessException ex)
         {
             logger.LogWarning(ex, "Unauthorized access attempt: {Message}", ex.Message);
-            return CreateErrorResponse(req, "Unauthorized access", HttpStatusCode.Unauthorized);
+            return await CreateErrorResponseAsync(req, "Unauthorized access", HttpStatusCode.Unauthorized);
         }
         catch (NotSupportedException ex)
         {
             logger.LogWarning(ex, "Unsupported operation: {Message}", ex.Message);
-            return CreateErrorResponse(req, $"Operation not supported: {ex.Message}", HttpStatusCode.NotImplemented);
+            return await CreateErrorResponseAsync(req, $"Operation not supported: {ex.Message}", HttpStatusCode.NotImplemented);
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Unexpected error in function execution: {Message}", ex.Message);
-            return CreateErrorResponse(req, "Internal server error", HttpStatusCode.InternalServerError);
+            return await CreateErrorResponseAsync(req, "Internal server error", HttpStatusCode.InternalServerError);
         }
     }
 
     /// <summary>
     /// Creates a JSON response with the specified data.
     /// </summary>
-    public static HttpResponseData CreateJsonResponse<T>(
+    public static async Task<HttpResponseData> CreateJsonResponseAsync<T>(
         HttpRequestData req, 
         T data, 
         JsonSerializerOptions? jsonOptions = null,
         HttpStatusCode statusCode = HttpStatusCode.OK)
     {
         var response = req.CreateResponse(statusCode);
+        
+        // Set Content-Type header (overwrites if already exists)
+        response.Headers.Remove("Content-Type");
         response.Headers.Add("Content-Type", JsonContentType);
         
         var json = JsonSerializer.Serialize(data, jsonOptions ?? GetDefaultJsonOptions());
-        response.WriteString(json, Encoding.UTF8);
+        await response.WriteStringAsync(json, Encoding.UTF8);
         
         return response;
     }
@@ -74,7 +77,7 @@ public static class FunctionHelpers
     /// <summary>
     /// Creates a standardized error response.
     /// </summary>
-    public static HttpResponseData CreateErrorResponse(
+    public static async Task<HttpResponseData> CreateErrorResponseAsync(
         HttpRequestData req,
         string message,
         HttpStatusCode statusCode,
@@ -88,20 +91,24 @@ public static class FunctionHelpers
             Timestamp = DateTime.UtcNow
         };
 
-        return CreateJsonResponse(req, errorData, null, statusCode);
+        return await CreateJsonResponseAsync(req, errorData, null, statusCode);
     }
 
     /// <summary>
     /// Creates a plain text response.
     /// </summary>
-    public static HttpResponseData CreateTextResponse(
+    public static async Task<HttpResponseData> CreateTextResponseAsync(
         HttpRequestData req,
         string content,
         HttpStatusCode statusCode = HttpStatusCode.OK)
     {
         var response = req.CreateResponse(statusCode);
+        
+        // Set Content-Type header (overwrites if already exists)
+        response.Headers.Remove("Content-Type");
         response.Headers.Add("Content-Type", TextContentType);
-        response.WriteString(content, Encoding.UTF8);
+        
+        await response.WriteStringAsync(content, Encoding.UTF8);
         return response;
     }
 
@@ -160,7 +167,7 @@ public static class FunctionHelpers
     /// <summary>
     /// Creates a success response for operations that don't return data.
     /// </summary>
-    public static HttpResponseData CreateSuccessResponse(
+    public static async Task<HttpResponseData> CreateSuccessResponseAsync(
         HttpRequestData req,
         string? message = null)
     {
@@ -171,7 +178,7 @@ public static class FunctionHelpers
             Timestamp = DateTime.UtcNow
         };
 
-        return CreateJsonResponse(req, result);
+        return await CreateJsonResponseAsync(req, result);
     }
 
     /// <summary>

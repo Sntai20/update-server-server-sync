@@ -499,6 +499,17 @@ public class UnifiedSyncFunctions
 
     private async Task PerformCriticalSync()
     {
+        // Check if store is empty - if so, sync categories first
+        if (this.metadataStore != null)
+        {
+            var packageCount = this.metadataStore.Count();
+            if (packageCount == 0)
+            {
+                this.logger.LogInformation("Empty metadata store detected (0 packages) - performing initial categories sync");
+                await this.syncService.SyncCategoriesAsync();
+            }
+        }
+        
         var filter = this.syncService.CreateCriticalUpdatesFilter();
         await this.syncService.SyncUpdatesAsync(filter);
     }

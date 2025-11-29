@@ -85,30 +85,42 @@ public static class ConfigurationHelper
         configuration.Bind(appConfig);
 
         // Set storage environment variables from StorageConfiguration
+        // IMPORTANT: Use hierarchical naming (UpdateEngine__StorageConfiguration__*) 
+        // to match the configuration section structure that Functions reads
         functions
-            .WithEnvironment("MaxUpdateCount", appConfig.ServiceConfiguration.MaxUpdateCount.ToString())
-            .WithEnvironment("UseAzureStorageForMetadata", appConfig.StorageConfiguration.UseAzureStorageForMetadata.ToString())
-            .WithEnvironment("UseAzureStorageForContent", appConfig.StorageConfiguration.UseAzureStorageForContent.ToString())
-            .WithEnvironment("MetadataContainerName", appConfig.StorageConfiguration.MetadataContainerName)
-            .WithEnvironment("ContentContainerName", appConfig.StorageConfiguration.ContentContainerName)
-            .WithEnvironment("ContentPathPrefix", appConfig.StorageConfiguration.ContentPathPrefix ?? "Content")
-            .WithEnvironment("MetadataPath", appConfig.StorageConfiguration.MetadataPath)
-            .WithEnvironment("ContentPath", appConfig.StorageConfiguration.ContentPath)
-            .WithEnvironment("ReindexOnStartup", appConfig.StorageConfiguration.ReindexOnStartup.ToString())
-            .WithEnvironment("EnableScheduledSync", appConfig.SyncConfiguration.EnableScheduledSync.ToString())
-            .WithEnvironment("EnableDetailedLogging", appConfig.FeatureFlags.EnableDetailedLogging.ToString())
-            .WithEnvironment("EnableMetrics", appConfig.FeatureFlags.EnableMetrics.ToString())
-            .WithEnvironment("EnableCaching", appConfig.FeatureFlags.EnableCaching.ToString());
+            .WithEnvironment("UpdateEngine__ServiceConfiguration__MaxUpdateCount", appConfig.ServiceConfiguration.MaxUpdateCount.ToString())
+            .WithEnvironment("UpdateEngine__StorageConfiguration__UseAzureStorageForMetadata", appConfig.StorageConfiguration.UseAzureStorageForMetadata.ToString())
+            .WithEnvironment("UpdateEngine__StorageConfiguration__UseAzureStorageForContent", appConfig.StorageConfiguration.UseAzureStorageForContent.ToString())
+            .WithEnvironment("UpdateEngine__StorageConfiguration__MetadataContainerName", appConfig.StorageConfiguration.MetadataContainerName)
+            .WithEnvironment("UpdateEngine__StorageConfiguration__ContentContainerName", appConfig.StorageConfiguration.ContentContainerName)
+            .WithEnvironment("UpdateEngine__StorageConfiguration__ContentPathPrefix", appConfig.StorageConfiguration.ContentPathPrefix ?? "Content")
+            .WithEnvironment("UpdateEngine__StorageConfiguration__ReindexOnStartup", appConfig.StorageConfiguration.ReindexOnStartup.ToString())
+            .WithEnvironment("UpdateEngine__SyncConfiguration__EnableScheduledSync", appConfig.SyncConfiguration.EnableScheduledSync.ToString())
+            .WithEnvironment("UpdateEngine__FeatureFlags__EnableDetailedLogging", appConfig.FeatureFlags.EnableDetailedLogging.ToString())
+            .WithEnvironment("UpdateEngine__FeatureFlags__EnableMetrics", appConfig.FeatureFlags.EnableMetrics.ToString())
+            .WithEnvironment("UpdateEngine__FeatureFlags__EnableCaching", appConfig.FeatureFlags.EnableCaching.ToString());
+
+        // IMPORTANT: Only set local paths when NOT using Azure Storage
+        // When using Azurite, Aspire connection strings (ConnectionStrings__MetadataStorageConnection) take precedence
+        if (!appConfig.StorageConfiguration.UseAzureStorageForMetadata)
+        {
+            functions.WithEnvironment("UpdateEngine__StorageConfiguration__MetadataPath", appConfig.StorageConfiguration.MetadataPath);
+        }
+        
+        if (!appConfig.StorageConfiguration.UseAzureStorageForContent)
+        {
+            functions.WithEnvironment("UpdateEngine__StorageConfiguration__ContentPath", appConfig.StorageConfiguration.ContentPath);
+        }
 
         // Set cache configuration from CacheConfiguration
         functions
-            .WithEnvironment("EnableDistributedCache", appConfig.CacheConfiguration.EnableDistributedCache.ToString())
-            .WithEnvironment("KeyPrefix", appConfig.CacheConfiguration.KeyPrefix)
-            .WithEnvironment("DefaultExpirationMinutes", appConfig.CacheConfiguration.DefaultExpirationMinutes.ToString())
-            .WithEnvironment("StatisticsCacheMinutes", appConfig.CacheConfiguration.StatisticsCacheMinutes.ToString())
-            .WithEnvironment("UpdateDetailsCacheMinutes", appConfig.CacheConfiguration.UpdateDetailsCacheMinutes.ToString())
-            .WithEnvironment("ContentAvailabilityCacheMinutes", appConfig.CacheConfiguration.ContentAvailabilityCacheMinutes.ToString())
-            .WithEnvironment("InvalidateOnSync", appConfig.CacheConfiguration.InvalidateOnSync.ToString());
+            .WithEnvironment("UpdateEngine__CacheConfiguration__EnableDistributedCache", appConfig.CacheConfiguration.EnableDistributedCache.ToString())
+            .WithEnvironment("UpdateEngine__CacheConfiguration__KeyPrefix", appConfig.CacheConfiguration.KeyPrefix)
+            .WithEnvironment("UpdateEngine__CacheConfiguration__DefaultExpirationMinutes", appConfig.CacheConfiguration.DefaultExpirationMinutes.ToString())
+            .WithEnvironment("UpdateEngine__CacheConfiguration__StatisticsCacheMinutes", appConfig.CacheConfiguration.StatisticsCacheMinutes.ToString())
+            .WithEnvironment("UpdateEngine__CacheConfiguration__UpdateDetailsCacheMinutes", appConfig.CacheConfiguration.UpdateDetailsCacheMinutes.ToString())
+            .WithEnvironment("UpdateEngine__CacheConfiguration__ContentAvailabilityCacheMinutes", appConfig.CacheConfiguration.ContentAvailabilityCacheMinutes.ToString())
+            .WithEnvironment("UpdateEngine__CacheConfiguration__InvalidateOnSync", appConfig.CacheConfiguration.InvalidateOnSync.ToString());
 
         // Set service configuration as JSON from ServiceConfiguration
         // Note: ServiceUrl and ContentUrl will be dynamically resolved by Aspire at runtime
@@ -123,7 +135,17 @@ public static class ConfigurationHelper
         functions.WithEnvironment("ServiceConfigurationJson", JsonSerializer.Serialize(serviceConfig));
 
         // Set function schedules for timer triggers (with defaults) from SyncConfiguration
+        // IMPORTANT: Timer triggers need BOTH:
+        // 1. Hierarchical names for configuration binding (UpdateEngine__SyncConfiguration__*)
+        // 2. Flat names for TimerTrigger attribute resolution (%ScheduleName%)
         functions
+            .WithEnvironment("UpdateEngine__SyncConfiguration__SyncCriticalSchedule", appConfig.SyncConfiguration.SyncCriticalSchedule)
+            .WithEnvironment("UpdateEngine__SyncConfiguration__SyncComprehensiveSchedule", appConfig.SyncConfiguration.SyncComprehensiveSchedule)
+            .WithEnvironment("UpdateEngine__SyncConfiguration__SyncContentSchedule", appConfig.SyncConfiguration.SyncContentSchedule)
+            .WithEnvironment("UpdateEngine__SyncConfiguration__ScheduledHealthCheckSchedule", appConfig.SyncConfiguration.ScheduledHealthCheckSchedule)
+            .WithEnvironment("UpdateEngine__SyncConfiguration__MaintenanceSchedule", appConfig.SyncConfiguration.MaintenanceSchedule)
+            .WithEnvironment("UpdateEngine__SyncConfiguration__AnomalyDetectionSchedule", appConfig.SyncConfiguration.AnomalyDetectionSchedule)
+            // Flat names for TimerTrigger attributes
             .WithEnvironment("SyncCriticalSchedule", appConfig.SyncConfiguration.SyncCriticalSchedule)
             .WithEnvironment("SyncComprehensiveSchedule", appConfig.SyncConfiguration.SyncComprehensiveSchedule)
             .WithEnvironment("SyncContentSchedule", appConfig.SyncConfiguration.SyncContentSchedule)
@@ -136,22 +158,14 @@ public static class ConfigurationHelper
         foreach (var job in azureWebJobsSection.GetChildren())
         {
             var disabledValue = job.GetValue<bool>("Disabled");
-            functions.WithEnvironment($"AzureWebJobs.{job.Key}.Disabled", disabledValue.ToString().ToLower());
+            functions.WithEnvironment($"AzureWebJobs__{job.Key}__Disabled", disabledValue.ToString().ToLower());
         }
-    }
-
-    /// <summary>
-    /// Sets a connection string environment variable if it exists in configuration.
-    /// </summary>
-    private static void SetConnectionStringIfExists(
-        IResourceBuilder<AzureFunctionsProjectResource> functions,
-        IConfiguration configuration,
-        string connectionStringName)
-    {
-        var connectionString = configuration.GetConnectionString(connectionStringName);
-        if (!string.IsNullOrEmpty(connectionString))
-        {
-            functions.WithEnvironment($"ConnectionStrings__{connectionStringName}", connectionString);
-        }
+        
+        // NOTE: Connection strings are automatically injected by Aspire via .WithReference()
+        // They will be available as:
+        // - ConnectionStrings__MetadataStorageConnection (from .WithReference(data, "MetadataStorageConnection"))
+        // - ConnectionStrings__ContentStorageConnection (from .WithReference(data, "ContentStorageConnection"))
+        // - ConnectionStrings__Redis (from .WithReference(redis))
+        // Azure Functions configuration system will read these automatically
     }
 }

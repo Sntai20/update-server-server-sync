@@ -16,6 +16,10 @@ var hostBuilder = new HostBuilder()
     {
         // Add shared configuration from Configuration project
         config.AddSharedAppConfiguration();
+        
+        // IMPORTANT: Explicitly add environment variables to ensure Aspire-injected
+        // connection strings (ConnectionStrings__MetadataStorageConnection) are available
+        config.AddEnvironmentVariables();
     })
     .ConfigureServices((context, services) =>
     {
@@ -56,6 +60,29 @@ static void ConfigureLogging(HostBuilderContext context)
     else
     {
         tempLogger.LogInformation("MetadataContainerName: {ContainerName}", storageConfig["MetadataContainerName"]);
+        
+        // DIAGNOSTIC: Check for Aspire connection strings
+        var metadataConnection = context.Configuration.GetConnectionString("MetadataStorageConnection");
+        var contentConnection = context.Configuration.GetConnectionString("ContentStorageConnection");
+        
+        tempLogger.LogInformation("=== Connection String Diagnostics ===");
+        tempLogger.LogInformation("MetadataStorageConnection available: {HasMetadata}", !string.IsNullOrEmpty(metadataConnection));
+        tempLogger.LogInformation("ContentStorageConnection available: {HasContent}", !string.IsNullOrEmpty(contentConnection));
+        
+        if (!string.IsNullOrEmpty(metadataConnection))
+        {
+            // Log first 50 chars to verify it's correct (don't log secrets)
+            var preview = metadataConnection.Length > 50 ? metadataConnection.Substring(0, 50) + "..." : metadataConnection;
+            tempLogger.LogInformation("MetadataStorageConnection preview: {Preview}", preview);
+        }
+        else
+        {
+            tempLogger.LogWarning("MetadataStorageConnection NOT FOUND - will fall back to local filesystem!");
+            
+            // Check raw environment variable
+            var envVar = Environment.GetEnvironmentVariable("ConnectionStrings__MetadataStorageConnection");
+            tempLogger.LogInformation("Environment variable ConnectionStrings__MetadataStorageConnection: {HasEnvVar}", !string.IsNullOrEmpty(envVar));
+        }
     }
 
     var useAzureStorageForContent = storageConfig.GetValue<bool>("UseAzureStorageForContent");

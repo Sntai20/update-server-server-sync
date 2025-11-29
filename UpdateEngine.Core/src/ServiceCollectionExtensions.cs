@@ -78,7 +78,10 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IAnomalyDetectionService, AnomalyDetectionService>();
         services.AddSingleton<IQueueService, QueueService>();
 
-        // 4a. Downstream Sync Service (for WorkerService pulling from Functions)
+        // 4a. Maintenance Services
+        services.AddSingleton<UpdateEngine.Core.Maintenance.MetadataStoreCleanup>();
+
+        // 4b. Downstream Sync Service (for WorkerService pulling from Functions)
         // Configure HttpClient with Aspire service discovery
         // The service name "http://UpdateEngine" is automatically resolved by Aspire
         var downstreamConfig = appConfig.DownstreamConfiguration;
@@ -89,8 +92,9 @@ public static class ServiceCollectionExtensions
                 // Aspire service discovery: "http://UpdateEngine" resolves to the actual dynamic port
                 client.BaseAddress = new Uri(downstreamConfig.UpstreamFunctionsUrl);
                 client.Timeout = downstreamConfig.HttpTimeout;
-            })
-            .AddStandardResilienceHandler(); // Aspire resilience patterns (retry, circuit breaker, timeout)
+            });
+            // Note: AddStandardResilienceHandler() requires Microsoft.Extensions.Http.Resilience package
+            // For now, basic HttpClient with timeout is sufficient
         }
         else
         {
@@ -144,10 +148,9 @@ public static class ServiceCollectionExtensions
                 }
 
                 logger?.LogInformation("Opening Azure Blob Storage metadata store (container: {Container})", storageConfig.MetadataContainerName);
-                // Azure Blob Storage
+                // Azure Blob Storage - use OpenOrCreate to create container if it doesn't exist
                 var blobServiceClient = new Azure.Storage.Blobs.BlobServiceClient(connectionString);
-                var container = blobServiceClient.GetBlobContainerClient(storageConfig.MetadataContainerName);
-                return UpdateEngine.Metadata.Storage.Azure.PackageStore.Open(container);
+                return UpdateEngine.Metadata.Storage.Azure.PackageStore.OpenOrCreate(blobServiceClient, storageConfig.MetadataContainerName);
             }
             else
             {
