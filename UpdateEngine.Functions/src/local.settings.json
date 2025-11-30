@@ -4,6 +4,7 @@
     "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
     "AzureWebJobsSecretStorageType": "Blob",
     "AzureWebJobsStorage": "UseDevelopmentStorage=true",
-    "AnomalyDetectionSchedule": "0 * * * * *"
+    "AnomalyDetectionSchedule": "0 * * * * *",
+    "ModelTrainingSchedule": "0 */5 * * * *"
   }
 }
