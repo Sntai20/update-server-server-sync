@@ -7,8 +7,10 @@ using Azure.Storage.Blobs.Models;
 using Azure.Storage.Blobs.Specialized;
 using UpdateEngine.Metadata.ObjectModel;
 using UpdateEngine.Metadata.Partitions;
+using UpdateEngine.Metadata.Metrics;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -119,42 +121,70 @@ namespace UpdateEngine.Metadata.Storage.Azure
 
         public Stream GetMetadata(PackageStoreEntry packageEntry)
         {
-            lock (this.DownloadCache)
+            var startTime = Stopwatch.GetTimestamp();
+            
+            try
             {
-                this.FillBufferForPackage(packageEntry);
+                lock (this.DownloadCache)
+                {
+                    this.FillBufferForPackage(packageEntry);
 
-                var cachedPackageBuffer = new byte[packageEntry.MetadataLength];
-                this.DownloadCache.Seek(packageEntry.MetadataOffset - this.DownloadCacheOffset, SeekOrigin.Begin);
-                this.DownloadCache.Read(cachedPackageBuffer, 0, cachedPackageBuffer.Length);
-                return new GZipStream(new MemoryStream(cachedPackageBuffer), CompressionMode.Decompress);
+                    var cachedPackageBuffer = new byte[packageEntry.MetadataLength];
+                    this.DownloadCache.Seek(packageEntry.MetadataOffset - this.DownloadCacheOffset, SeekOrigin.Begin);
+                    this.DownloadCache.Read(cachedPackageBuffer, 0, cachedPackageBuffer.Length);
+                    
+                    MetadataStoreMetrics.PackagesRetrieved.Add(1);
+                    MetadataStoreMetrics.QueryDuration.Record(Stopwatch.GetElapsedTime(startTime).TotalSeconds);
+                    
+                    return new GZipStream(new MemoryStream(cachedPackageBuffer), CompressionMode.Decompress);
+                }
+            }
+            catch
+            {
+                MetadataStoreMetrics.QueryDuration.Record(Stopwatch.GetElapsedTime(startTime).TotalSeconds);
+                throw;
             }
         }
 
         public List<T> GetFiles<T>(PackageStoreEntry packageEntry)
         {
-            if (packageEntry.FileListLength == 0)
+            var startTime = Stopwatch.GetTimestamp();
+            
+            try
             {
-                return new List<T>();
-            }
+                if (packageEntry.FileListLength == 0)
+                {
+                    MetadataStoreMetrics.QueryDuration.Record(Stopwatch.GetElapsedTime(startTime).TotalSeconds);
+                    return new List<T>();
+                }
 
-            Stream inMemoryFilesList;
-            lock (this.DownloadCache)
+                Stream inMemoryFilesList;
+                lock (this.DownloadCache)
+                {
+                    this.FillBufferForPackage(packageEntry);
+
+                    var cachedFileListBuffer = new byte[packageEntry.FileListLength];
+                    this.DownloadCache.Seek(packageEntry.FileListOffset - this.DownloadCacheOffset, SeekOrigin.Begin);
+                    this.DownloadCache.Read(cachedFileListBuffer);
+                    inMemoryFilesList = new GZipStream(new MemoryStream(cachedFileListBuffer), CompressionMode.Decompress);
+                }
+
+                var filesList = JsonSerializer.Deserialize<List<T>>(inMemoryFilesList);
+                if (filesList == null)
+                {
+                    throw new InvalidOperationException($"Failed to deserialize List<{typeof(T).Name}> - JsonSerializer returned null");
+                }
+
+                MetadataStoreMetrics.QueriesExecuted.Add(1);
+                MetadataStoreMetrics.QueryDuration.Record(Stopwatch.GetElapsedTime(startTime).TotalSeconds);
+
+                return filesList;
+            }
+            catch
             {
-                this.FillBufferForPackage(packageEntry);
-
-                var cachedFileListBuffer = new byte[packageEntry.FileListLength];
-                this.DownloadCache.Seek(packageEntry.FileListOffset - this.DownloadCacheOffset, SeekOrigin.Begin);
-                this.DownloadCache.Read(cachedFileListBuffer);
-                inMemoryFilesList = new GZipStream(new MemoryStream(cachedFileListBuffer), CompressionMode.Decompress);
+                MetadataStoreMetrics.QueryDuration.Record(Stopwatch.GetElapsedTime(startTime).TotalSeconds);
+                throw;
             }
-
-            var filesList = JsonSerializer.Deserialize<List<T>>(inMemoryFilesList);
-            if (filesList == null)
-            {
-                throw new InvalidOperationException($"Failed to deserialize List<{typeof(T).Name}> - JsonSerializer returned null");
-            }
-
-            return filesList;
         }
 
         private static long RoundToPageSize(long value) => value % MetadataPageSize == 0 ? value : MetadataPageSize * (value / MetadataPageSize) + MetadataPageSize;
@@ -181,61 +211,73 @@ namespace UpdateEngine.Metadata.Storage.Azure
 
         public PackageStoreEntry AddPackage(IPackage package)
         {
-            PackageStoreEntry newEntry = new(package.Id.ToString(), 0);
-
-            using var uploadStream = new MemoryStream();
-            using (var compressor = new GZipStream(uploadStream, CompressionLevel.Optimal, true))
+            var startTime = Stopwatch.GetTimestamp();
+            
+            try
             {
-                package.GetMetadataStream().CopyTo(compressor);
-            }
+                PackageStoreEntry newEntry = new(package.Id.ToString(), 0);
 
-            newEntry.MetadataLength = uploadStream.Length;
-
-            uploadStream.SetLength(RoundToPageSize(uploadStream.Length));
-
-            var filesMetadataRelativeOffset = uploadStream.Length;
-
-            if (PackageHasExternalFileMetadata(package))
-            {
-                var filesMetadata = new MemoryStream();
-                using (var compressor = new GZipStream(filesMetadata, CompressionLevel.Optimal, true))
+                using var uploadStream = new MemoryStream();
+                using (var compressor = new GZipStream(uploadStream, CompressionLevel.Optimal, true))
                 {
-                    CreateFileMetadataStream(package).CopyTo(compressor);
+                    package.GetMetadataStream().CopyTo(compressor);
                 }
 
-                newEntry.FileListLength = filesMetadata.Length;
+                newEntry.MetadataLength = uploadStream.Length;
 
-                uploadStream.Seek(0, SeekOrigin.End);
-                filesMetadata.Seek(0, SeekOrigin.Begin);
-                filesMetadata.CopyTo(uploadStream);
                 uploadStream.SetLength(RoundToPageSize(uploadStream.Length));
-            }
 
-            uploadStream.Seek(0, SeekOrigin.Begin);
+                var filesMetadataRelativeOffset = uploadStream.Length;
 
-            lock (this.MetadataBlobLock)
-            {
-                newEntry.MetadataOffset = this.NextAvailableOffset;
-                newEntry.FileListOffset = this.NextAvailableOffset + filesMetadataRelativeOffset;
-
-                uploadStream.CopyTo(this.UploadCache);
-
-                this.NextAvailableOffset += uploadStream.Length;
-
-                if (this.UploadCache.Position > UploadCacheSize)
+                if (PackageHasExternalFileMetadata(package))
                 {
-                    this.UploadCache.SetLength(this.UploadCache.Position);
-                    this.UploadCache.Seek(0, SeekOrigin.Begin);
+                    var filesMetadata = new MemoryStream();
+                    using (var compressor = new GZipStream(filesMetadata, CompressionLevel.Optimal, true))
+                    {
+                        CreateFileMetadataStream(package).CopyTo(compressor);
+                    }
 
-                    this.UploadMetadata(this.UploadCache, this.UploadCacheOffset);
+                    newEntry.FileListLength = filesMetadata.Length;
 
-                    this.UploadCache.Seek(0, SeekOrigin.Begin);
-
-                    this.UploadCacheOffset = this.NextAvailableOffset;
+                    uploadStream.Seek(0, SeekOrigin.End);
+                    filesMetadata.Seek(0, SeekOrigin.Begin);
+                    filesMetadata.CopyTo(uploadStream);
+                    uploadStream.SetLength(RoundToPageSize(uploadStream.Length));
                 }
-            }
 
-            return newEntry;
+                uploadStream.Seek(0, SeekOrigin.Begin);
+
+                lock (this.MetadataBlobLock)
+                {
+                    newEntry.MetadataOffset = this.NextAvailableOffset;
+                    newEntry.FileListOffset = this.NextAvailableOffset + filesMetadataRelativeOffset;
+
+                    uploadStream.CopyTo(this.UploadCache);
+
+                    this.NextAvailableOffset += uploadStream.Length;
+
+                    if (this.UploadCache.Position > UploadCacheSize)
+                    {
+                        this.UploadCache.SetLength(this.UploadCache.Position);
+                        this.UploadCache.Seek(0, SeekOrigin.Begin);
+
+                        this.UploadMetadata(this.UploadCache, this.UploadCacheOffset);
+
+                        this.UploadCache.Seek(0, SeekOrigin.Begin);
+
+                        this.UploadCacheOffset = this.NextAvailableOffset;
+                    }
+                }
+
+                MetadataStoreMetrics.PackagesAdded.Add(1);
+                var duration = Stopwatch.GetElapsedTime(startTime).TotalSeconds;
+                
+                return newEntry;
+            }
+            catch
+            {
+                throw;
+            }
         }
 
         private void UploadMetadata(MemoryStream metadataBuffer, long offset)
@@ -272,15 +314,28 @@ namespace UpdateEngine.Metadata.Storage.Azure
 
         public void Flush()
         {
-            if (this.UploadCache.Position > 0)
+            var startTime = Stopwatch.GetTimestamp();
+            
+            try
             {
-                this.UploadCache.SetLength(this.UploadCache.Position);
-                this.UploadCache.Seek(0, SeekOrigin.Begin);
-                this.UploadMetadata(this.UploadCache, this.UploadCacheOffset);
+                if (this.UploadCache.Position > 0)
+                {
+                    this.UploadCache.SetLength(this.UploadCache.Position);
+                    this.UploadCache.Seek(0, SeekOrigin.Begin);
+                    this.UploadMetadata(this.UploadCache, this.UploadCacheOffset);
+                }
+                else
+                {
+                    this.BackBufferReadyEvent.WaitOne();
+                }
+                
+                MetadataStoreMetrics.FlushOperations.Add(1);
+                MetadataStoreMetrics.FlushDuration.Record(Stopwatch.GetElapsedTime(startTime).TotalSeconds);
             }
-            else
+            catch
             {
-                this.BackBufferReadyEvent.WaitOne();
+                MetadataStoreMetrics.FlushDuration.Record(Stopwatch.GetElapsedTime(startTime).TotalSeconds);
+                throw;
             }
         }
     }

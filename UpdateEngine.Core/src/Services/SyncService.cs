@@ -7,6 +7,8 @@ using Microsoft.Extensions.Logging;
 using UpdateEngine.Metadata.Metadata;
 using UpdateEngine.Metadata.Source;
 using UpdateEngine.Metadata.Storage;
+using UpdateEngine.Core.Metrics;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 
@@ -18,11 +20,11 @@ public class SyncService : ISyncService
 {
     private readonly ILogger<SyncService> logger;
     private readonly IMetadataStore metadataStore;
-    
+
     // Sync locking to prevent concurrent operations
     private readonly SemaphoreSlim syncLock = new SemaphoreSlim(1, 1);
     private readonly SemaphoreSlim contentLock = new SemaphoreSlim(1, 1);
-    
+
     // Simple in-memory state tracking (in production, use distributed cache like Redis)
     private bool isRunning = false;
     private bool isPaused = false;
@@ -37,6 +39,9 @@ public class SyncService : ISyncService
 
     public async Task SyncCategoriesAsync(CancellationToken cancellationToken = default)
     {
+        var startTime = Stopwatch.GetTimestamp();
+        SyncServiceMetrics.CategorySyncsStarted.Add(1);
+
         if (!await this.syncLock.WaitAsync(0, cancellationToken))
         {
             this.logger.LogWarning("Categories sync skipped - another sync operation is in progress");
@@ -49,18 +54,23 @@ public class SyncService : ISyncService
 
             var upstreamEndpoint = Endpoint.Default;
             var categoriesSource = new UpstreamCategoriesSource(upstreamEndpoint);
-            
+
             categoriesSource.CopyTo(this.metadataStore, cancellationToken);
-            
+
             // Flush to persist changes to Azure Blob Storage
             this.logger.LogInformation("Flushing metadata store to persist categories");
             this.metadataStore.Flush();
-            
+
             this.logger.LogInformation("Categories synchronization completed");
+
+            SyncServiceMetrics.CategorySyncsCompleted.Add(1);
+            SyncServiceMetrics.CategorySyncDuration.Record(Stopwatch.GetElapsedTime(startTime).TotalSeconds);
         }
         catch (Exception ex)
         {
             this.logger.LogError(ex, "Categories synchronization failed: {Message}", ex.Message);
+            SyncServiceMetrics.CategorySyncsFailed.Add(1);
+            SyncServiceMetrics.CategorySyncDuration.Record(Stopwatch.GetElapsedTime(startTime).TotalSeconds);
             throw;
         }
         finally
@@ -71,6 +81,9 @@ public class SyncService : ISyncService
 
     public async Task SyncUpdatesAsync(UpstreamSourceFilter filter, CancellationToken cancellationToken = default)
     {
+        var startTime = Stopwatch.GetTimestamp();
+        SyncServiceMetrics.UpdateSyncsStarted.Add(1);
+
         if (!await this.syncLock.WaitAsync(0, cancellationToken))
         {
             this.logger.LogWarning("Updates sync skipped - another sync operation is in progress");
@@ -81,20 +94,38 @@ public class SyncService : ISyncService
         {
             this.logger.LogInformation("Starting updates synchronization with filter: {@Filter}", filter);
 
+            // Track initial count to calculate updates processed
+            var initialPackageCount = this.metadataStore.OfType<MicrosoftUpdatePackage>().Count();
+
             var upstreamEndpoint = Endpoint.Default;
             var updatesSource = new UpstreamUpdatesSource(upstreamEndpoint, filter);
-            
+
             updatesSource.CopyTo(this.metadataStore, cancellationToken);
-            
+
+            // Calculate and record number of new updates processed
+            var finalPackageCount = this.metadataStore.OfType<MicrosoftUpdatePackage>().Count();
+            var updatesProcessed = finalPackageCount - initialPackageCount;
+
+            if (updatesProcessed > 0)
+            {
+                SyncServiceMetrics.UpdatesProcessed.Add(updatesProcessed);
+                this.logger.LogInformation("Updates processed: {Count} new updates added", updatesProcessed);
+            }
+
             // Flush to persist changes to Azure Blob Storage
             this.logger.LogInformation("Flushing metadata store to persist updates");
             this.metadataStore.Flush();
-            
+
             this.logger.LogInformation("Updates synchronization completed");
+
+            SyncServiceMetrics.UpdateSyncsCompleted.Add(1);
+            SyncServiceMetrics.UpdateSyncDuration.Record(Stopwatch.GetElapsedTime(startTime).TotalSeconds);
         }
         catch (Exception ex)
         {
             this.logger.LogError(ex, "Updates synchronization failed: {Message}", ex.Message);
+            SyncServiceMetrics.UpdateSyncsFailed.Add(1);
+            SyncServiceMetrics.UpdateSyncDuration.Record(Stopwatch.GetElapsedTime(startTime).TotalSeconds);
             throw;
         }
         finally
@@ -105,6 +136,9 @@ public class SyncService : ISyncService
 
     public async Task SyncContentAsync(ServiceMetadataFilter filter, IContentStore contentStore, CancellationToken cancellationToken = default)
     {
+        var startTime = Stopwatch.GetTimestamp();
+        SyncServiceMetrics.ContentSyncsStarted.Add(1);
+
         if (!await this.contentLock.WaitAsync(0, cancellationToken))
         {
             this.logger.LogWarning("Content sync skipped - another content download is in progress");
@@ -117,7 +151,7 @@ public class SyncService : ISyncService
 
             // Convert ServiceMetadataFilter to library MetadataFilter
             var metadataFilter = this.ConvertToMetadataFilter(filter);
-            
+
             var filteredPackages = metadataFilter.Apply(this.metadataStore);
             var filesToDownload = filteredPackages
                 .Where(p => p.Files != null)
@@ -135,16 +169,28 @@ public class SyncService : ISyncService
             if (filesToDownload.Any())
             {
                 this.logger.LogInformation("Content sync: {FileCount} files to download", filesToDownload.Count);
-                
+
+                SyncServiceMetrics.ContentFilesCount.Record(filesToDownload.Count);
+
                 // Run the synchronous Download() method on a background thread to avoid blocking
                 await Task.Run(() => contentStore.Download(filesToDownload, cancellationToken), cancellationToken);
-                
+
                 this.logger.LogInformation("Content synchronization completed: {FileCount} files", filesToDownload.Count);
             }
             else
             {
                 this.logger.LogInformation("No files to download");
+                SyncServiceMetrics.ContentFilesCount.Record(0);
             }
+
+            SyncServiceMetrics.ContentSyncsCompleted.Add(1);
+            SyncServiceMetrics.ContentSyncDuration.Record(Stopwatch.GetElapsedTime(startTime).TotalSeconds);
+        }
+        catch
+        {
+            SyncServiceMetrics.ContentSyncsFailed.Add(1);
+            SyncServiceMetrics.ContentSyncDuration.Record(Stopwatch.GetElapsedTime(startTime).TotalSeconds);
+            throw;
         }
         finally
         {
@@ -268,7 +314,7 @@ public class SyncService : ISyncService
                     classificationGuids.Add(classificationGuid);
                 }
             }
-            
+
             // Combine with existing category filter
             if (metadataFilter.CategoryFilter?.Any() == true)
             {
@@ -292,7 +338,7 @@ public class SyncService : ISyncService
     private List<UpdateEngine.Metadata.ObjectModel.IContentFile> GetAllUpdateFiles(MicrosoftUpdatePackage update)
     {
         var filesList = new List<UpdateEngine.Metadata.ObjectModel.IContentFile>();
-        
+
         if (update.Files != null)
         {
             filesList.AddRange(update.Files);

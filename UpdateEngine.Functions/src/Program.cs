@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using UpdateEngine.Configuration;
+using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -9,45 +10,45 @@ using Microsoft.Extensions.Logging;
 using UpdateEngine.Metadata.Storage;
 using System.Text.Json;
 using UpdateEngine.Core;
+using Microsoft.Azure.Functions.Worker.Builder;
 
-var hostBuilder = new HostBuilder()
-    .ConfigureFunctionsWebApplication()
-    .ConfigureAppConfiguration((context, config) =>
-    {
-        // Add shared configuration from Configuration project
-        config.AddSharedAppConfiguration();
-        
-        // IMPORTANT: Explicitly add environment variables to ensure Aspire-injected
-        // connection strings (ConnectionStrings__MetadataStorageConnection) are available
-        config.AddEnvironmentVariables();
-    })
-    .ConfigureServices((context, services) =>
-    {
-        ConfigureLogging(context);
-        ConfigureJsonSerialization(services);
-        
-        // Register UpdateEngine core services (stores, orchestrators, health checks)
-        services.AddUpdateEngineCore(context.Configuration);
-        
-        // Configure OpenTelemetry when enabled (uses ServiceDefaults via Aspire)
-        ConfigureOpenTelemetry(context, services);
-    });
+var builder = FunctionsApplication.CreateBuilder(args);
 
-var host = hostBuilder.Build();
+// Add shared configuration from Configuration project
+builder.Configuration.AddSharedAppConfiguration();
+
+// IMPORTANT: Explicitly add environment variables to ensure Aspire-injected
+// connection strings (ConnectionStrings__MetadataStorageConnection) are available
+builder.Configuration.AddEnvironmentVariables();
+
+// Add Aspire service defaults (OpenTelemetry, health checks, resilience, service discovery)
+// This automatically registers UpdateEngine.* meters via the wildcard pattern
+builder.AddServiceDefaults();
+
+ConfigureLogging(builder);
+ConfigureJsonSerialization(builder.Services);
+
+// Register UpdateEngine core services (stores, orchestrators, health checks)
+builder.Services.AddUpdateEngineCore(builder.Configuration);
+
+// Configure Azure Functions
+builder.ConfigureFunctionsWebApplication();
+
+var host = builder.Build();
 
 // Initialize storage services eagerly to create containers/directories
 await InitializeStorageAsync(host);
 
 await host.RunAsync();
 
-static void ConfigureLogging(HostBuilderContext context)
+static void ConfigureLogging(FunctionsApplicationBuilder builder)
 {
-    var tempLogger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger("Startup");
+    var tempLogger = LoggerFactory.Create(b => b.AddConsole()).CreateLogger("Startup");
 
     tempLogger.LogInformation("=== UpdateEngine Configuration ===");
     
     // Read from hierarchical UpdateEngine section
-    var updateEngineSection = context.Configuration.GetSection("UpdateEngine");
+    var updateEngineSection = builder.Configuration.GetSection("UpdateEngine");
     var serviceConfig = updateEngineSection.GetSection("ServiceConfiguration");
     var storageConfig = updateEngineSection.GetSection("StorageConfiguration");
     
@@ -65,8 +66,8 @@ static void ConfigureLogging(HostBuilderContext context)
         tempLogger.LogInformation("MetadataContainerName: {ContainerName}", storageConfig["MetadataContainerName"]);
         
         // DIAGNOSTIC: Check for Aspire connection strings
-        var metadataConnection = context.Configuration.GetConnectionString("MetadataStorageConnection");
-        var contentConnection = context.Configuration.GetConnectionString("ContentStorageConnection");
+        var metadataConnection = builder.Configuration.GetConnectionString("MetadataStorageConnection");
+        var contentConnection = builder.Configuration.GetConnectionString("ContentStorageConnection");
         
         tempLogger.LogInformation("=== Connection String Diagnostics ===");
         tempLogger.LogInformation("MetadataStorageConnection available: {HasMetadata}", !string.IsNullOrEmpty(metadataConnection));
@@ -113,20 +114,17 @@ static void ConfigureLogging(HostBuilderContext context)
     {
         tempLogger.LogInformation("ContentContainerName: {ContainerName}", storageConfig["ContentContainerName"]);
     }
-}
-
-static void ConfigureOpenTelemetry(HostBuilderContext context, IServiceCollection services)
-{
-    var appConfig = new AppConfig();
-    context.Configuration.GetSection(AppConfig.SectionName).Bind(appConfig);
     
+    // Log OpenTelemetry status
+    var appConfig = new AppConfig();
+    builder.Configuration.GetSection(AppConfig.SectionName).Bind(appConfig);
     if (appConfig.FeatureFlags.EnableOpenTelemetry)
     {
-        var logger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger("Startup");
-        logger.LogInformation("OpenTelemetry ENABLED - Metrics and tracing will be collected via ServiceDefaults");
-        logger.LogInformation("  Note: ServiceDefaults integration is provided by .NET Aspire when running via AppHost");
-        logger.LogInformation("  OTEL_EXPORTER_OTLP_ENDPOINT: {Endpoint}", 
-            context.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"] ?? "(not set - using Aspire defaults)");
+        tempLogger.LogInformation("=== OpenTelemetry Configuration ===");
+        tempLogger.LogInformation("OpenTelemetry ENABLED via ServiceDefaults");
+        tempLogger.LogInformation("  UpdateEngine.* meters registered automatically via wildcard");
+        tempLogger.LogInformation("  OTEL_EXPORTER_OTLP_ENDPOINT: {Endpoint}", 
+            builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"] ?? "(not set - using Aspire defaults)");
     }
 }
 

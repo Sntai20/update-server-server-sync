@@ -2,6 +2,7 @@ namespace Microsoft.Extensions.Hosting
 {
     using Microsoft.AspNetCore.Builder;
     using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+    using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Diagnostics.HealthChecks;
     using Microsoft.Extensions.Logging;
@@ -40,6 +41,68 @@ namespace Microsoft.Extensions.Hosting
             // {
             //     options.AllowedSchemes = ["https"];
             // });
+
+            return builder;
+        }
+
+        /// <summary>
+        /// Adds service defaults for Azure Functions (isolated process model) that uses IHostBuilder.
+        /// This is a compatibility bridge until Azure Functions fully supports IHostApplicationBuilder.
+        /// </summary>
+        public static IHostBuilder AddServiceDefaults(this IHostBuilder builder, IConfiguration? configuration = null)
+        {
+            builder.ConfigureServices((context, services) =>
+            {
+                var config = configuration ?? context.Configuration;
+                
+                // Add OpenTelemetry with UpdateEngine meters
+                services.AddOpenTelemetry()
+                    .WithMetrics(metrics =>
+                    {
+                        metrics
+                            .AddRuntimeInstrumentation()
+                            .AddHttpClientInstrumentation()
+                            .AddMeter("UpdateEngine.*");  // Wildcard pattern for all UpdateEngine meters
+                    })
+                    .WithTracing(tracing =>
+                    {
+                        tracing
+                            .AddHttpClientInstrumentation()
+                            .AddSource("UpdateEngine.*");
+                    });
+
+                // Configure OTLP exporter if endpoint is set (Aspire provides this)
+                var otlpEndpoint = config["OTEL_EXPORTER_OTLP_ENDPOINT"];
+                if (!string.IsNullOrWhiteSpace(otlpEndpoint))
+                {
+                    services.ConfigureOpenTelemetryMeterProvider(mp => mp.AddOtlpExporter());
+                    services.ConfigureOpenTelemetryTracerProvider(tp => tp.AddOtlpExporter());
+                }
+
+                // Add OpenTelemetry logging
+                services.AddLogging(logging =>
+                {
+                    logging.AddOpenTelemetry(options =>
+                    {
+                        options.IncludeFormattedMessage = true;
+                        options.IncludeScopes = true;
+                    });
+                });
+
+                // Add service discovery
+                services.AddServiceDiscovery();
+
+                // Add health checks
+                services.AddHealthChecks()
+                    .AddCheck("self", () => HealthCheckResult.Healthy(), ["live"]);
+
+                // Configure HttpClient defaults
+                services.ConfigureHttpClientDefaults(http =>
+                {
+                    http.AddStandardResilienceHandler();
+                    http.AddServiceDiscovery();
+                });
+            });
 
             return builder;
         }
