@@ -57,14 +57,23 @@ public class QueryService : IQueryService
             result.TotalMatches = filteredPackages.Count();
 
             // Get category lookup for resolving classification and product names
+            // Filter to only include packages with valid 16-byte GUID IDs
             var categoriesLookup = this.metadataStore
-           .OfType<MicrosoftUpdatePackage>()
-    .Where(p => p is ClassificationCategory || p is ProductCategory)
-           .Where(p => p.Id?.OpenId != null && p.Id.OpenId.Length == 16) // Only packages with valid GUID IDs
-         .ToLookup(p => new Guid(p.Id.OpenId));
+                .OfType<MicrosoftUpdatePackage>()
+                .Where(p => p is ClassificationCategory || p is ProductCategory)
+                .Where(p => p.Id?.OpenId != null && p.Id.OpenId.Length == 16) // Only packages with valid GUID IDs
+                .ToLookup(p => new Guid(p.Id.OpenId));
 
             foreach (var package in filteredPackages.Take(request.MaxResults))
             {
+                // Skip packages without valid GUID IDs
+                if (package.Id?.OpenId == null || package.Id.OpenId.Length != 16)
+                {
+                    this.logger.LogDebug("Skipping package '{Title}' with invalid ID length: {Length} bytes", 
+                        package.Title, package.Id?.OpenId?.Length ?? 0);
+                    continue;
+                }
+
                 var packageInfo = new PackageInfo
                 {
                     Id = new Guid(package.Id.OpenId),
@@ -164,6 +173,14 @@ public class QueryService : IQueryService
 
             if (driverMatch != null)
             {
+                // Validate driver ID before creating GUID
+                if (driverMatch.Driver?.Id?.OpenId == null || driverMatch.Driver.Id.OpenId.Length != 16)
+                {
+                    this.logger.LogWarning("Matched driver '{Title}' has invalid ID length: {Length} bytes", 
+                        driverMatch.Driver?.Title, driverMatch.Driver?.Id?.OpenId?.Length ?? 0);
+                    return new DriverMatchResult { MatchFound = false };
+                }
+
                 return new DriverMatchResult
                 {
                     MatchFound = true,
@@ -291,15 +308,23 @@ public class QueryService : IQueryService
             Packages = new List<PackageInfo>()
         };
 
-        // Get category lookup
+        // Get category lookup - filter to only include packages with valid 16-byte GUID IDs
         var categoriesLookup = this.metadataStore
             .OfType<MicrosoftUpdatePackage>()
-   .Where(p => p is ClassificationCategory || p is ProductCategory)
-       .Where(p => p.Id?.OpenId != null && p.Id.OpenId.Length == 16) // Only packages with valid GUID IDs
-    .ToLookup(p => new Guid(p.Id.OpenId));
+            .Where(p => p is ClassificationCategory || p is ProductCategory)
+            .Where(p => p.Id?.OpenId != null && p.Id.OpenId.Length == 16) // Only packages with valid GUID IDs
+            .ToLookup(p => new Guid(p.Id.OpenId));
 
         foreach (var package in filteredPackages.Take(100)) // Limit to first 100 for performance
         {
+            // Skip packages without valid GUID IDs
+            if (package.Id?.OpenId == null || package.Id.OpenId.Length != 16)
+            {
+                this.logger.LogDebug("Skipping package '{Title}' with invalid ID length: {Length} bytes", 
+                    package.Title, package.Id?.OpenId?.Length ?? 0);
+                continue;
+            }
+
             var packageInfo = new PackageInfo
             {
                 Id = new Guid(package.Id.OpenId),
@@ -340,6 +365,14 @@ public class QueryService : IQueryService
 
         if (driverMatch != null)
         {
+            // Validate driver ID before creating GUID
+            if (driverMatch.Driver?.Id?.OpenId == null || driverMatch.Driver.Id.OpenId.Length != 16)
+            {
+                this.logger.LogWarning("Matched driver '{Title}' has invalid ID length: {Length} bytes", 
+                    driverMatch.Driver?.Title, driverMatch.Driver?.Id?.OpenId?.Length ?? 0);
+                return new DriverMatchResult { MatchFound = false };
+            }
+
             return new DriverMatchResult
             {
                 MatchFound = true,

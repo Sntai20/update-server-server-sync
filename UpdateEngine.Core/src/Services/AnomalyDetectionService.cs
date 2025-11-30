@@ -43,6 +43,12 @@ public class AnomalyDetectionService : IAnomalyDetectionService
         this.modelPath = configuration["AnomalyDetection:ModelPath"] ?? "./anomaly-model.zip";
         this.anomalyThreshold = configuration.GetValue<double>("AnomalyDetection:AnomalyScoreThreshold", 0.85);
         
+        // Initialize observable gauges for metrics
+        UpdateEngine.Core.Metrics.AnomalyDetectionMetrics.InitializeGauges(
+            getCategoriesCount: () => this.categoriesLookup?.Count() ?? 0,
+            getModelReady: () => this.IsModelReady,
+            getThreshold: () => this.anomalyThreshold);
+        
         if (!this.enabled)
         {
             this.logger.LogInformation("Anomaly detection is disabled");
@@ -55,6 +61,8 @@ public class AnomalyDetectionService : IAnomalyDetectionService
             try
             {
                 this.model = this.mlContext.Model.Load(this.modelPath, out var _);
+                UpdateEngine.Core.Metrics.AnomalyDetectionMetrics.ModelLoaded.Add(1, 
+                    new KeyValuePair<string, object?>("source", "startup"));
                 this.logger.LogInformation("Loaded anomaly detection model from {Path}", this.modelPath);
             }
             catch (Exception ex)
@@ -156,29 +164,94 @@ public class AnomalyDetectionService : IAnomalyDetectionService
             return 0.0;
         }
 
-        var input = new UpdateFeatures
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
+        try
         {
-            FileSize = metadata.FileSize,
-            IsSigned = metadata.IsSigned ? 1.0f : 0.0f,
-            DomainReputation = ConvertDomainReputationToScore(metadata.DomainReputation),
-            HashMatchScore = metadata.HashMatch ? 1.0f : 0.0f,
-            UpdateFrequency = metadata.UpdateFrequency,
+            var input = new UpdateFeatures
+            {
+                FileSize = metadata.FileSize,
+                IsSigned = metadata.IsSigned ? 1.0f : 0.0f,
+                DomainReputation = ConvertDomainReputationToScore(metadata.DomainReputation),
+                HashMatchScore = metadata.HashMatch ? 1.0f : 0.0f,
+                UpdateFrequency = metadata.UpdateFrequency,
+                
+                // Enhanced features using Microsoft Update library data
+                SupersededCount = metadata.SupersededCount,
+                SupersededByCount = metadata.SupersededByCount,
+                BundledUpdatesCount = metadata.BundledUpdatesCount,
+                IsSecurityUpdate = metadata.IsSecurityUpdate ? 1.0f : 0.0f,
+                IsCriticalUpdate = metadata.IsCriticalUpdate ? 1.0f : 0.0f,
+                IsCumulativeUpdate = metadata.IsCumulativeUpdate ? 1.0f : 0.0f,
+                ApplicabilityRulesCount = metadata.ApplicabilityRulesCount,
+                HasComplexApplicability = metadata.HasComplexApplicability ? 1.0f : 0.0f
+            };
+
+            var predictionEngine = this.mlContext.Model.CreatePredictionEngine<UpdateFeatures, AnomalyPrediction>(this.model);
+            var prediction = predictionEngine.Predict(input);
+
+            stopwatch.Stop();
+
+            // Record metrics
+            UpdateEngine.Core.Metrics.AnomalyDetectionMetrics.UpdatesScored.Add(1,
+                new KeyValuePair<string, object?>("result", prediction.Score > this.anomalyThreshold ? "anomaly" : "normal"));
             
-            // Enhanced features using Microsoft Update library data
-            SupersededCount = metadata.SupersededCount,
-            SupersededByCount = metadata.SupersededByCount,
-            BundledUpdatesCount = metadata.BundledUpdatesCount,
-            IsSecurityUpdate = metadata.IsSecurityUpdate ? 1.0f : 0.0f,
-            IsCriticalUpdate = metadata.IsCriticalUpdate ? 1.0f : 0.0f,
-            IsCumulativeUpdate = metadata.IsCumulativeUpdate ? 1.0f : 0.0f,
-            ApplicabilityRulesCount = metadata.ApplicabilityRulesCount,
-            HasComplexApplicability = metadata.HasComplexApplicability ? 1.0f : 0.0f
-        };
+            UpdateEngine.Core.Metrics.AnomalyDetectionMetrics.AnomalyScore.Record(prediction.Score);
+            
+            UpdateEngine.Core.Metrics.AnomalyDetectionMetrics.DetectionDuration.Record(stopwatch.Elapsed.TotalMilliseconds,
+                new KeyValuePair<string, object?>("has_model", "true"));
 
-        var predictionEngine = this.mlContext.Model.CreatePredictionEngine<UpdateFeatures, AnomalyPrediction>(this.model);
-        var prediction = predictionEngine.Predict(input);
+            if (prediction.Score > this.anomalyThreshold)
+            {
+                var severity = prediction.Score > 0.95 ? "high" : prediction.Score > 0.90 ? "medium" : "low";
+                UpdateEngine.Core.Metrics.AnomalyDetectionMetrics.AnomaliesDetected.Add(1,
+                    new KeyValuePair<string, object?>("severity", severity),
+                    new KeyValuePair<string, object?>("classification", metadata.Classification ?? "Unknown"),
+                    new KeyValuePair<string, object?>("product", metadata.Product ?? "Unknown"));
+            }
 
-        return prediction.Score;
+            // Record feature-specific metrics
+            UpdateEngine.Core.Metrics.AnomalyFeatureMetrics.FileSizeDistribution.Record((long)metadata.FileSize);
+            
+            if (!metadata.IsSigned)
+            {
+                UpdateEngine.Core.Metrics.AnomalyFeatureMetrics.UnsignedUpdates.Add(1,
+                    new KeyValuePair<string, object?>("classification", metadata.Classification ?? "Unknown"));
+            }
+            
+            if (metadata.IsSecurityUpdate)
+            {
+                UpdateEngine.Core.Metrics.AnomalyFeatureMetrics.SecurityUpdates.Add(1,
+                    new KeyValuePair<string, object?>("is_critical", metadata.IsCriticalUpdate.ToString()));
+            }
+            
+            if (metadata.SupersededCount > 0)
+            {
+                UpdateEngine.Core.Metrics.AnomalyFeatureMetrics.SupersedenceCount.Record(metadata.SupersededCount);
+            }
+            
+            if (metadata.HasComplexApplicability)
+            {
+                var ruleCountRange = metadata.ApplicabilityRulesCount > 10 ? "high" : "medium";
+                UpdateEngine.Core.Metrics.AnomalyFeatureMetrics.ComplexApplicability.Add(1,
+                    new KeyValuePair<string, object?>("rule_count_range", ruleCountRange));
+            }
+            
+            if (metadata.BundledUpdatesCount > 0)
+            {
+                UpdateEngine.Core.Metrics.AnomalyFeatureMetrics.BundledUpdatesCount.Record(metadata.BundledUpdatesCount);
+            }
+
+            return prediction.Score;
+        }
+        catch (Exception ex)
+        {
+            stopwatch.Stop();
+            UpdateEngine.Core.Metrics.AnomalyDetectionMetrics.ScoringErrors.Add(1,
+                new KeyValuePair<string, object?>("error_type", "unknown"));
+            this.logger.LogError(ex, "Error scoring update metadata");
+            return 0.0;
+        }
     }
 
     /// <summary>
@@ -198,6 +271,11 @@ public class AnomalyDetectionService : IAnomalyDetectionService
         {
             // Some updates have newer expression types that aren't supported yet
             // Return a neutral score for anomaly detection
+            UpdateEngine.Core.Metrics.AnomalyDetectionMetrics.ScoringErrors.Add(1,
+                new KeyValuePair<string, object?>("error_type", "unsupported_expression"));
+            UpdateEngine.Core.Metrics.AnomalyDetectionMetrics.UnsupportedExpressionTypes.Add(1,
+                new KeyValuePair<string, object?>("update_type", "SoftwareUpdate"));
+            
             this.logger.LogDebug("Returning neutral anomaly score for update {UpdateId} due to unsupported expression type: {Error}", 
                 softwareUpdate.Id?.ID, ex.Message);
             return 0.0; // Normal score
@@ -206,6 +284,11 @@ public class AnomalyDetectionService : IAnomalyDetectionService
         {
             // Package metadata is missing from storage or read operation not supported - this can happen during partial sync
             // Return a neutral score for anomaly detection
+            UpdateEngine.Core.Metrics.AnomalyDetectionMetrics.ScoringErrors.Add(1,
+                new KeyValuePair<string, object?>("error_type", "storage_access"));
+            UpdateEngine.Core.Metrics.AnomalyDetectionMetrics.StorageAccessIssues.Add(1,
+                new KeyValuePair<string, object?>("operation", "score"));
+            
             this.logger.LogDebug("Returning neutral anomaly score for update {UpdateId} due to storage access issue: {Error}", 
                 softwareUpdate.Id?.ID, ex.Message);
             return 0.0; // Normal score
@@ -213,6 +296,9 @@ public class AnomalyDetectionService : IAnomalyDetectionService
         catch (Exception ex)
         {
             // Log other errors but don't fail the entire sync process
+            UpdateEngine.Core.Metrics.AnomalyDetectionMetrics.ScoringErrors.Add(1,
+                new KeyValuePair<string, object?>("error_type", "unknown"));
+            
             this.logger.LogWarning("Error scoring update {UpdateId} for anomalies, returning neutral score\nResult: Error scoring update {UpdateId} for anomalies, returning neutral score\nException: {Exception}\nStack: {StackTrace}.", 
                 softwareUpdate.Id?.ID, softwareUpdate.Id?.ID, ex.Message, ex.StackTrace);
             return 0.0; // Normal score
@@ -275,6 +361,11 @@ public class AnomalyDetectionService : IAnomalyDetectionService
         {
             // Some updates have newer expression types that aren't supported yet
             // Default to safe values for anomaly detection
+            UpdateEngine.Core.Metrics.AnomalyDetectionMetrics.UnsupportedExpressionTypes.Add(1,
+                new KeyValuePair<string, object?>("update_type", "ApplicabilityRules"));
+            UpdateEngine.Core.Metrics.AnomalyDetectionMetrics.StorageAccessIssues.Add(1,
+                new KeyValuePair<string, object?>("operation", "applicability"));
+            
             this.logger.LogDebug("Skipping applicability analysis for update {UpdateId} due to unsupported expression type: {Error}", 
                 softwareUpdate.Id?.ID, ex.Message);
             applicabilityRulesCount = 0;
@@ -285,6 +376,9 @@ public class AnomalyDetectionService : IAnomalyDetectionService
             // Package metadata is missing from storage or read operation not supported - this can happen during partial sync
             // or when using write-only CompressedMetadataStore
             // Default to safe values for anomaly detection
+            UpdateEngine.Core.Metrics.AnomalyDetectionMetrics.StorageAccessIssues.Add(1,
+                new KeyValuePair<string, object?>("operation", "applicability"));
+            
             this.logger.LogDebug("Skipping applicability analysis for update {UpdateId} due to storage access issue: {Error}", 
                 softwareUpdate.Id?.ID, ex.Message);
             applicabilityRulesCount = 0;
@@ -293,6 +387,9 @@ public class AnomalyDetectionService : IAnomalyDetectionService
         catch (Exception ex)
         {
             // Catch any other exceptions accessing ApplicabilityRules (storage errors, etc.)
+            UpdateEngine.Core.Metrics.AnomalyDetectionMetrics.StorageAccessIssues.Add(1,
+                new KeyValuePair<string, object?>("operation", "applicability"));
+            
             this.logger.LogDebug("Skipping applicability analysis for update {UpdateId} due to unexpected error: {Error}", 
                 softwareUpdate.Id?.ID, ex.Message);
             applicabilityRulesCount = 0;
@@ -305,20 +402,53 @@ public class AnomalyDetectionService : IAnomalyDetectionService
         
         if (categoriesLookup != null)
         {
-            var categories = softwareUpdate.GetCategories(categoriesLookup);
-            if (categories != null)
+            try
             {
-                var classificationCategory = categories.OfType<ClassificationCategory>().FirstOrDefault();
-                var productCategory = categories.OfType<ProductCategory>().FirstOrDefault();
-                
-                classification = classificationCategory?.Title ?? "Unknown";
-                product = productCategory?.Title ?? "Unknown";
-                
-                // Enhance security/critical detection using actual classifications
-                if (classification.Contains("Security", StringComparison.OrdinalIgnoreCase))
-                    isSecurityUpdate = true;
-                if (classification.Contains("Critical", StringComparison.OrdinalIgnoreCase))
-                    isCriticalUpdate = true;
+                var categories = softwareUpdate.GetCategories(categoriesLookup);
+                if (categories != null)
+                {
+                    var classificationCategory = categories.OfType<ClassificationCategory>().FirstOrDefault();
+                    var productCategory = categories.OfType<ProductCategory>().FirstOrDefault();
+                    
+                    if (classificationCategory != null)
+                    {
+                        classification = classificationCategory.Title ?? "Unknown";
+                        UpdateEngine.Core.Metrics.AnomalyDetectionMetrics.CategoryResolutionSuccess.Add(1,
+                            new KeyValuePair<string, object?>("category_type", "classification"));
+                    }
+                    else
+                    {
+                        UpdateEngine.Core.Metrics.AnomalyDetectionMetrics.CategoryResolutionFailures.Add(1,
+                            new KeyValuePair<string, object?>("reason", "not_found"));
+                    }
+                    
+                    if (productCategory != null)
+                    {
+                        product = productCategory.Title ?? "Unknown";
+                        UpdateEngine.Core.Metrics.AnomalyDetectionMetrics.CategoryResolutionSuccess.Add(1,
+                            new KeyValuePair<string, object?>("category_type", "product"));
+                    }
+                    else
+                    {
+                        UpdateEngine.Core.Metrics.AnomalyDetectionMetrics.CategoryResolutionFailures.Add(1,
+                            new KeyValuePair<string, object?>("reason", "not_found"));
+                    }
+                    
+                    // Enhance security/critical detection using actual classifications
+                    if (classification.Contains("Security", StringComparison.OrdinalIgnoreCase))
+                        isSecurityUpdate = true;
+                    if (classification.Contains("Critical", StringComparison.OrdinalIgnoreCase))
+                        isCriticalUpdate = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                UpdateEngine.Core.Metrics.AnomalyDetectionMetrics.CategoryResolutionFailures.Add(1,
+                    new KeyValuePair<string, object?>("reason", "lookup_error"));
+                UpdateEngine.Core.Metrics.AnomalyDetectionMetrics.StorageAccessIssues.Add(1,
+                    new KeyValuePair<string, object?>("operation", "categories"));
+                this.logger.LogDebug("Error resolving categories for update {UpdateId}: {Error}", 
+                    softwareUpdate.Id?.ID, ex.Message);
             }
         }
         
@@ -390,6 +520,11 @@ public class AnomalyDetectionService : IAnomalyDetectionService
         }
 
         var dataList = trainingData.ToList();
+        var trainingSize = dataList.Count < 100 ? "small" : dataList.Count < 1000 ? "medium" : "large";
+        
+        UpdateEngine.Core.Metrics.AnomalyDetectionMetrics.ModelTrainingStarted.Add(1,
+            new KeyValuePair<string, object?>("training_size", trainingSize));
+        
         this.logger.LogInformation("Training anomaly detection model with {Count} samples", dataList.Count);
 
         if (dataList.Count < 100)
@@ -397,59 +532,81 @@ public class AnomalyDetectionService : IAnomalyDetectionService
             this.logger.LogWarning("Training data size ({Count}) is below recommended minimum (100)", dataList.Count);
         }
 
-        var features = dataList.Select(m => new UpdateFeatures
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
+        try
         {
-            FileSize = m.FileSize,
-            IsSigned = m.IsSigned ? 1.0f : 0.0f,
-            DomainReputation = ConvertDomainReputationToScore(m.DomainReputation),
-            HashMatchScore = m.HashMatch ? 1.0f : 0.0f,
-            UpdateFrequency = m.UpdateFrequency,
+            var features = dataList.Select(m => new UpdateFeatures
+            {
+                FileSize = m.FileSize,
+                IsSigned = m.IsSigned ? 1.0f : 0.0f,
+                DomainReputation = ConvertDomainReputationToScore(m.DomainReputation),
+                HashMatchScore = m.HashMatch ? 1.0f : 0.0f,
+                UpdateFrequency = m.UpdateFrequency,
+                
+                // Enhanced features leveraging Microsoft Update library
+                SupersededCount = m.SupersededCount,
+                SupersededByCount = m.SupersededByCount,
+                BundledUpdatesCount = m.BundledUpdatesCount,
+                IsSecurityUpdate = m.IsSecurityUpdate ? 1.0f : 0.0f,
+                IsCriticalUpdate = m.IsCriticalUpdate ? 1.0f : 0.0f,
+                IsCumulativeUpdate = m.IsCumulativeUpdate ? 1.0f : 0.0f
+            });
+
+            var dataView = this.mlContext.Data.LoadFromEnumerable(features);
+
+            // Enhanced pipeline using more Microsoft Update library features
+            var pipeline = this.mlContext.Transforms.Concatenate("Features", 
+                    nameof(UpdateFeatures.FileSize),
+                    nameof(UpdateFeatures.IsSigned),
+                    nameof(UpdateFeatures.DomainReputation),
+                    nameof(UpdateFeatures.HashMatchScore),
+                    nameof(UpdateFeatures.UpdateFrequency),
+                    nameof(UpdateFeatures.SupersededCount),
+                    nameof(UpdateFeatures.SupersededByCount),
+                    nameof(UpdateFeatures.BundledUpdatesCount),
+                    nameof(UpdateFeatures.IsSecurityUpdate),
+                    nameof(UpdateFeatures.IsCriticalUpdate),
+                    nameof(UpdateFeatures.IsCumulativeUpdate),
+                    nameof(UpdateFeatures.ApplicabilityRulesCount),
+                    nameof(UpdateFeatures.HasComplexApplicability))
+                .Append(this.mlContext.Transforms.NormalizeMinMax("Features"))
+                .Append(this.mlContext.AnomalyDetection.Trainers.RandomizedPca(
+                    featureColumnName: "Features",
+                    rank: 6, // Increased rank for 13 features (roughly half)
+                    ensureZeroMean: true,
+                    oversampling: 20));
+
+            this.model = pipeline.Fit(dataView);
+
+            // Ensure directory exists
+            var directory = Path.GetDirectoryName(this.modelPath);
+            if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+
+            // Save model to disk
+            this.mlContext.Model.Save(this.model, dataView.Schema, this.modelPath);
             
-            // Enhanced features leveraging Microsoft Update library
-            SupersededCount = m.SupersededCount,
-            SupersededByCount = m.SupersededByCount,
-            BundledUpdatesCount = m.BundledUpdatesCount,
-            IsSecurityUpdate = m.IsSecurityUpdate ? 1.0f : 0.0f,
-            IsCriticalUpdate = m.IsCriticalUpdate ? 1.0f : 0.0f,
-            IsCumulativeUpdate = m.IsCumulativeUpdate ? 1.0f : 0.0f
-        });
-
-        var dataView = this.mlContext.Data.LoadFromEnumerable(features);
-
-        // Enhanced pipeline using more Microsoft Update library features
-        var pipeline = this.mlContext.Transforms.Concatenate("Features", 
-                nameof(UpdateFeatures.FileSize),
-                nameof(UpdateFeatures.IsSigned),
-                nameof(UpdateFeatures.DomainReputation),
-                nameof(UpdateFeatures.HashMatchScore),
-                nameof(UpdateFeatures.UpdateFrequency),
-                nameof(UpdateFeatures.SupersededCount),
-                nameof(UpdateFeatures.SupersededByCount),
-                nameof(UpdateFeatures.BundledUpdatesCount),
-                nameof(UpdateFeatures.IsSecurityUpdate),
-                nameof(UpdateFeatures.IsCriticalUpdate),
-                nameof(UpdateFeatures.IsCumulativeUpdate),
-                nameof(UpdateFeatures.ApplicabilityRulesCount),
-                nameof(UpdateFeatures.HasComplexApplicability))
-            .Append(this.mlContext.Transforms.NormalizeMinMax("Features"))
-            .Append(this.mlContext.AnomalyDetection.Trainers.RandomizedPca(
-                featureColumnName: "Features",
-                rank: 6, // Increased rank for 13 features (roughly half)
-                ensureZeroMean: true,
-                oversampling: 20));
-
-        this.model = pipeline.Fit(dataView);
-
-        // Ensure directory exists
-        var directory = Path.GetDirectoryName(this.modelPath);
-        if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
-        {
-            Directory.CreateDirectory(directory);
+            stopwatch.Stop();
+            
+            UpdateEngine.Core.Metrics.AnomalyDetectionMetrics.ModelTrainingCompleted.Add(1,
+                new KeyValuePair<string, object?>("sample_count", dataList.Count),
+                new KeyValuePair<string, object?>("training_size", trainingSize));
+            
+            UpdateEngine.Core.Metrics.AnomalyDetectionMetrics.ModelTrainingDuration.Record(stopwatch.Elapsed.TotalSeconds,
+                new KeyValuePair<string, object?>("sample_count", dataList.Count));
+            
+            this.logger.LogInformation("Anomaly detection model trained and saved to {Path} in {Duration:F2}s", 
+                this.modelPath, stopwatch.Elapsed.TotalSeconds);
         }
-
-        // Save model to disk
-        this.mlContext.Model.Save(this.model, dataView.Schema, this.modelPath);
-        this.logger.LogInformation("Anomaly detection model trained and saved to {Path}", this.modelPath);
+        catch (Exception ex)
+        {
+            stopwatch.Stop();
+            this.logger.LogError(ex, "Error training anomaly detection model");
+            throw;
+        }
 
         await Task.CompletedTask;
     }

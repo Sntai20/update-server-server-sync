@@ -65,10 +65,19 @@ public class QueueService : IQueueService
             var base64Message = Convert.ToBase64String(messageBytes);
             
             await this.queueClient.SendMessageAsync(base64Message);
+            
+            var scoreRange = evt.Score > 0.9 ? "high" : evt.Score > 0.8 ? "medium" : "low";
+            UpdateEngine.Core.Metrics.AnomalyDetectionMetrics.EventsEnqueued.Add(1,
+                new KeyValuePair<string, object?>("kb_id", evt.KB_ID),
+                new KeyValuePair<string, object?>("score_range", scoreRange));
+            
             this.logger.LogInformation("Enqueued anomaly event for KB {KbId}", evt.KB_ID);
         }
         catch (Exception ex)
         {
+            UpdateEngine.Core.Metrics.AnomalyDetectionMetrics.EventsEnqueueFailed.Add(1,
+                new KeyValuePair<string, object?>("error_type", ex.GetType().Name));
+            
             this.logger.LogError(ex, "Failed to enqueue anomaly event for KB {KbId}", evt.KB_ID);
             throw;
         }

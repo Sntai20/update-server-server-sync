@@ -51,10 +51,23 @@ public class AnomalyDetectionFunctions
     public async Task<HttpResponseData> IngestAnomaly(
         [HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequestData req)
     {
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        
+        UpdateEngine.Core.Metrics.AnomalyIngestionMetrics.IngestRequestsReceived.Add(1,
+            new KeyValuePair<string, object?>("enabled", this.enabled.ToString()));
+
         if (!this.enabled)
         {
             var disabled = req.CreateResponse(HttpStatusCode.ServiceUnavailable);
             await disabled.WriteStringAsync("Anomaly detection is disabled");
+            
+            stopwatch.Stop();
+            UpdateEngine.Core.Metrics.AnomalyIngestionMetrics.IngestRequestsRejected.Add(1,
+                new KeyValuePair<string, object?>("status_code", "503"),
+                new KeyValuePair<string, object?>("reason", "disabled"));
+            UpdateEngine.Core.Metrics.AnomalyIngestionMetrics.IngestRequestDuration.Record(stopwatch.Elapsed.TotalMilliseconds,
+                new KeyValuePair<string, object?>("status_code", "503"));
+            
             return disabled;
         }
 
@@ -67,6 +80,14 @@ public class AnomalyDetectionFunctions
             {
                 var badRequest = req.CreateResponse(HttpStatusCode.BadRequest);
                 await badRequest.WriteStringAsync("Invalid payload: KB_ID is required");
+                
+                stopwatch.Stop();
+                UpdateEngine.Core.Metrics.AnomalyIngestionMetrics.IngestRequestsRejected.Add(1,
+                    new KeyValuePair<string, object?>("status_code", "400"),
+                    new KeyValuePair<string, object?>("reason", "invalid_payload"));
+                UpdateEngine.Core.Metrics.AnomalyIngestionMetrics.IngestRequestDuration.Record(stopwatch.Elapsed.TotalMilliseconds,
+                    new KeyValuePair<string, object?>("status_code", "400"));
+                
                 return badRequest;
             }
 
@@ -74,6 +95,8 @@ public class AnomalyDetectionFunctions
             if (!evt.HashMatch)
             {
                 this.logger.LogWarning("Quarantined {KB} due to hash mismatch", evt.KB_ID);
+                UpdateEngine.Core.Metrics.AnomalyIngestionMetrics.QuarantinedUpdates.Add(1,
+                    new KeyValuePair<string, object?>("kb_id", evt.KB_ID));
             }
 
             // Enqueue event for async processing
@@ -91,6 +114,13 @@ public class AnomalyDetectionFunctions
                 kbId = evt.KB_ID,
                 timestamp = DateTime.UtcNow
             }, this.jsonOptions));
+            
+            stopwatch.Stop();
+            UpdateEngine.Core.Metrics.AnomalyIngestionMetrics.IngestRequestsAccepted.Add(1,
+                new KeyValuePair<string, object?>("kb_id", evt.KB_ID));
+            UpdateEngine.Core.Metrics.AnomalyIngestionMetrics.IngestRequestDuration.Record(stopwatch.Elapsed.TotalMilliseconds,
+                new KeyValuePair<string, object?>("status_code", "202"));
+            
             return response;
         }
         catch (JsonException ex)
@@ -98,6 +128,14 @@ public class AnomalyDetectionFunctions
             this.logger.LogError(ex, "Failed to deserialize anomaly event");
             var badRequest = req.CreateResponse(HttpStatusCode.BadRequest);
             await badRequest.WriteStringAsync($"Invalid JSON: {ex.Message}");
+            
+            stopwatch.Stop();
+            UpdateEngine.Core.Metrics.AnomalyIngestionMetrics.IngestRequestsRejected.Add(1,
+                new KeyValuePair<string, object?>("status_code", "400"),
+                new KeyValuePair<string, object?>("reason", "invalid_json"));
+            UpdateEngine.Core.Metrics.AnomalyIngestionMetrics.IngestRequestDuration.Record(stopwatch.Elapsed.TotalMilliseconds,
+                new KeyValuePair<string, object?>("status_code", "400"));
+            
             return badRequest;
         }
         catch (Exception ex)
@@ -105,6 +143,14 @@ public class AnomalyDetectionFunctions
             this.logger.LogError(ex, "Error processing anomaly event");
             var errorResponse = req.CreateResponse(HttpStatusCode.InternalServerError);
             await errorResponse.WriteStringAsync($"Internal error: {ex.Message}");
+            
+            stopwatch.Stop();
+            UpdateEngine.Core.Metrics.AnomalyIngestionMetrics.IngestRequestsRejected.Add(1,
+                new KeyValuePair<string, object?>("status_code", "500"),
+                new KeyValuePair<string, object?>("reason", "error"));
+            UpdateEngine.Core.Metrics.AnomalyIngestionMetrics.IngestRequestDuration.Record(stopwatch.Elapsed.TotalMilliseconds,
+                new KeyValuePair<string, object?>("status_code", "500"));
+            
             return errorResponse;
         }
     }
@@ -117,6 +163,13 @@ public class AnomalyDetectionFunctions
     [Function("ScheduledAnomalyDetection")]
     public async Task RunScheduledAnomalyDetection([TimerTrigger("%AnomalyDetectionSchedule%")] TimerInfo timer)
     {
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        var anomaliesFound = 0;
+        var updatesAnalyzed = 0;
+        
+        UpdateEngine.Core.Metrics.ScheduledDetectionMetrics.ScheduledRunsStarted.Add(1,
+            new KeyValuePair<string, object?>("enabled", this.enabled.ToString()));
+        
         this.logger.LogInformation("Scheduled anomaly detection triggered at {time}", DateTime.UtcNow);
 
         if (!this.enabled)
@@ -135,6 +188,8 @@ public class AnomalyDetectionFunctions
             };
 
             var queryResult = await this.queryService.QueryMetadataAsync(queryRequest);
+            
+            UpdateEngine.Core.Metrics.ScheduledDetectionMetrics.UpdatesBatchSize.Record(queryResult.Packages.Count);
             
             // Convert PackageInfo to SoftwareUpdate for anomaly detection
             // Note: This is a simplification - in production, you'd want direct access to SoftwareUpdate objects
@@ -161,8 +216,11 @@ public class AnomalyDetectionFunctions
 
             // Score the fake anomaly first for demo
             double fakeScore = this.anomalyService.Score(fakeAnomalousMetadata);
+            updatesAnalyzed++;
+            
             if (fakeScore > 0.8)
             {
+                anomaliesFound++;
                 this.logger.LogWarning("ALERT: Anomaly detected for KB_ID={KB_ID} (score={score:F2}) Metadata: {metadata}",
                     fakeAnomalousMetadata.KB_ID, fakeScore,
                     JsonSerializer.Serialize(fakeAnomalousMetadata, this.jsonOptions)
@@ -192,9 +250,11 @@ public class AnomalyDetectionFunctions
                 };
 
                 double score = this.anomalyService.Score(metadata);
+                updatesAnalyzed++;
 
                 if (score > 0.8)
                 {
+                    anomaliesFound++;
                     this.logger.LogWarning("ALERT: Anomaly detected for update={kbId} (score={score:F2}) Title: {title}",
                         metadata.KB_ID, score, packageInfo.Title);
                 }
@@ -204,10 +264,27 @@ public class AnomalyDetectionFunctions
                 }
             }
             
-            this.logger.LogInformation("Anomaly detection completed for {count} updates", queryResult.Packages.Count);
+            stopwatch.Stop();
+            
+            UpdateEngine.Core.Metrics.ScheduledDetectionMetrics.ScheduledRunsCompleted.Add(1,
+                new KeyValuePair<string, object?>("updates_analyzed", updatesAnalyzed),
+                new KeyValuePair<string, object?>("anomalies_found", anomaliesFound));
+            
+            UpdateEngine.Core.Metrics.ScheduledDetectionMetrics.ScheduledRunDuration.Record(stopwatch.Elapsed.TotalSeconds,
+                new KeyValuePair<string, object?>("updates_analyzed", updatesAnalyzed));
+            
+            UpdateEngine.Core.Metrics.ScheduledDetectionMetrics.AnomaliesPerRun.Record(anomaliesFound);
+            
+            this.logger.LogInformation("Anomaly detection completed for {count} updates ({anomalies} anomalies found) in {duration:F2}s", 
+                queryResult.Packages.Count, anomaliesFound, stopwatch.Elapsed.TotalSeconds);
         }
         catch (Exception ex)
         {
+            stopwatch.Stop();
+            
+            UpdateEngine.Core.Metrics.ScheduledDetectionMetrics.ScheduledRunsFailed.Add(1,
+                new KeyValuePair<string, object?>("error_type", ex.GetType().Name));
+            
             this.logger.LogError(ex, "Error during anomaly detection demo");
         }
     }
