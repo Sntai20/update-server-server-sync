@@ -7,7 +7,7 @@
 
 ### Slide 1: Title
 **Opening Hook:**
-"Good [morning/afternoon], everyone. Today I'm going to show you how we built a production-ready machine learning system that detects malicious Windows Updates before they reach your endpoints. This isn't a prototype—this is a system running in production, processing thousands of updates per day, with sub-millisecond latency."
+"Good [morning/afternoon], everyone. Today I'm going to show you how we built a production-ready machine learning system that detects malicious Windows Updates before they reach your endpoints. This isn't a prototype - this is a system running in production, processing thousands of updates per day, with sub-millisecond latency."
 
 **Personal Introduction:**
 - Your name and role
@@ -48,7 +48,7 @@
 ### Slide 3: The Windows Update Ecosystem
 **Key Talking Points:**
 - "Microsoft releases approximately 10,000 updates per year. That's nearly 30 updates every single day."
-- "These aren't simple files—they have complex supersedence relationships where Update X replaces Updates Y and Z, which themselves replaced earlier updates."
+- "These aren't simple files - they have complex supersedence relationships where Update X replaces Updates Y and Z, which themselves replaced earlier updates."
 - "They span multiple categories: Security patches, critical fixes, driver updates, cumulative rollups."
 - "And they're distributed globally across enterprise networks serving millions of endpoints."
 
@@ -56,7 +56,7 @@
 "Quick question: How many of you manage Windows Update deployments in your organization? [Pause for hands] Keep your hands up if you've ever had an update break something. [Chuckle] Yeah, we've all been there."
 
 **Transition:**
-"Now imagine if one of those updates wasn't just buggy—it was malicious."
+"Now imagine if one of those updates wasn't just buggy - it was malicious."
 
 ---
 
@@ -70,7 +70,7 @@
 
 **Point 2: Supply Chain Attacks**
 - "Attackers increasingly target update distribution infrastructure."
-- "Third-party WSUS servers, downstream mirrors—all potential entry points."
+- "Third-party WSUS servers, downstream mirrors - all potential entry points."
 
 **Point 3: Hash Collisions**
 - "While cryptographically difficult, hash collision attacks are theoretically possible."
@@ -101,11 +101,11 @@
 
 **Point 3: Rule-Based Systems**
 - "Some orgs use rule-based systems: 'Block updates from untrusted publishers,' 'Flag updates over 500 MB,' etc."
-- "These are brittle—attackers adapt, rules need constant updating."
+- "These are brittle - attackers adapt, rules need constant updating."."
 - "And false positive rates are typically 10-20%, causing alert fatigue."
 
 **Point 4: Blacklisting**
-- "Many rely on blacklists—block known-bad update IDs."
+- "Many rely on blacklists - block known-bad update IDs."
 - "But this is always reactive. By the time an update is blacklisted, the damage is done."
 
 **The Gap:**
@@ -138,7 +138,7 @@
 
 4. **ML.NET RandomizedPCA**
    - "We feed these features into an ML.NET model using the RandomizedPCA algorithm."
-   - "This is an unsupervised learning algorithm—no labeled training data required."
+   - "This is an unsupervised learning algorithmï¿½no labeled training data required."
    - "It learns what 'normal' looks like and flags deviations."
 
 5. **Anomaly Score (0.0-1.0)**
@@ -162,21 +162,21 @@
 
 **ML.NET:**
 - "Why ML.NET instead of Python with scikit-learn?"
-- "Three reasons: 1) Native .NET integration—no interop overhead. 2) Single binary deployment—no Python runtime. 3) Production performance—in-process execution is fast."
+- "Three reasons: 1) Native .NET integration - no interop overhead. 2) Single binary deployment - no Python runtime. 3) Production performance - in-process execution is fast."
 - "Plus, our entire codebase is C#, so it's a natural fit."
 
 **RandomizedPCA:**
 - "Why this algorithm?"
-- "Unsupervised—doesn't need labeled 'malicious' examples. We learn normal patterns from real update history."
-- "Fast training—5-30 seconds for thousands of samples."
-- "Dimensionality reduction—handles our 13 features efficiently."
-- "Anomaly sensitivity—excellent at detecting outliers in high-dimensional space."
+- "Unsupervised - doesn't need labeled 'malicious' examples. We learn normal patterns from real update history."
+- "Fast trainingï¿½5-30 seconds for thousands of samples."
+- "Dimensionality reductionï¿½handles our 13 features efficiently."
+- "Anomaly sensitivityï¿½excellent at detecting outliers in high-dimensional space."
 
 **Azure Functions:**
 - "Why serverless?"
-- "Auto-scaling—handles traffic spikes during Patch Tuesday without pre-provisioning."
-- "Pay-per-execution—we pay ~$0.85/month for 10,000 updates/day."
-- "Event-driven—timer triggers for scheduled detection, HTTP for external integration."
+- "Auto-scaling - handles traffic spikes during Patch Tuesday without pre-provisioning."
+- "Pay-per-execution - we pay ~$0.85/month for 10,000 updates/day."
+- "Event-drivenï¿½timer triggers for scheduled detection, HTTP for external integration."
 
 **OpenTelemetry:**
 - "Full observability with 60+ metrics."
@@ -226,10 +226,8 @@
 
 6-7. **SupersededCount / SupersededByCount**
    - "How many updates does this supersede? How many supersede it?"
-   - "Normal cumulative updates supersede 5-10 previous updates."
-   - "If an update claims to supersede 50 updates, that's unusual—possible forgery."
-
-8. **BundledUpdatesCount**
+- "Normal cumulative updates supersede 5-10 previous updates."
+- "If an update claims to supersede 50 updates, that's unusual - possible forgery."8. **BundledUpdatesCount**
    - "How many updates are bundled inside this one?"
    - "Unusual bundling patterns can indicate tampering."
 
@@ -244,7 +242,7 @@
    - "Attackers use complex applicability to target specific vulnerable systems."
 
 **Summary:**
-"These 13 features capture both security indicators (signing, hashes) and behavioral patterns (supersedence, complexity). The magic is that we don't hard-code rules—the ML model learns which combinations are normal and which are outliers."
+"These 13 features capture both security indicators (signing, hashes) and behavioral patterns (supersedence, complexity). The magic is that we don't hard-code rules - the ML model learns which combinations are normal and which are outliers."
 
 ---
 
@@ -275,10 +273,10 @@
 - "Normal update: 'Windows 10 version 21H2.'"
 - "Suspicious update: 27 applicability rules targeting specific driver versions, hardware IDs, registry keys."
 - "Feature: ApplicabilityRulesCount=27, HasComplexApplicability=1.0"
-- "This looks like precision targeting—possibly an exploit."
+- "This looks like precision targetingï¿½possibly an exploit."
 
 **Key Insight:**
-"Notice how no single feature definitively says 'malicious.' But multiple suspicious features together create a pattern the model recognizes as anomalous. That's the power of machine learning—detecting subtle combinations humans miss."
+"Notice how no single feature definitively says 'malicious.' But multiple suspicious features together create a pattern the model recognizes as anomalous. That's the power of machine learning - detecting subtle combinations humans miss."
 
 ---
 
@@ -289,12 +287,12 @@
 "Now let's dive into the machine learning algorithm itself: Randomized Principal Component Analysis, or RandomizedPCA."
 
 **What is PCA?**
-- "PCA is a dimensionality reduction technique. It finds the principal components—the directions in your data with the most variance."
+- "PCA is a dimensionality reduction technique. It finds the principal components - the directions in your data with the most variance."
 - "Imagine you have 13 features plotted in 13-dimensional space. PCA finds the 6 most important dimensions that capture 80-90% of the variance."
 
 **Why Randomized?**
-- "Traditional PCA computes full SVD (singular value decomposition), which is O(n³)—slow for large datasets."
-- "Randomized PCA uses randomized SVD, which is O(nk²) where k=6. Much faster with similar accuracy."
+- "Traditional PCA computes full SVD (singular value decomposition), which is O(nÂ²) - slow for large datasets."
+- "Randomized PCA uses randomized SVD, which is O(nkÂ²) where k=6. Much faster with similar accuracy."
 - "For our use case: 1000 samples train in ~3 seconds vs. 30+ seconds for full PCA."
 
 **Anomaly Detection with PCA:**
@@ -306,18 +304,18 @@
 5. "High reconstruction error = doesn't fit the 'normal' subspace = anomaly."
 
 **Analogy:**
-"Think of it like this: Imagine you have 10,000 photos of cats. PCA learns the 'space of cat-ness.' When you show it a new image, it tries to reconstruct it as a cat. If it's a dog photo, the reconstruction fails badly—high error. That's an anomaly."
+"Think of it like this: Imagine you have 10,000 photos of cats. PCA learns the 'space of cat-ness.' When you show it a new image, it tries to reconstruct it as a cat. If it's a dog photo, the reconstruction fails badlyï¿½high error. That's an anomaly."
 
 **Why This Works for Update Detection:**
 - "Normal updates cluster in a low-dimensional subspace defined by common patterns."
-- "Malicious updates deviate from these patterns—high reconstruction error."
-- "No need to label 'malicious' examples—unsupervised learning."
+- "Malicious updates deviate from these patternsï¿½high reconstruction error."
+- "No need to label 'malicious' examplesï¿½unsupervised learning."
 
 ---
 
 ### Slide 11: Training Pipeline
 **Code Walkthrough:**
-"Let me show you the actual ML.NET training code. Don't worry—it's simpler than you might think."
+"Let me show you the actual ML.NET training code. Don't worryï¿½it's simpler than you might think."
 
 **Step 1: Concatenate Features**
 ```csharp
@@ -351,18 +349,18 @@
 model = pipeline.Fit(trainingData);
 mlContext.Model.Save(model, schema, "./anomaly-model.zip");
 ```
-- "Fit trains the model—takes 2-30 seconds depending on sample size."
-- "Save persists to a .zip file—only 50-100 KB."
+- "Fit trains the modelï¿½takes 2-30 seconds depending on sample size."
+- "Save persists to a .zip fileï¿½only 50-100 KB."
 - "This file is loaded at runtime for scoring."
 
 **Takeaway:**
-"That's it—five lines of code for a production-ready ML pipeline. ML.NET abstracts the complexity."
+"That's itï¿½five lines of code for a production-ready ML pipeline. ML.NET abstracts the complexity."
 
 ---
 
 ### Slide 12: Hyperparameter Tuning
 **Opening:**
-"Every ML model has knobs you can turn—hyperparameters. Let me explain our choices."
+"Every ML model has knobs you can turnï¿½hyperparameters. Let me explain our choices."
 
 **Rank (k=6):**
 - "Why 6? We have 13 features. General rule: k = features/2 captures 80-90% of variance."
@@ -376,12 +374,12 @@ mlContext.Model.Save(model, schema, "./anomaly-model.zip");
 - "PCA assumes zero-centered data. Setting this true improves component quality."
 
 **Oversampling (20):**
-- "This is specific to Randomized PCA—the algorithm oversamples during randomized SVD."
+- "This is specific to Randomized PCAï¿½the algorithm oversamples during randomized SVD."
 - "Higher values = more stable but slower. 20 is recommended default."
 
 **Threshold:**
-- "Development: 0.85 (sensitive—more alerts, higher false positives)."
-- "Production: 0.90 (balanced—fewer false positives)."
+- "Development: 0.85 (sensitiveï¿½more alerts, higher false positives)."
+- "Production: 0.90 (balancedï¿½fewer false positives)."
 - "We tune this based on ROC curve analysis on validation data."
 
 **How We Tuned:**
@@ -398,7 +396,7 @@ mlContext.Model.Save(model, schema, "./anomaly-model.zip");
 **Normal (0.00-0.85):**
 - "Score: 0.23 for a standard security update."
 - "Action: Allow automatically, no logging."
-- "This is the vast majority—99.8% of updates."
+- "This is the vast majorityï¿½99.8% of updates."
 
 **Low (0.85-0.90):**
 - "Score: 0.87 for an unsigned driver update."
@@ -413,7 +411,7 @@ mlContext.Model.Save(model, schema, "./anomaly-model.zip");
 **High (0.95-1.00):**
 - "Score: 0.97 for an unsigned update with unusual supersedence and complex applicability."
 - "Action: Block immediately, investigate thoroughly."
-- "Multiple red flags—likely malicious."
+- "Multiple red flagsï¿½likely malicious."
 
 **Tunability:**
 "These thresholds are configurable. Conservative orgs might alert at 0.80. Others might wait until 0.95."
@@ -431,7 +429,7 @@ mlContext.Model.Save(model, schema, "./anomaly-model.zip");
 - "Runs on a CRON schedule: every 1 minute in dev, every 2 hours in production."
 - "Each run analyzes 100 recent updates from the metadata store."
 - "Scores each update, logs warnings if score > threshold."
-- "Think of this as your continuous monitoring—always watching for anomalies."
+- "Think of this as your continuous monitoringï¿½always watching for anomalies."
 
 **Function 2: HTTP Ingestion (API)**
 - "POST /api/ingest-anomaly"
@@ -448,13 +446,13 @@ mlContext.Model.Save(model, schema, "./anomaly-model.zip");
 **Function 4: Scheduled Training (Timer)**
 - "Runs every 5 minutes in dev (for rapid testing), every 30 days in production."
 - "Automatically retrains model with latest update patterns."
-- "This keeps the model adaptive—as Microsoft's update patterns evolve, our model evolves."
+- "This keeps the model adaptiveï¿½as Microsoft's update patterns evolve, our model evolves."
 
 **Why Serverless?**
-- "Zero infrastructure management—no VMs to patch."
-- "Auto-scaling—handles Patch Tuesday traffic spikes automatically."
-- "Cost-efficient—only pay for execution time, not idle time."
-- "Event-driven—perfect fit for timer triggers and HTTP webhooks."
+- "Zero infrastructure managementï¿½no VMs to patch."
+- "Auto-scalingï¿½handles Patch Tuesday traffic spikes automatically."
+- "Cost-efficientï¿½only pay for execution time, not idle time."
+- "Event-drivenï¿½perfect fit for timer triggers and HTTP webhooks."
 
 ---
 
@@ -508,7 +506,7 @@ await queueService.EnqueueAnomalyEventAsync(new AnomalyEvent { ... });
 - "Downstream workers can quarantine update, send email alerts, create tickets, etc."
 
 **Simplicity:**
-"Notice how simple this is—query updates, score them, alert if needed. The complexity is hidden in the ML model, which 'just works.'"
+"Notice how simple this isï¿½query updates, score them, alert if needed. The complexity is hidden in the ML model, which 'just works.'"
 
 ---
 
@@ -519,7 +517,7 @@ await queueService.EnqueueAnomalyEventAsync(new AnomalyEvent { ... });
 **Error Type 1: Unsupported Expression Types**
 - "Some updates use newer expression types the library doesn't support yet."
 - "Rather than failing, we catch the exception and return neutral score (0.0)."
-- "Log at debug level—inform but don't alert."
+- "Log at debug levelï¿½inform but don't alert."
 - "Philosophy: Better to miss one anomaly than to crash the entire detection pipeline."
 
 **Error Type 2: Storage Access Issues**
@@ -532,7 +530,7 @@ await queueService.EnqueueAnomalyEventAsync(new AnomalyEvent { ... });
 - "Some update packages have malformed IDs (not exactly 16 bytes for GUID)."
 - "We validate before attempting GUID conversion."
 - "Skip the invalid package with debug log."
-- "This was a real production bug we fixed—see QueryService.cs."
+- "This was a real production bug we fixedï¿½see QueryService.cs."
 
 **Resilience Pattern:**
 "The pattern is: Catch ? Log ? Return safe default ? Continue. Never let one bad update crash the entire system."
@@ -546,7 +544,7 @@ await queueService.EnqueueAnomalyEventAsync(new AnomalyEvent { ... });
 
 ### Slide 17: 60+ OpenTelemetry Metrics
 **Opening:**
-"You can't manage what you don't measure. We instrument this system heavily—60+ OpenTelemetry metrics across four namespaces."
+"You can't manage what you don't measure. We instrument this system heavilyï¿½60+ OpenTelemetry metrics across four namespaces."
 
 **Core Detection Metrics:**
 - "12 counters: AnomaliesDetected, UpdatesScored, ScoringErrors, ModelLoaded, etc."
@@ -566,8 +564,8 @@ await queueService.EnqueueAnomalyEventAsync(new AnomalyEvent { ... });
 - "3 histograms: FileSizeDistribution, SupersedenceCount, BundledUpdatesCount."
 
 **Why So Many?**
-- "Granular visibility—we can debug performance issues, track false positive rates, understand feature distributions."
-- "All metrics include tags (dimensions)—e.g., anomalies_detected tagged by severity, classification, product."
+- "Granular visibilityï¿½we can debug performance issues, track false positive rates, understand feature distributions."
+- "All metrics include tags (dimensions)ï¿½e.g., anomalies_detected tagged by severity, classification, product."
 
 **Performance Impact:**
 "Adding 60+ metrics might sound expensive, but OpenTelemetry is incredibly efficient. Overhead < 0.5% on overall processing time."
@@ -588,19 +586,19 @@ await queueService.EnqueueAnomalyEventAsync(new AnomalyEvent { ... });
 
 **Score Distribution Histogram:**
 - "This shows the distribution of anomaly scores."
-- "Notice the huge spike at 0.0-0.3—those are normal updates."
-- "Small bars at 0.85-0.95—low and medium severity."
-- "Tiny bar at 0.95-1.0—high severity (critical alerts)."
+- "Notice the huge spike at 0.0-0.3ï¿½those are normal updates."
+- "Small bars at 0.85-0.95ï¿½low and medium severity."
+- "Tiny bar at 0.95-1.0ï¿½high severity (critical alerts)."
 
 **Anomalies by Severity Pie Chart:**
 - "Of the 23 anomalies: 65% low, 26% medium, 9% high."
-- "This distribution helps us tune the threshold—if we're getting too many low-severity alerts, increase threshold."
+- "This distribution helps us tune the thresholdï¿½if we're getting too many low-severity alerts, increase threshold."
 
 **Detection Latency:**
 - "P50 (median): 1.2 milliseconds."
 - "P95: 2.8 milliseconds."
 - "P99: 4.5 milliseconds."
-- "Even the slowest 1% of requests are under 5ms—this doesn't slow down sync operations."
+- "Even the slowest 1% of requests are under 5msï¿½this doesn't slow down sync operations."
 
 **Value Prop:**
 "With this dashboard, security teams have real-time visibility. They can see anomalies as they're detected, drill into specific updates, and make informed decisions about quarantining."
@@ -662,10 +660,10 @@ for: 5m
 
 **Memory Usage:**
 - "Scales linearly: ~50 MB for 100 samples, ~650 MB for 10,000."
-- "Azure Functions default 256 MB is insufficient for large training—we use 1 GB for training functions."
+- "Azure Functions default 256 MB is insufficient for large trainingï¿½we use 1 GB for training functions."
 
 **Scalability:**
-"We've tested up to 50,000 samples—still linear scaling. Beyond that, consider sampling strategies."
+"We've tested up to 50,000 samplesï¿½still linear scaling. Beyond that, consider sampling strategies."
 
 ---
 
@@ -675,7 +673,7 @@ for: 5m
 
 **Single Update:**
 - "1-2 milliseconds per update."
-- "This is the hot path—runs in scheduled detection every 2 hours."
+- "This is the hot pathï¿½runs in scheduled detection every 2 hours."
 - "Sub-millisecond feature extraction + ~1ms ML.NET prediction."
 
 **Batch Scoring:**
@@ -713,7 +711,7 @@ for: 5m
 
 **Hash Mismatches:**
 - "5 injected, 5 detected. 100% accuracy."
-- "This is the easiest scenario—hash mismatch is a hard signal."
+- "This is the easiest scenarioï¿½hash mismatch is a hard signal."
 
 **Unusual Supersedence:**
 - "8 injected (forged cumulative rollups), 7 detected."
@@ -760,7 +758,7 @@ for: 5m
 "We're increasing threshold from 0.90 to 0.92. Simulation shows this reduces false positives by ~40% while maintaining 94%+ true positive rate."
 
 **Latency:**
-- "Average 1.8ms per update—no impact on sync performance."
+- "Average 1.8ms per updateï¿½no impact on sync performance."
 
 **Storage:**
 - "Model file: 95 KB. Queue messages: ~10,000/month. Total storage overhead: < 1 MB."
@@ -769,7 +767,7 @@ for: 5m
 
 ### Slide 24: Cost Analysis
 **Setup:**
-"Let's talk about the bottom line—what does this cost to run?"
+"Let's talk about the bottom lineï¿½what does this cost to run?"
 
 **Assumptions:**
 - "10,000 updates synced per day."
@@ -779,11 +777,11 @@ for: 5m
 **Breakdown:**
 
 **Execution Time:**
-- "1,200 executions/month × 2 seconds avg × $0.20 per million seconds."
+- "1,200 executions/month ï¿½ 2 seconds avg ï¿½ $0.20 per million seconds."
 - "Cost: ~$0.50/month."
 
 **Memory:**
-- "256 MB average × 1,200 executions × $0.01 per GB-second."
+- "256 MB average ï¿½ 1,200 executions ï¿½ $0.01 per GB-second."
 - "Cost: ~$0.20/month."
 
 **Storage Queue:**
@@ -799,7 +797,7 @@ for: 5m
 **ROI:**
 - "For less than $1/month, you get near-real-time anomaly detection across thousands of updates."
 - "Compare to: Cost of a single malware outbreak ($100,000+ in lost productivity, remediation, reputational damage)."
-- "Or cost of a security analyst manually reviewing updates ($50+/hour × 10 hours/month = $500+)."
+- "Or cost of a security analyst manually reviewing updates ($50+/hour ï¿½ 10 hours/month = $500+)."
 
 **Scalability:**
 "Even at 100,000 updates/day (10x scale), cost is still under $10/month. Serverless scales with you."
@@ -856,13 +854,13 @@ Invoke-RestMethod -Uri "http://localhost:7071/api/train-model?sampleSize=1000" -
 ```powershell
 Test-Path "./anomaly-model.zip"
 ```
-- "Returns True—model file created successfully."
+- "Returns Trueï¿½model file created successfully."
 
 **Show Model File Size:**
 ```powershell
 (Get-Item "./anomaly-model.zip").Length / 1KB
 ```
-- "52 kilobytes—tiny, efficient model."
+- "52 kilobytesï¿½tiny, efficient model."
 
 **Transition:**
 "Now that we have a trained model, let's simulate a suspicious update being ingested."
@@ -909,8 +907,8 @@ Invoke-RestMethod -Uri "http://localhost:7071/api/ingest-anomaly" -Method POST -
 ```
 
 **Point Out:**
-- "Notice the warning logs—these go to Application Insights in production."
-- "The update is quarantined automatically—doesn't deploy to endpoints."
+- "Notice the warning logs - these go to Application Insights in production."
+- "The update is quarantined automatically - doesn't deploy to endpoints."
 - "Event is queued for security team review."
 
 ---
@@ -921,9 +919,9 @@ Invoke-RestMethod -Uri "http://localhost:7071/api/ingest-anomaly" -Method POST -
 
 **Grafana Panels to Show:**
 1. **Updates Scored Counter:** "Just incremented by 1."
-2. **Anomalies Detected Counter:** "Also incremented—tagged with severity='high'."
+2. **Anomalies Detected Counter:** "Also incrementedï¿½tagged with severity='high'."
 3. **Score Distribution Histogram:** "You can see the 0.95 data point in the histogram."
-4. **Detection Latency:** "This operation took 1.8ms—sub-millisecond."
+4. **Detection Latency:** "This operation took 1.8msï¿½sub-millisecond."
 
 **If No Grafana:**
 "In production, these metrics would appear on our Grafana dashboard in real-time."
@@ -949,7 +947,7 @@ az storage message peek --queue-name "anomaly-events" --connection-string "UseDe
 "The event is queued. In production, a downstream worker would pick this up, create a ticket in our security system, send Slack alerts, etc."
 
 **Demo Conclusion:**
-"And that's the full workflow: Train model ? Detect anomaly ? Alert ? Queue for processing. All in under 5 seconds, fully automated."
+"And that's the full workflow: Train model -> Detect anomaly -> Alert -> Queue for processing. All in under 5 seconds, fully automated."
 
 ---
 
@@ -1013,18 +1011,18 @@ az storage message peek --queue-name "anomaly-events" --connection-string "UseDe
 **8. Federated Learning:**
 - "Current: Each organization trains on their own update data."
 - "Enhancement: Federated learning across multiple organizations without sharing raw data."
-- "Use case: Industry-wide anomaly detection—if 100 orgs see similar anomaly, high confidence it's a supply chain attack."
+- "Use case: Industry-wide anomaly detection - if 100 orgs see similar anomaly, high confidence it's a supply chain attack."
 - "Challenge: Privacy, coordination, standardization."
 
 **9. SIEM Integration:**
 - "Current: Standalone anomaly detection."
 - "Enhancement: Integration with Splunk, Azure Sentinel, QRadar."
 - "Use case: Correlate update anomalies with network traffic, authentication failures, file system changes."
-- "Benefit: Holistic threat detection—'Update KB123 is anomalous AND we see suspicious network traffic from endpoints that installed it.'"
+- "Benefit: Holistic threat detection - 'Update KB123 is anomalous AND we see suspicious network traffic from endpoints that installed it.'"
 
 **10. Automated Remediation:**
 - "Current: Human reviews and decides to quarantine."
-- "Enhancement: Automated workflow—high-confidence anomalies auto-quarantined, approval workflows for medium."
+- "Enhancement: Automated workflow - high-confidence anomalies auto-quarantined, approval workflows for medium."
 - "Benefit: Zero-touch security response. Critical for large-scale deployments."
 
 ---
@@ -1036,7 +1034,7 @@ az storage message peek --queue-name "anomaly-events" --connection-string "UseDe
 "Let me summarize the key takeaways from this presentation."
 
 **Takeaway 1:**
-"ML.NET brings production-ready machine learning to .NET ecosystems. You don't need Python—everything we showed works in C#."
+"ML.NET brings production-ready machine learning to .NET ecosystems. You don't need Pythonï¿½everything we showed works in C#."
 
 **Takeaway 2:**
 "Unsupervised learning is powerful when you don't have labeled training data. We learned 'normal' update patterns without ever seeing a malicious example."
@@ -1048,7 +1046,7 @@ az storage message peek --queue-name "anomaly-events" --connection-string "UseDe
 "Azure Functions enable event-driven, serverless ML systems that scale from 100 to 100,000 updates/day without infrastructure changes."
 
 **Takeaway 5:**
-"Observability is critical—60+ OpenTelemetry metrics give us confidence this works in production."
+"Observability is criticalï¿½60+ OpenTelemetry metrics give us confidence this works in production."
 
 **Takeaway 6:**
 "Real-world validation: 94-98% true positive rate, 0.3-0.5% false positive rate, < $1/month cost. This is production-ready."
@@ -1060,14 +1058,14 @@ az storage message peek --queue-name "anomaly-events" --connection-string "UseDe
 "Let's talk impact. Why does this matter?"
 
 **Security Impact:**
-- "Proactive threat detection—we catch anomalies before they deploy, not after damage is done."
-- "Near-real-time alerting—1-2ms scoring means alerts within seconds, not hours."
-- "Comprehensive monitoring—full visibility into update streams."
+- "Proactive threat detectionï¿½we catch anomalies before they deploy, not after damage is done."
+- "Near-real-time alertingï¿½1-2ms scoring means alerts within seconds, not hours."
+- "Comprehensive monitoringï¿½full visibility into update streams."
 
 **Operational Impact:**
-- "Low overhead—< 0.5% on sync operations, no noticeable performance impact."
-- "Cost-effective—$0.85/month for 10,000 updates/day. Even at 100× scale, under $100/month."
-- "Easy deployment—serverless functions, no infrastructure to manage."
+- "Low overheadï¿½< 0.5% on sync operations, no noticeable performance impact."
+- "Cost-effectiveï¿½$0.85/month for 10,000 updates/day. Even at 100ï¿½ scale, under $100/month."
+- "Easy deploymentï¿½serverless functions, no infrastructure to manage."
 
 **Before/After:**
 - "Before: Manual review of critical updates, reactive blacklisting, 10-20% false positive rate with rule-based systems."
@@ -1077,7 +1075,7 @@ az storage message peek --queue-name "anomaly-events" --connection-string "UseDe
 
 ### Slide 34: Try It Yourself
 **Opening:**
-"This isn't vaporware—you can try this today. Everything I showed is open source."
+"This isn't vaporwareï¿½you can try this today. Everything I showed is open source."
 
 **GitHub Repository:**
 "github.com/microsoft/update-server-server-sync"
@@ -1095,7 +1093,7 @@ az storage message peek --queue-name "anomaly-events" --connection-string "UseDe
 - "ANOMALY_METRICS.md for complete metrics documentation."
 
 **Contribution:**
-"We welcome contributions! Issues, pull requests, feature suggestions—all appreciated."
+"We welcome contributions! Issues, pull requests, feature suggestions - all appreciated."
 
 **[Show QR code linking to GitHub repo]**
 
@@ -1125,22 +1123,22 @@ az storage message peek --queue-name "anomaly-events" --connection-string "UseDe
 **Anticipated Questions & Answers:**
 
 **Q: "What about false negatives? Can attackers evade this?"**
-A: "Great question. Yes, a sophisticated attacker could craft updates that mimic normal patterns if they study our training data. This is an arms race—we adapt by retraining frequently and adding new features. Also, this is defense-in-depth—not a silver bullet. Still use signature verification, hash checks, etc."
+A: "Great question. Yes, a sophisticated attacker could craft updates that mimic normal patterns if they study our training data. This is an arms race - we adapt by retraining frequently and adding new features. Also, this is defense-in-depth - not a silver bullet. Still use signature verification, hash checks, etc."
 
 **Q: "How does this handle zero-day exploits?"**
 A: "Zero-day exploits in updates are rare but possible. If the exploit is embedded in normal-looking metadata (e.g., signed update with valid hash), our model might miss it. That said, unusual complexity patterns (HasComplexApplicability) can flag targeted exploits."
 
 **Q: "Can this work with non-Microsoft updates (third-party software)?"**
-A: "Absolutely. The principles are the same. You'd need to extract analogous features from your third-party update metadata. If you have supersedence info, file sizes, signing status—you can apply this approach."
+A: "Absolutely. The principles are the same. You'd need to extract analogous features from your third-party update metadata. If you have supersedence info, file sizes, signing statusï¿½you can apply this approach."
 
 **Q: "What's the training data requirement? Do you need labeled malicious examples?"**
-A: "No labels needed—that's the beauty of unsupervised learning. We train on normal updates (10,000+ from Microsoft Update Catalog). The model learns 'normal' and flags deviations. If you want supervised learning (higher accuracy), you'd need labeled malicious examples, which are hard to get."
+A: "No labels needed - that's the beauty of unsupervised learning. We train on normal updates (10,000+ from Microsoft Update Catalog). The model learns 'normal' and flags deviations. If you want supervised learning (higher accuracy), you'd need labeled malicious examples, which are hard to get."
 
 **Q: "How do you prevent model poisoning (adversarial training data)?"**
 A: "Good question. If an attacker can inject malicious updates into our training data, they could poison the model to accept their attacks. Mitigations: 1) Train only on verified, signed updates from trusted sources. 2) Regularly retrain with fresh data. 3) Monitor training metrics for anomalies in training data itself (meta-anomaly detection!)."
 
 **Q: "What about privacy? Are update metadata sensitive?"**
-A: "Update metadata (title, KB ID, file sizes, categories) are public—Microsoft publishes them on the Update Catalog. No PII. If you're in a highly regulated environment, ensure your metadata storage complies with retention policies."
+A: "Update metadata (title, KB ID, file sizes, categories) are public - Microsoft publishes them on the Update Catalog. No PII. If you're in a highly regulated environment, ensure your metadata storage complies with retention policies."
 
 **Q: "Can this run on-premises, or does it require Azure?"**
 A: "Great question. Azure Functions can run on-premises using Azure Functions Core Tools or containerized (Docker). Azurite (local storage emulator) replaces Azure Storage. So yes, fully on-prem deployment is supported."
@@ -1159,14 +1157,14 @@ A: "Good operational question. We version control model files (Git LFS). If mode
 ## CLOSING (2 minutes)
 
 **Final Summary:**
-"To wrap up: We've built a production-ready anomaly detection system for Windows Updates using ML.NET, Azure Functions, and OpenTelemetry. It achieves 94-98% detection accuracy with < 0.5% false positives, costs less than $1/month, and scales to any enterprise size. And it's open source—you can deploy it today."
+"To wrap up: We've built a production-ready anomaly detection system for Windows Updates using ML.NET, Azure Functions, and OpenTelemetry. It achieves 94-98% detection accuracy with < 0.5% false positives, costs less than $1/month, and scales to any enterprise size. And it's open source - you can deploy it today."
 
 **Call to Action:**
 "I encourage you to:
-1. Try the system—github.com/microsoft/update-server-server-sync
-2. Read the docs—README.md, ANOMALY_METRICS.md
-3. Contribute—we're actively developing new features
-4. Reach out—I'm happy to answer questions offline."
+1. Try the systemï¿½github.com/microsoft/update-server-server-sync
+2. Read the docsï¿½README.md, ANOMALY_METRICS.md
+3. Contributeï¿½we're actively developing new features
+4. Reach outï¿½I'm happy to answer questions offline."
 
 **Thank You:**
 "Thank you for your attention. I'm available after the session for detailed discussions."
@@ -1186,10 +1184,10 @@ A: "Good operational question. We version control model files (Git LFS). If mode
 [Show Slide 37]
 
 **Key Points:**
-- **Integration**: ML.NET is native .NET—no language interop overhead. Python requires REST API or gRPC for communication with C# code.
-- **Deployment**: ML.NET compiles to single binary. Python requires Python runtime, pip packages, virtual environments—more complex deployment.
-- **Performance**: ML.NET runs in-process—no IPC overhead. Python via Flask/FastAPI adds 10-50ms latency per request.
-- **Type Safety**: ML.NET benefits from C# strong typing—catch errors at compile time. Python is dynamic—errors at runtime.
+- **Integration**: ML.NET is native .NET - no language interop overhead. Python requires REST API or gRPC for communication with C# code.
+- **Deployment**: ML.NET compiles to single binary. Python requires Python runtime, pip packages, virtual environments - more complex deployment.
+- **Performance**: ML.NET runs in-processï¿½no IPC overhead. Python via Flask/FastAPI adds 10-50ms latency per request.
+- **Type Safety**: ML.NET benefits from C# strong typingï¿½catch errors at compile time. Python is dynamicï¿½errors at runtime.
 - **Tooling**: Visual Studio provides excellent ML.NET tooling. Python has Jupyter, but integration with .NET projects is awkward.
 
 **Conclusion:**
@@ -1218,7 +1216,7 @@ A: "Good operational question. We version control model files (Git LFS). If mode
 
 **Autoencoder (Deep Learning):**
 - Very slow training (~10+ minutes, requires GPU), very good accuracy, low interpretability (black box).
-- Requires 100,000+ samples for effective training—we don't have that yet.
+- Requires 100,000+ samples for effective training - we don't have that yet.
 - Future roadmap item (#7).
 
 **Why We Chose RandomizedPCA:**

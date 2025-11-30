@@ -47,16 +47,16 @@
 **Title:** Real-World Attack Vectors
 
 **Four Quadrants:**
-1. **Compromised Servers** ?????
+1. **Compromised Servers** [LOCK]
    - Attackers inject malicious updates
    
-2. **Supply Chain Attacks** ??
+2. **Supply Chain Attacks** [CHAIN]
    - Third-party sources compromised
    
-3. **Hash Collisions** ??
+3. **Hash Collisions** [HASH]
    - Signature validation bypassed
    
-4. **Malformed Metadata** ??
+4. **Malformed Metadata** [CODE]
    - Exploit parsing vulnerabilities
 
 **Visual:** Threat landscape diagram with red warning icons
@@ -67,13 +67,13 @@
 **Title:** Why Manual Review Doesn't Scale
 
 **Problem:**
-? Signature checking alone - Misses 0-day exploits  
-? Manual review - Can't handle thousands of updates  
-? Rule-based systems - High false positive rates  
-? Blacklisting - Always reactive, never proactive  
+- Signature checking alone - Misses 0-day exploits  
+- Manual review - Can't handle thousands of updates  
+- Rule-based systems - High false positive rates  
+- Blacklisting - Always reactive, never proactive  
 
 **Solution:**
-? **Machine Learning** - Detect patterns humans miss
+- **Machine Learning** - Detect patterns humans miss
 
 **Visual:** Manual vs. Automated comparison (before/after)
 
@@ -87,15 +87,20 @@
 **Architecture:**
 ```
 Microsoft Update Catalog
-         ?
+         |
+         v
   Metadata Sync (Azure Blob)
-         ?
+         |
+         v
   Feature Extraction (13 features)
-         ?
+         |
+         v
   ML.NET RandomizedPCA
-         ?
+         |
+         v
    Anomaly Score (0.0-1.0)
-         ?
+         |
+         v
   Alert + Queue (Azure Storage)
 ```
 
@@ -237,15 +242,13 @@ mlContext.Model.Save(model, schema, "./anomaly-model.zip");
 **Severity Levels:**
 
 | Score | Severity | Action | Example |
-|-------|----------|--------|---------|
+|-------|----------|--------|---------|  
 | 0.00-0.85 | Normal | Allow | Standard update |
 | 0.85-0.90 | Low | Log | Unsigned driver |
 | 0.90-0.95 | Medium | Alert | Hash mismatch |
 | 0.95-1.00 | High | Block | Multiple flags |
 
-**Visual:** Color-coded severity scale (green ? yellow ? red)
-
----
+**Visual:** Color-coded severity scale (green -> yellow -> red)---
 
 ## SECTION 5: IMPLEMENTATION
 
@@ -433,14 +436,14 @@ public async Task RunScheduledAnomalyDetection(
 ## SLIDE 23: Production Deployment Stats
 **Title:** 30-Day Production Metrics
 
-?? **Updates Analyzed:** 127,453  
-?? **Anomalies Detected:** 247 (0.19%)  
-? **Confirmed Threats:** 18 (7.3%)  
-? **False Positives:** 229 (92.7%)  
-? **Avg Latency:** 1.8ms  
-?? **Storage:** 95 KB model  
+**Updates Analyzed:** 127,453  
+**Anomalies Detected:** 247 (0.19%)  
+**Confirmed Threats:** 18 (7.3%)  
+**False Positives:** 229 (92.7%)  
+**Avg Latency:** 1.8ms  
+**Storage:** 95 KB model  
 
-**Tuning:** Increase threshold 0.90 ? 0.92 = 40% fewer false positives
+**Tuning:** Increase threshold 0.90 -> 0.92 = 40% fewer false positives
 
 **Visual:** Production stats infographic
 
@@ -469,12 +472,12 @@ public async Task RunScheduledAnomalyDetection(
 **Title:** End-to-End Workflow
 
 **Demo Steps:**
-1. ? Start Azurite + Azure Functions
-2. ? Train model (5 minutes or HTTP call)
-3. ? Ingest suspicious update via API
-4. ? View alert logs
-5. ? Check Azure Storage Queue
-6. ? Review metrics dashboard
+1. Start Azurite + Azure Functions
+2. Train model (5 minutes or HTTP call)
+3. Ingest suspicious update via API
+4. View alert logs
+5. Check Azure Storage Queue
+6. Review metrics dashboard
 
 **Visual:** Demo workflow diagram
 
@@ -596,12 +599,12 @@ Invoke-RestMethod -Uri "http://localhost:7071/api/ingest-anomaly" -Method POST -
 ## SLIDE 32: Key Takeaways
 **Title:** Summary
 
-1. ? ML.NET enables production-ready ML in .NET
-2. ? Unsupervised learning works without labels
-3. ? 13 rich features provide signal
-4. ? Azure Functions = serverless, event-driven
-5. ? OpenTelemetry = full observability
-6. ? Real-world: 94-98% detection rate
+1. ML.NET enables production-ready ML in .NET
+2. Unsupervised learning works without labels
+3. 13 rich features provide signal
+4. Azure Functions = serverless, event-driven
+5. OpenTelemetry = full observability
+6. Real-world: 94-98% detection rate
 
 **Visual:** Checkmark list with icons
 
@@ -611,14 +614,14 @@ Invoke-RestMethod -Uri "http://localhost:7071/api/ingest-anomaly" -Method POST -
 **Title:** Business Value
 
 **Security:**
-- ??? Proactive threat detection
-- ?? Near-real-time alerting (1-2ms)
-- ?? Comprehensive monitoring
+- Proactive threat detection
+- Near-real-time alerting (1-2ms)
+- Comprehensive monitoring
 
 **Operations:**
-- ? Low overhead (< 0.5%)
-- ?? Cost-effective ($0.85/month)
-- ?? Easy deployment (serverless)
+- Low overhead (< 0.5%)
+- Cost-effective ($0.85/month)
+- Easy deployment (serverless)
 
 **Visual:** Before/after comparison (metrics improvement)
 
@@ -646,12 +649,12 @@ github.com/microsoft/update-server-server-sync
 ## SLIDE 35: Resources
 **Title:** Documentation & Support
 
-?? **Docs:**
+**Docs:**
 - README.md - System overview
 - ANOMALY_METRICS.md - Metrics guide
 - MODEL_TRAINING_GUIDE.md - Training guide
 
-?? **Links:**
+**Links:**
 - ML.NET: docs.microsoft.com/dotnet/machine-learning
 - Azure Functions: docs.microsoft.com/azure/azure-functions
 - OpenTelemetry: opentelemetry.io
@@ -664,9 +667,9 @@ github.com/microsoft/update-server-server-sync
 **Title:** Thank You
 
 **Contact:**
-- ?? Email: [your-email]
-- ?? GitHub: [github.com/your-repo]
-- ?? Twitter: [@your-handle]
+- Email: [your-email]
+- GitHub: [github.com/your-repo]
+- Twitter: [@your-handle]
 
 **This presentation was generated from a production-ready anomaly detection system.**
 

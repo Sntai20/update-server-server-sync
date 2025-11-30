@@ -23,10 +23,10 @@
 ### The Windows Update Ecosystem
 
 **Volume & Complexity:**
-- ?? **~10,000+ updates** released annually by Microsoft
-- ?? **Complex relationships**: Supersedence chains, bundled updates
-- ?? **Multiple categories**: Security, Critical, Cumulative, Drivers
-- ?? **Global distribution**: Updates synced across enterprise networks
+- **~10,000+ updates** released annually by Microsoft
+- **Complex relationships**: Supersedence chains, bundled updates
+- **Multiple categories**: Security, Critical, Cumulative, Drivers
+- **Global distribution**: Updates synced across enterprise networks
 
 ### Security Threats in Update Streams
 
@@ -41,10 +41,10 @@
 > **How do we automatically detect anomalous updates in near-real-time before they're distributed to endpoints?**
 
 **Traditional Approaches Fall Short:**
-- ? **Signature checking alone** - Doesn't catch 0-day exploits
-- ? **Manual review** - Can't scale to thousands of updates
-- ? **Rule-based systems** - Brittle, high false positive rates
-- ? **Blacklisting** - Always reactive, never proactive
+- **Signature checking alone** - Doesn't catch 0-day exploits
+- **Manual review** - Can't scale to thousands of updates
+- **Rule-based systems** - Brittle, high false positive rates
+- **Blacklisting** - Always reactive, never proactive
 
 **We need machine learning to identify patterns humans miss.**
 
@@ -55,43 +55,44 @@
 ### System Overview
 
 ```
-???????????????????????????????????????????????????????????????????
-?                     Microsoft Update Catalog                      ?
-?              (Upstream Windows Update Servers)                   ?
-?????????????????????????????????????????????????????????????????
-                             ? WSUS Protocol
-                             ?
-???????????????????????????????????????????????????????????????????
-?                   Metadata Synchronization                       ?
-?  • Fetches update metadata (title, KB, files, categories)       ?
-?  • Stores in Azure Blob Storage (compressed format)             ?
-?  • Tracks supersedence relationships & applicability rules      ?
-?????????????????????????????????????????????????????????????????
-                             ?
-                             ?
-???????????????????????????????????????????????????????????????????
-?               Anomaly Detection Service (ML.NET)                 ?
-?                                                                  ?
-?  ?????????????????????         ????????????????????            ?
-?  ? Feature Extraction???????????  ML.NET Model     ?            ?
-?  ?  (13 features)    ?         ? (RandomizedPCA)   ?            ?
-?  ?????????????????????         ????????????????????            ?
-?           ?                              ?                      ?
-?           ?                              ? Anomaly Score        ?
-?           ?                              ?                      ?
-?  ?????????????????????         ????????????????????            ?
-?  ? UpdateMetadata    ?         ?  Threshold Check  ?            ?
-?  ? (17 properties)   ?         ?   (0.85 / 0.90)   ?            ?
-?  ?????????????????????         ????????????????????            ?
-?????????????????????????????????????????????????????????????????
-                             ?
-                   ??????????????????????
-                   ?                    ?
-                   ?                    ?
-          ?????????????????    ????????????????
-          ?  Queue Events ?    ?  Alert Logs  ?
-          ? (Azure Queue) ?    ? (App Insights)?
-          ?????????????????    ????????????????
++------------------------------------------------------------------+
+|                     Microsoft Update Catalog                     |
+|              (Upstream Windows Update Servers)                   |
++------------------------------------------------------------------+
+                             | WSUS Protocol
+                             |
+                             v
++------------------------------------------------------------------+
+|                   Metadata Synchronization                       |
+|  - Fetches update metadata (title, KB, files, categories)       |
+|  - Stores in Azure Blob Storage (compressed format)             |
+|  - Tracks supersedence relationships & applicability rules      |
++------------------------------------------------------------------+
+                             |
+                             v
++------------------------------------------------------------------+
+|               Anomaly Detection Service (ML.NET)                 |
+|                                                                  |
+|  +-------------------+         +------------------+              |
+|  | Feature Extraction| ------> |  ML.NET Model    |              |
+|  |  (13 features)    |         | (RandomizedPCA)  |              |
+|  +-------------------+         +------------------+              |
+|           |                              |                       |
+|           |                              | Anomaly Score         |
+|           v                              v                       |
+|  +-------------------+         +------------------+              |
+|  | UpdateMetadata    |         |  Threshold Check |              |
+|  | (17 properties)   |         |   (0.85 / 0.90)  |              |
+|  +-------------------+         +------------------+              |
++------------------------------------------------------------------+
+                             |
+                   +---------+---------+
+                   |                   |
+                   v                   v
+          +-----------------+    +---------------+
+          |  Queue Events   |    |  Alert Logs   |
+          | (Azure Queue)   |    | (App Insights)|
+          +-----------------+    +---------------+
 ```
 
 ### Technology Stack
@@ -109,22 +110,22 @@
 ### Key Design Decisions
 
 **Why ML.NET?**
-? Native .NET integration - No Python interop overhead  
-? Cross-platform - Runs on Windows, Linux, containers  
-? Production-ready - Microsoft-supported, well-documented  
-? Performance - In-process, low latency (~1-2ms per prediction)  
+- Native .NET integration - No Python interop overhead  
+- Cross-platform - Runs on Windows, Linux, containers  
+- Production-ready - Microsoft-supported, well-documented  
+- Performance - In-process, low latency (~1-2ms per prediction)  
 
 **Why RandomizedPCA?**
-? Unsupervised learning - No labeled training data required  
-? Dimensionality reduction - Handles 13 features efficiently  
-? Anomaly sensitivity - Detects outliers in high-dimensional space  
-? Fast training - ~5-30 seconds for 1000 samples  
+- Unsupervised learning - No labeled training data required  
+- Dimensionality reduction - Handles 13 features efficiently  
+- Anomaly sensitivity - Detects outliers in high-dimensional space  
+- Fast training - ~5-30 seconds for 1000 samples  
 
 **Why Azure Functions?**
-? Serverless - Auto-scaling, pay-per-execution  
-? Event-driven - Timer triggers, HTTP endpoints, queue triggers  
-? Isolated worker - .NET 9, full dependency injection  
-? Easy deployment - CI/CD with GitHub Actions  
+- Serverless - Auto-scaling, pay-per-execution  
+- Event-driven - Timer triggers, HTTP endpoints, queue triggers  
+- Isolated worker - .NET 9, full dependency injection  
+- Easy deployment - CI/CD with GitHub Actions  
 
 ---
 
@@ -216,7 +217,7 @@ var metadata = new UpdateMetadata
 
 **Algorithm Overview:**
 ```
-Input: Training data (N samples × 13 features)
+Input: Training data (N samples x 13 features)
        Rank k = 6 (dimensionality reduction)
        
 Process:
@@ -226,7 +227,7 @@ Process:
 4. Measure reconstruction error for each sample
 5. Samples with high reconstruction error = anomalies
 
-Output: Anomaly score ? [0, 1] for each update
+Output: Anomaly score in [0, 1] for each update
         (0.0 = normal, 1.0 = highly anomalous)
 ```
 
@@ -703,12 +704,12 @@ customMetrics
 ### Real-World Deployment Stats
 
 **Production System (30 days):**
-- ?? **Updates Analyzed:** 127,453
-- ?? **Anomalies Detected:** 247 (0.19%)
-- ? **Confirmed Threats:** 18 (7.3% of alerts)
-- ? **False Positives:** 229 (92.7% - tuning in progress)
-- ? **Average Latency:** 1.8ms per update
-- ?? **Storage Overhead:** 95 KB (model file)
+- **Updates Analyzed:** 127,453
+- **Anomalies Detected:** 247 (0.19%)
+- **Confirmed Threats:** 18 (7.3% of alerts)
+- **False Positives:** 229 (92.7% - tuning in progress)
+- **Average Latency:** 1.8ms per update
+- **Storage Overhead:** 95 KB (model file)
 
 **Tuning Recommendation:** Increase threshold from 0.90 to 0.92 to reduce false positives by ~40%
 
@@ -720,7 +721,7 @@ customMetrics
 - Average 100 updates scored per run
 
 **Monthly Costs:**
-- **Execution Time:** 1,200 executions × 2 seconds = ~$0.50
+- **Execution Time:** 1,200 executions ï¿½ 2 seconds = ~$0.50
 - **Memory:** 256 MB average = ~$0.20
 - **Storage Queue:** ~10,000 messages = ~$0.10
 - **Blob Storage:** 100 MB metadata = ~$0.05
@@ -951,24 +952,24 @@ var explanation = explainer.Explain(update);
 
 ### Key Takeaways
 
-1. ? **ML.NET enables production-ready ML** in .NET applications
-2. ? **Unsupervised learning** works without labeled training data
-3. ? **13 rich features** from Microsoft Update library provide signal
-4. ? **Azure Functions** offer serverless, event-driven architecture
-5. ? **OpenTelemetry metrics** provide full observability
-6. ? **Real-world deployment** achieves 94-98% detection rate
+1. **ML.NET enables production-ready ML** in .NET applications
+2. **Unsupervised learning** works without labeled training data
+3. **13 rich features** from Microsoft Update library provide signal
+4. **Azure Functions** offer serverless, event-driven architecture
+5. **OpenTelemetry metrics** provide full observability
+6. **Real-world deployment** achieves 94-98% detection rate
 
 ### Impact
 
 **Security Improvements:**
-- ??? Proactive threat detection (not just reactive blacklisting)
-- ?? Near-real-time alerting (1-2ms scoring latency)
-- ?? Comprehensive monitoring (60+ metrics)
+- Proactive threat detection (not just reactive blacklisting)
+- Near-real-time alerting (1-2ms scoring latency)
+- Comprehensive monitoring (60+ metrics)
 
 **Operational Benefits:**
-- ? Low overhead (< 0.5% on sync operations)
-- ?? Cost-effective (~$0.85/month for 10K updates/day)
-- ?? Easy deployment (serverless Azure Functions)
+- Low overhead (< 0.5% on sync operations)
+- Cost-effective (~$0.85/month for 10K updates/day)
+- Easy deployment (serverless Azure Functions)
 
 ### Call to Action
 
@@ -980,24 +981,24 @@ var explanation = explainer.Explain(update);
 5. Test detection: `POST /api/ingest-anomaly`
 
 **Contribute:**
-- ?? Report issues on GitHub
-- ?? Suggest new features
-- ?? Submit pull requests
+- Report issues on GitHub
+- Suggest new features
+- Submit pull requests
 
 ---
 
 ## Questions?
 
 **Contact Information:**
-- ?? Email: [your-email]
-- ?? GitHub: [github.com/your-repo]
-- ?? Documentation: See `README.md` files in repository
+- Email: [your-email]
+- GitHub: [github.com/your-repo]
+- Documentation: See `README.md` files in repository
 
 **Resources:**
-- ?? **Full Documentation**: `UpdateEngine.Functions/src/Functions/Intelligence/README.md`
-- ?? **Metrics Guide**: `UpdateEngine.Core/src/Metrics/ANOMALY_METRICS.md`
-- ??? **Training Guide**: `MODEL_TRAINING_GUIDE.md`
-- ? **Quick Reference**: `TRAINING_QUICK_REF.md`
+- **Full Documentation**: `UpdateEngine.Functions/src/Functions/Intelligence/README.md`
+- **Metrics Guide**: `UpdateEngine.Core/src/Metrics/ANOMALY_METRICS.md`
+- **Training Guide**: `MODEL_TRAINING_GUIDE.md`
+- **Quick Reference**: `TRAINING_QUICK_REF.md`
 
 ---
 

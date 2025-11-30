@@ -228,7 +228,7 @@ az storage message peek `
 1. Backup slides (37-40) - Skip entirely
 2. Future work details (29-31) - Summarize in 1 minute: "We have an exciting roadmap including time-series detection, ensemble models, and deep learning."
 3. Observability deep dive (18-19) - Show Grafana screenshot briefly, skip Prometheus details
-4. Implementation code (15) - Summarize: "The code is straightforward—query updates, score them, alert if anomalous."
+4. Implementation code (15) - Summarize: "The code is straightforward - query updates, score them, alert if anomalous."
 
 **Keep These (Essential):**
 - Problem statement (3-5)
@@ -272,7 +272,7 @@ az storage message peek `
 "For less than $1 per month, you get 94-98% anomaly detection accuracy with sub-millisecond latency, processing thousands of updates automatically with zero infrastructure to manage."
 
 ### Call to Action (Slide 34)
-"This isn't a prototype—it's production-ready, open source, and you can deploy it today. Visit github.com/microsoft/update-server-server-sync."
+"This isn't a prototype - it's production-ready, open source, and you can deploy it today. Visit github.com/microsoft/update-server-server-sync."
 
 ### Technical Differentiation (Slide 7)
 "We chose ML.NET over Python because it's native .NET, deploys as a single binary, and runs in-process with no IPC overhead. For .NET shops, it's a no-brainer."
@@ -301,7 +301,7 @@ az storage message peek `
 ### Operational Questions
 1. ? What's the maintenance overhead? (Answer: Model retrains automatically monthly, minimal human intervention)
 2. ? How do you monitor this in production? (Answer: Grafana/Prometheus with 60+ metrics)
-3. ? What happens if the model fails? (Answer: Graceful degradation—returns neutral scores, doesn't block updates)
+3. What happens if the model fails? (Answer: Graceful degradation - returns neutral scores, doesn't block updates)
 4. ? How do you handle disaster recovery? (Answer: Version control model files, rollback on corruption, retrain in ~30 sec)
 5. ? What's the on-call burden? (Answer: Alerts only on high-confidence anomalies, false positive rate < 0.5%)
 
@@ -324,11 +324,11 @@ az storage message peek `
 - ? You've memorized key messages and statistics
 
 ### Remember:
-- ?? You're the expert—you built this system
-- ?? The audience wants to learn from you
-- ?? It's okay to say "I don't know, let me follow up"
-- ?? Share your journey—what worked, what didn't
-- ?? Be enthusiastic—your passion is contagious
+- You're the expert - you built this system
+- The audience wants to learn from you
+- It's okay to say "I don't know, let me follow up"
+- Share your journey - what worked, what didn't
+- Be enthusiastic - your passion is contagious
 
 ---
 
@@ -344,10 +344,10 @@ az storage message peek `
 - [ ] Silence phone completely
 - [ ] Have water bottle accessible
 - [ ] Stand up, stretch, shake out nerves
-- [ ] Smile—you got this! ??
+- [ ] Smile - you got this!
 
 ---
 
-## GOOD LUCK! ??
+## GOOD LUCK!
 
 **You've built something amazing. Now go show the world!**

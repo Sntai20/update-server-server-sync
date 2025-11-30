@@ -2,7 +2,7 @@
 
 This guide explains how to train the ML.NET anomaly detection model for Windows Update analysis.
 
-## ?? Local Development Quick Start
+## Local Development Quick Start
 
 For **local development**, the model training is configured to happen automatically **every 5 minutes**. This means:
 
@@ -127,13 +127,13 @@ The system automatically retrains the model on a schedule:
 **CRON Expression Format**:
 ```
 * * * * * *
-? ? ? ? ? ?
-? ? ? ? ? ?? Day of week (0-6)
-? ? ? ? ???? Month (1-12)
-? ? ? ?????? Day of month (1-31)
-? ? ???????? Hour (0-23)
-? ?????????? Minute (0-59)
-???????????? Second (0-59)
+| | | | | |
+| | | | | +-- Day of week (0-6)
+| | | | +---- Month (1-12)
+| | | +------ Day of month (1-31)
+| | +-------- Hour (0-23)
+| +---------- Minute (0-59)
++------------ Second (0-59)
 ```
 
 **Common Schedules**:
