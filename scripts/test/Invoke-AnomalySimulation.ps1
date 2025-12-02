@@ -172,23 +172,13 @@ function Invoke-UnsignedUpdateScenario {
     for ($i = 1; $i -le $Count; $i++) {
         $kbId = Get-RandomKbId
         
+        $score = (Get-Random -Minimum 87 -Maximum 90) / 100.0
         $payload = @{
-            kb_ID = "KB$kbId"
-            fileSize = Get-Random -Minimum 10000000 -Maximum 50000000  # 10-50 MB (normal range)
-            isSigned = $false  # ❌ RED FLAG
-            domainReputation = 0.85  # Normal reputation
-            hashMatch = $true  # Hash verified
-            updateFrequency = 0.6  # Normal frequency
-            supersededCount = Get-Random -Minimum 0 -Maximum 5  # Normal
-            supersededByCount = 0
-            bundledUpdatesCount = Get-Random -Minimum 0 -Maximum 2
-            isSecurityUpdate = $true
-            isCriticalUpdate = $false
-            isCumulativeUpdate = $false
-            applicabilityRulesCount = Get-Random -Minimum 1 -Maximum 5
-            hasComplexApplicability = $false
-            score = 0.88  # Estimated score
-            timestamp = (Get-Date).ToUniversalTime().ToString("o")
+            KB_ID = "KB$kbId"
+            IsSigned = $false  # ❌ RED FLAG
+            HashMatch = $true  # Hash verified
+            DomainReputation = 0.85  # Normal reputation
+            Score = $score  # Pre-calculated for display
         }
         
         $response = Invoke-AnomalyIngestion -Payload $payload -Description "Unsigned security update (KB$kbId)"
@@ -215,23 +205,13 @@ function Invoke-HashMismatchScenario {
     for ($i = 1; $i -le $Count; $i++) {
         $kbId = Get-RandomKbId
         
+        $score = (Get-Random -Minimum 91 -Maximum 94) / 100.0
         $payload = @{
-            kb_ID = "KB$kbId"
-            fileSize = Get-Random -Minimum 20000000 -Maximum 100000000
-            isSigned = $true  # Signed but...
-            domainReputation = 0.9  # Good reputation
-            hashMatch = $false  # ❌ RED FLAG: Hash mismatch!
-            updateFrequency = 0.7
-            supersededCount = Get-Random -Minimum 0 -Maximum 8
-            supersededByCount = 0
-            bundledUpdatesCount = Get-Random -Minimum 0 -Maximum 3
-            isSecurityUpdate = $true
-            isCriticalUpdate = $true
-            isCumulativeUpdate = $false
-            applicabilityRulesCount = Get-Random -Minimum 1 -Maximum 6
-            hasComplexApplicability = $false
-            score = 0.92  # Higher score due to hash mismatch
-            timestamp = (Get-Date).ToUniversalTime().ToString("o")
+            KB_ID = "KB$kbId"
+            IsSigned = $true  # Signed but...
+            HashMatch = $false  # ❌ RED FLAG: Hash mismatch!
+            DomainReputation = 0.9  # Good reputation
+            Score = $score  # Higher score due to hash mismatch
         }
         
         $response = Invoke-AnomalyIngestion -Payload $payload -Description "Hash mismatch on critical update (KB$kbId)"
@@ -258,26 +238,17 @@ function Invoke-MaliciousPublisherScenario {
     for ($i = 1; $i -le $Count; $i++) {
         $kbId = Get-RandomKbId
         
+        $score = (Get-Random -Minimum 88 -Maximum 92) / 100.0
+        $reputation = (Get-Random -Minimum 20 -Maximum 45) / 100.0  # ❌ LOW reputation (0.2-0.45)
         $payload = @{
-            kb_ID = "KB$kbId"
-            fileSize = Get-Random -Minimum 5000000 -Maximum 30000000
-            isSigned = $true  # Signed but from suspicious publisher
-            domainReputation = (Get-Random -Minimum 20 -Maximum 45) / 100  # ❌ LOW reputation (0.2-0.45)
-            hashMatch = $true
-            updateFrequency = 0.3  # Infrequent updates from this source
-            supersededCount = 0
-            supersededByCount = 0
-            bundledUpdatesCount = 0
-            isSecurityUpdate = $false
-            isCriticalUpdate = $false
-            isCumulativeUpdate = $false
-            applicabilityRulesCount = Get-Random -Minimum 1 -Maximum 4
-            hasComplexApplicability = $false
-            score = 0.90  # Moderate score
-            timestamp = (Get-Date).ToUniversalTime().ToString("o")
+            KB_ID = "KB$kbId"
+            IsSigned = $true  # Signed but from suspicious publisher
+            HashMatch = $true
+            DomainReputation = $reputation
+            Score = $score  # Moderate score
         }
         
-        $response = Invoke-AnomalyIngestion -Payload $payload -Description "Low reputation publisher (KB$kbId, rep=$($payload.domainReputation.ToString('0.00')))"
+        $response = Invoke-AnomalyIngestion -Payload $payload -Description "Low reputation publisher (KB$kbId, rep=$($reputation.ToString('0.00')))"
         
         if ($response) {
             $severity = Get-SeverityFromScore $payload.score
@@ -301,26 +272,17 @@ function Invoke-ComplexApplicabilityScenario {
     for ($i = 1; $i -le $Count; $i++) {
         $kbId = Get-RandomKbId
         
+        $score = (Get-Random -Minimum 86 -Maximum 89) / 100.0
+        $rulesCount = Get-Random -Minimum 25 -Maximum 50  # Track for description
         $payload = @{
-            kb_ID = "KB$kbId"
-            fileSize = Get-Random -Minimum 1000000 -Maximum 10000000  # Smaller update
-            isSigned = $true
-            domainReputation = 0.8
-            hashMatch = $true
-            updateFrequency = 0.5
-            supersededCount = Get-Random -Minimum 0 -Maximum 3
-            supersededByCount = 0
-            bundledUpdatesCount = 0
-            isSecurityUpdate = $false
-            isCriticalUpdate = $false
-            isCumulativeUpdate = $false
-            applicabilityRulesCount = Get-Random -Minimum 25 -Maximum 50  # ❌ Unusually complex (normal: 1-5)
-            hasComplexApplicability = $true  # ❌ RED FLAG
-            score = 0.87
-            timestamp = (Get-Date).ToUniversalTime().ToString("o")
+            KB_ID = "KB$kbId"
+            IsSigned = $true
+            HashMatch = $true
+            DomainReputation = 0.8
+            Score = $score
         }
         
-        $response = Invoke-AnomalyIngestion -Payload $payload -Description "Complex targeting rules (KB$kbId, $($payload.applicabilityRulesCount) rules)"
+        $response = Invoke-AnomalyIngestion -Payload $payload -Description "Complex targeting rules (KB$kbId, $rulesCount rules)"
         
         if ($response) {
             $severity = Get-SeverityFromScore $payload.score
@@ -344,26 +306,17 @@ function Invoke-SupersedenceAnomalyScenario {
     for ($i = 1; $i -le $Count; $i++) {
         $kbId = Get-RandomKbId
         
+        $score = (Get-Random -Minimum 89 -Maximum 93) / 100.0
+        $supersededCount = Get-Random -Minimum 50 -Maximum 100  # Track for description
         $payload = @{
-            kb_ID = "KB$kbId"
-            fileSize = Get-Random -Minimum 100000000 -Maximum 500000000  # Large update (100-500 MB)
-            isSigned = $true
-            domainReputation = 0.85
-            hashMatch = $true
-            updateFrequency = 0.4
-            supersededCount = Get-Random -Minimum 50 -Maximum 100  # ❌ Supersedes MANY updates (normal: 0-10)
-            supersededByCount = 0
-            bundledUpdatesCount = Get-Random -Minimum 10 -Maximum 20  # ❌ Many bundled updates
-            isSecurityUpdate = $false
-            isCriticalUpdate = $false
-            isCumulativeUpdate = $true  # Claims to be cumulative
-            applicabilityRulesCount = Get-Random -Minimum 5 -Maximum 10
-            hasComplexApplicability = $false
-            score = 0.91
-            timestamp = (Get-Date).ToUniversalTime().ToString("o")
+            KB_ID = "KB$kbId"
+            IsSigned = $true
+            HashMatch = $true
+            DomainReputation = 0.85
+            Score = $score
         }
         
-        $response = Invoke-AnomalyIngestion -Payload $payload -Description "Supersedes $($payload.supersededCount) updates (KB$kbId)"
+        $response = Invoke-AnomalyIngestion -Payload $payload -Description "Supersedes $supersededCount updates (KB$kbId)"
         
         if ($response) {
             $severity = Get-SeverityFromScore $payload.score
@@ -387,23 +340,14 @@ function Invoke-CombinedThreatsScenario {
     for ($i = 1; $i -le $Count; $i++) {
         $kbId = Get-RandomKbId
         
+        $score = (Get-Random -Minimum 95 -Maximum 99) / 100.0
+        $reputation = (Get-Random -Minimum 10 -Maximum 30) / 100.0  # ❌ Very low reputation
         $payload = @{
-            kb_ID = "KB$kbId"
-            fileSize = Get-Random -Minimum 1000000 -Maximum 200000000  # Variable size
-            isSigned = $false  # ❌ RED FLAG 1: Unsigned
-            domainReputation = (Get-Random -Minimum 10 -Maximum 30) / 100  # ❌ RED FLAG 2: Very low reputation
-            hashMatch = $false  # ❌ RED FLAG 3: Hash mismatch
-            updateFrequency = 0.1  # ❌ RED FLAG 4: Rare/unusual pattern
-            supersededCount = Get-Random -Minimum 30 -Maximum 70  # ❌ RED FLAG 5: Unusual supersedence
-            supersededByCount = 0
-            bundledUpdatesCount = Get-Random -Minimum 5 -Maximum 15
-            isSecurityUpdate = $true  # Claims to be security update (suspicious!)
-            isCriticalUpdate = $true  # Claims critical (very suspicious!)
-            isCumulativeUpdate = $false
-            applicabilityRulesCount = Get-Random -Minimum 20 -Maximum 40  # ❌ RED FLAG 6: Complex rules
-            hasComplexApplicability = $true  # ❌ RED FLAG 7
-            score = 0.97  # Very high score - multiple threats
-            timestamp = (Get-Date).ToUniversalTime().ToString("o")
+            KB_ID = "KB$kbId"
+            IsSigned = $false  # ❌ RED FLAG 1: Unsigned
+            HashMatch = $false  # ❌ RED FLAG 2: Hash mismatch
+            DomainReputation = $reputation  # ❌ RED FLAG 3: Very low reputation
+            Score = $score  # Very high score - multiple threats
         }
         
         $response = Invoke-AnomalyIngestion -Payload $payload -Description "🚨 CRITICAL: Multiple red flags (KB$kbId)"
