@@ -44,12 +44,12 @@ public class AnomalyDetectionFunctions
 
     /// <summary>
     /// HTTP endpoint for ingesting anomaly detection requests
-    /// POST /api/ingest-anomaly
+    /// POST /api/IngestAnomaly
     /// Requires Features:EnableAnomalyDetection=true
     /// </summary>
     [Function("IngestAnomaly")]
     public async Task<HttpResponseData> IngestAnomaly(
-        [HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequestData req)
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post")] HttpRequestData req)
     {
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         

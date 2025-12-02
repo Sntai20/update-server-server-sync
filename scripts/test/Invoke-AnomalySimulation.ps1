@@ -25,7 +25,7 @@
 
 .PARAMETER FunctionsUrl
     Base URL for Azure Functions endpoints.
-    When using AppHost, check Aspire Dashboard (https://localhost:17003) for the actual port.
+    When using AppHost, check Aspire Dashboard (https://localhost:15001) for the actual port.
     Example: http://localhost:5234 (port varies each run).
     Default attempts localhost:7071 (standalone func.exe).
 
@@ -73,7 +73,10 @@ param(
     [int]$Delay = 1000,
     
     [Parameter(Mandatory = $false)]
-    [string]$FunctionsUrl = 'http://localhost:7071'
+    [string]$FunctionsUrl = 'http://localhost:7071',
+    
+    [Parameter(Mandatory = $false)]
+    [switch]$SkipHealthCheck
 )
 
 $ErrorActionPreference = 'Stop'
@@ -127,11 +130,11 @@ function Invoke-AnomalyIngestion {
     
     try {
         $json = $Payload | ConvertTo-Json -Depth 10
-        $url = "$FunctionsUrl/api/ingest-anomaly"
+        $url = "$FunctionsUrl/api/IngestAnomaly"
         
         Write-Host "$($script:Colors.Info)  → Ingesting: $Description$($script:Colors.Reset)"
         
-        $response = Invoke-RestMethod -Uri $url -Method POST -Body $json -ContentType 'application/json' -TimeoutSec 10
+        $response = Invoke-RestMethod -Uri $url -Method POST -Body $json -ContentType 'application/json' -TimeoutSec 60
         
         return $response
     }
@@ -429,29 +432,33 @@ Write-Host "$($script:Colors.Header)║                                         
 Write-Host "$($script:Colors.Header)╚══════════════════════════════════════════════════════════════╝$($script:Colors.Reset)"
 Write-Host ""
 
-# Verify Functions are accessible
-try {
-    Write-Host "$($script:Colors.Info)→ Verifying Azure Functions connectivity...$($script:Colors.Reset)"
-    $health = Invoke-RestMethod -Uri "$FunctionsUrl/api/UniversalHealth?scope=basic" -Method GET -TimeoutSec 5 -ErrorAction Stop
-    
-    if ($health.isHealthy) {
-        Write-Host "$($script:Colors.Success)✓ Functions are healthy and ready$($script:Colors.Reset)"
-        Write-Host "$($script:Colors.Info)  Status: $($health.status)$($script:Colors.Reset)"
-    } else {
-        Write-Host "$($script:Colors.Warning)⚠ Functions responded but status is: $($health.status)$($script:Colors.Reset)"
+# Verify Functions are accessible (unless skipped)
+if (-not $SkipHealthCheck) {
+    try {
+        Write-Host "$($script:Colors.Info)→ Verifying Azure Functions connectivity...$($script:Colors.Reset)"
+        $health = Invoke-RestMethod -Uri "$FunctionsUrl/api/UniversalHealth?scope=basic" -Method GET -TimeoutSec 10 -ErrorAction Stop
+        
+        if ($health.isHealthy) {
+            Write-Host "$($script:Colors.Success)✓ Functions are healthy and ready$($script:Colors.Reset)"
+            Write-Host "$($script:Colors.Info)  Status: $($health.status)$($script:Colors.Reset)"
+        } else {
+            Write-Host "$($script:Colors.Warning)⚠ Functions responded but status is: $($health.status)$($script:Colors.Reset)"
+        }
     }
-}
-catch {
-    Write-Host "$($script:Colors.Error)✗ Cannot connect to Azure Functions at $FunctionsUrl$($script:Colors.Reset)"
-    Write-Host ""
-    Write-Host "$($script:Colors.Warning)Troubleshooting:$($script:Colors.Reset)"
-    Write-Host "$($script:Colors.Info)  1. Make sure AppHost is running: .\scripts\test\Start-Demo.ps1$($script:Colors.Reset)"
-    Write-Host "$($script:Colors.Info)  2. Check Aspire Dashboard for actual port: https://localhost:15001$($script:Colors.Reset)"
-    Write-Host "$($script:Colors.Info)  3. Look for 'UpdateEngine' resource and copy the endpoint URL$($script:Colors.Reset)"
-    Write-Host "$($script:Colors.Info)  4. Retry with: -FunctionsUrl http://localhost:PORT$($script:Colors.Reset)"
-    Write-Host ""
-    Write-Host "$($script:Colors.Info)Note: AppHost uses dynamic ports. Port 7071 only works with standalone 'func start'$($script:Colors.Reset)"
-    exit 1
+    catch {
+        Write-Host "$($script:Colors.Error)✗ Cannot connect to Azure Functions at $FunctionsUrl$($script:Colors.Reset)"
+        Write-Host ""
+        Write-Host "$($script:Colors.Warning)Troubleshooting:$($script:Colors.Reset)"
+        Write-Host "$($script:Colors.Info)  1. Make sure AppHost is running: .\scripts\test\Start-Demo.ps1$($script:Colors.Reset)"
+        Write-Host "$($script:Colors.Info)  2. Check Aspire Dashboard for actual port: https://localhost:15001$($script:Colors.Reset)"
+        Write-Host "$($script:Colors.Info)  3. Look for 'UpdateEngine' resource and copy the endpoint URL$($script:Colors.Reset)"
+        Write-Host "$($script:Colors.Info)  4. Retry with: -FunctionsUrl http://localhost:PORT -SkipHealthCheck$($script:Colors.Reset)"
+        Write-Host ""
+        Write-Host "$($script:Colors.Info)Note: AppHost uses dynamic ports. Port 7071 only works with standalone 'func start'$($script:Colors.Reset)"
+        exit 1
+    }
+} else {
+    Write-Host "$($script:Colors.Warning)⚠ Skipping health check (using -SkipHealthCheck)$($script:Colors.Reset)"
 }
 
 Write-Host ""
@@ -459,7 +466,7 @@ Write-Host "$($script:Colors.Info)Configuration:$($script:Colors.Reset)"
 Write-Host "$($script:Colors.Info)  Scenario: $Scenario$($script:Colors.Reset)"
 Write-Host "$($script:Colors.Info)  Count: $Count sample(s) per scenario$($script:Colors.Reset)"
 Write-Host "$($script:Colors.Info)  Delay: $Delay ms between submissions$($script:Colors.Reset)"
-Write-Host "$($script:Colors.Info)  Endpoint: $FunctionsUrl/api/ingest-anomaly$($script:Colors.Reset)"
+Write-Host "$($script:Colors.Info)  Endpoint: $FunctionsUrl/api/IngestAnomaly$($script:Colors.Reset)"
 
 # Execute scenarios
 $startTime = Get-Date
@@ -494,7 +501,7 @@ Write-Host ""
 Write-Host "$($script:Colors.Info)Next Steps:$($script:Colors.Reset)"
 Write-Host "$($script:Colors.Info)  1. Check Functions logs for anomaly alerts$($script:Colors.Reset)"
 Write-Host "$($script:Colors.Info)  2. View queue: az storage message peek --queue-name anomaly-events --connection-string UseDevelopmentStorage=true$($script:Colors.Reset)"
-Write-Host "$($script:Colors.Info)  3. Check Aspire Dashboard metrics: https://localhost:17003$($script:Colors.Reset)"
+Write-Host "$($script:Colors.Info)  3. Check Aspire Dashboard metrics: https://localhost:15001$($script:Colors.Reset)"
 Write-Host ""
 
 #endregion
