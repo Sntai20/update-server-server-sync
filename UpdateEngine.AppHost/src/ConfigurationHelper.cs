@@ -25,9 +25,9 @@ public static class ConfigurationHelper
         IResourceBuilder<ProjectResource> project,
         IConfiguration configuration)
     {
-        // Bind simplified configuration
+        // Bind simplified configuration from UpdateEngine section
         var appConfig = new AppConfig();
-        configuration.Bind(appConfig);
+        configuration.GetSection(AppConfig.SectionName).Bind(appConfig);
 
         // Set storage environment variables from StorageConfiguration
         project
@@ -78,9 +78,9 @@ public static class ConfigurationHelper
         IResourceBuilder<AzureFunctionsProjectResource> functions,
         IConfiguration configuration)
     {
-        // Bind simplified configuration
+        // Bind simplified configuration from UpdateEngine section
         var appConfig = new AppConfig();
-        configuration.Bind(appConfig);
+        configuration.GetSection(AppConfig.SectionName).Bind(appConfig);
 
         // Set storage environment variables from StorageConfiguration
         // IMPORTANT: Do NOT set UseAzureStorageForMetadata/UseAzureStorageForContent as environment variables
@@ -95,7 +95,8 @@ public static class ConfigurationHelper
             .WithEnvironment("UpdateEngine__SyncConfiguration__EnableScheduledSync", appConfig.SyncConfiguration.EnableScheduledSync.ToString())
             .WithEnvironment("UpdateEngine__FeatureFlags__EnableDetailedLogging", appConfig.FeatureFlags.EnableDetailedLogging.ToString())
             .WithEnvironment("UpdateEngine__FeatureFlags__EnableMetrics", appConfig.FeatureFlags.EnableMetrics.ToString())
-            .WithEnvironment("UpdateEngine__FeatureFlags__EnableCaching", appConfig.FeatureFlags.EnableCaching.ToString());
+            .WithEnvironment("UpdateEngine__FeatureFlags__EnableCaching", appConfig.FeatureFlags.EnableCaching.ToString())
+            .WithEnvironment("Features__EnableAnomalyDetection", appConfig.FeatureFlags.EnableAnomalyDetection.ToString());
 
         // IMPORTANT: Only set local paths when NOT using Azure Storage
         // When using Azurite, Aspire connection strings (ConnectionStrings__MetadataStorageConnection) take precedence
