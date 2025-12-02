@@ -39,6 +39,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<JsonSerializerOptions>(provider => new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            PropertyNameCaseInsensitive = true, // Allow case-insensitive deserialization
             WriteIndented = false,
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
             Converters = { new JsonStringEnumConverter() }
